@@ -6,6 +6,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { TrackDeliveryPage } from './TrackDeliveryPage';
 import * as donationApi from '../api/donationApi';
 import * as AuthContextModule from '../context/AuthContext';
+import '@testing-library/jest-dom/vitest';
 import { Client } from '@stomp/stompjs';
 
 vi.mock('../api/donationApi', () => ({
@@ -90,7 +91,7 @@ describe('TrackDeliveryPage', () => {
     mockStompClient.deactivate.mockClear();
     mockStompClient.subscribe.mockClear();
     
-    global.fetch = vi.fn().mockResolvedValue({
+    globalThis.fetch = vi.fn().mockResolvedValue({
       json: () => Promise.resolve({ code: 'Ok', routes: [] }),
     });
   });
