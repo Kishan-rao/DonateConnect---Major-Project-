@@ -1,0 +1,7 @@
+.env
+.env.*
+target
+backend/donateconnect
+uploads
+node_modules
+.git
