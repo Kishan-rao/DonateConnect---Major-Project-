@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { Buffer } from 'node:buffer';
+
+declare const Buffer: { from(value: Uint8Array): any };
 
 const testImageBytes = Uint8Array.from([
   0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,

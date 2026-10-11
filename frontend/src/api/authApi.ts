@@ -1,13 +1,12 @@
 import { apiClient } from './client';
 import { ApiResponse, AuthResponse, LoginRequest, RegisterRequest, User, VerifyOtpRequest } from '../types';
 
+
 export const registerDonorApi = async (data: RegisterRequest): Promise<AuthResponse> => {
-  const response = await apiClient.post<ApiResponse<AuthResponse>>('/auth/register', {
-    ...data,
-    role: 'DONOR', // Enforce DONOR role for public registration
-  });
+  const response = await apiClient.post<ApiResponse<AuthResponse>>('/auth/register', data);
   return response.data.data;
 };
+
 
 export const loginApi = async (data: LoginRequest): Promise<AuthResponse> => {
   const response = await apiClient.post<ApiResponse<AuthResponse>>('/auth/login', data);
