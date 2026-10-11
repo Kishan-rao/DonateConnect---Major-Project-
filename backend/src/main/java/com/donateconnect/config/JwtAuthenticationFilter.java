@@ -1,6 +1,8 @@
 package com.donateconnect.config;
 
 import com.donateconnect.entity.Role;
+import com.donateconnect.entity.User;
+import com.donateconnect.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,6 +19,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -25,6 +28,7 @@ import java.util.UUID;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtils jwtUtils;
+    private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(
@@ -33,24 +37,82 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
+        String jwt = parseJwt(request);
+
+        if (jwt == null) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         try {
-            String jwt = parseJwt(request);
-            if (jwt != null && jwtUtils.validateToken(jwt)) {
-                String email = jwtUtils.getEmailFromToken(jwt);
-                UUID userId = jwtUtils.getUserIdFromToken(jwt);
-                Role role = jwtUtils.getRoleFromToken(jwt);
-
-                SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role.name());
-
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(email, null, Collections.singletonList(authority));
-                
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+            if (!jwtUtils.validateToken(jwt)) {
+                SecurityContextHolder.clearContext();
+                response.sendError(
+                        HttpServletResponse.SC_UNAUTHORIZED,
+                        "Invalid authentication token."
+                );
+                return;
             }
+
+            String email = jwtUtils.getEmailFromToken(jwt);
+            UUID userId = jwtUtils.getUserIdFromToken(jwt);
+
+            Optional<User> userOptional = userRepository.findById(userId);
+
+            if (userOptional.isEmpty()) {
+                SecurityContextHolder.clearContext();
+                response.sendError(
+                        HttpServletResponse.SC_UNAUTHORIZED,
+                        "Account not found."
+                );
+                return;
+            }
+
+            User user = userOptional.get();
+
+            if (email == null || !user.getEmail().equalsIgnoreCase(email)) {
+                SecurityContextHolder.clearContext();
+                response.sendError(
+                        HttpServletResponse.SC_UNAUTHORIZED,
+                        "Invalid authentication token."
+                );
+                return;
+            }
+
+            if (!user.isApproved() && user.getRole() != Role.DONOR && user.getRole() != Role.ADMIN) {
+                SecurityContextHolder.clearContext();
+                response.sendError(
+                        HttpServletResponse.SC_FORBIDDEN,
+                        "Account pending admin approval or approval revoked."
+                );
+                return;
+            }
+
+            SimpleGrantedAuthority authority =
+                    new SimpleGrantedAuthority("ROLE_" + user.getRole().name());
+
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(
+                            user.getEmail(),
+                            null,
+                            Collections.singletonList(authority)
+                    );
+
+            authentication.setDetails(
+                    new WebAuthenticationDetailsSource().buildDetails(request)
+            );
+
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
         } catch (Exception e) {
-            log.error("Cannot set user authentication: {}", e.getMessage());
+            SecurityContextHolder.clearContext();
+            log.warn("JWT authentication failed: {}", e.getMessage());
+
+            response.sendError(
+                    HttpServletResponse.SC_UNAUTHORIZED,
+                    "Authentication failed."
+            );
+            return;
         }
 
         filterChain.doFilter(request, response);
@@ -58,9 +120,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private String parseJwt(HttpServletRequest request) {
         String headerAuth = request.getHeader("Authorization");
-        if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
+
+        if (StringUtils.hasText(headerAuth)
+                && headerAuth.startsWith("Bearer ")) {
             return headerAuth.substring(7);
         }
+
         return null;
     }
 }

@@ -81,6 +81,7 @@ class IntegrationWorkflowTest {
                 .passwordHash(passwordEncoder.encode("password123"))
                 .fullName("Integration Donor")
                 .role(Role.DONOR)
+                .approved(true)
                 .build());
 
         ngoUser = userRepository.save(User.builder()
@@ -88,6 +89,7 @@ class IntegrationWorkflowTest {
                 .passwordHash(passwordEncoder.encode("password123"))
                 .fullName("Integration NGO Manager")
                 .role(Role.NGO)
+                .approved(true)
                 .build());
 
         volunteerUser = userRepository.save(User.builder()
@@ -95,6 +97,7 @@ class IntegrationWorkflowTest {
                 .passwordHash(passwordEncoder.encode("password123"))
                 .fullName("Integration Volunteer")
                 .role(Role.VOLUNTEER)
+                .approved(true)
                 .build());
 
         ngoProfile = ngoProfileRepository.save(NGOProfile.builder()

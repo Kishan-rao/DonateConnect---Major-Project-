@@ -1,26 +1,38 @@
 package com.donateconnect.service;
 
+import com.donateconnect.exception.EmailDeliveryException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
+import org.springframework.mail.MailAuthenticationException;
+import org.springframework.mail.MailSendException;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.mail.javamail.JavaMailSender;
 
 import com.sun.net.httpserver.HttpServer;
 import java.net.InetSocketAddress;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
 @SpringBootTest
+@ActiveProfiles("test")
 @TestPropertySource(properties = {
     "app.mail.provider=brevo",
-    "BREVO_API_KEY=test-api-key"
+    "BREVO_API_KEY=test-api-key",
+    "app.cors.allowed-origins=http://localhost:3000"
 })
 @ExtendWith(OutputCaptureExtension.class)
 public class TestEmailService {
@@ -80,7 +92,7 @@ public class TestEmailService {
     }
 
     @Test
-    public void testSendOtpBrevoSuccess(CapturedOutput output) throws Exception {
+    public void testSendOtpBrevoSuccess(CapturedOutput output) {
         simulateTimeout.set(false);
         simulateFailure.set(false);
         EmailService customService = setupCustomService();
@@ -90,8 +102,8 @@ public class TestEmailService {
 
         customService.sendOtpEmail("user@test.com", "SECRET_OTP_999");
         
-        org.junit.jupiter.api.Assertions.assertFalse(output.getOut().contains("SECRET_OTP_999"));
-        org.junit.jupiter.api.Assertions.assertFalse(output.getOut().contains("test-api-key"));
+        assertFalse(output.getOut().contains("SECRET_OTP_999"));
+        assertFalse(output.getOut().contains("test-api-key"));
     }
 
     @Test
@@ -105,13 +117,13 @@ public class TestEmailService {
 
         try {
             customService.sendOtpEmail("user@test.com", "SECRET_OTP_888");
-            org.junit.jupiter.api.Assertions.fail("Expected exception");
+            fail("Expected exception");
         } catch (RuntimeException e) {
-            org.junit.jupiter.api.Assertions.assertEquals("Failed to send email.", e.getMessage());
+            assertEquals("Failed to send email.", e.getMessage());
         }
         
-        org.junit.jupiter.api.Assertions.assertFalse(output.getOut().contains("SECRET_OTP_888"));
-        org.junit.jupiter.api.Assertions.assertFalse(output.getOut().contains("test-api-key"));
+        assertFalse(output.getOut().contains("SECRET_OTP_888"));
+        assertFalse(output.getOut().contains("test-api-key"));
     }
 
     @Test
@@ -122,16 +134,105 @@ public class TestEmailService {
         java.net.http.HttpClient customClient = java.net.http.HttpClient.newBuilder().build();
         ReflectionTestUtils.setField(customService, "httpClient", customClient);
 
-        // Override the timeout so test runs fast
         ReflectionTestUtils.setField(customService, "brevoApiUrl", "http://localhost:" + mockPort + "/v3/smtp/email");
 
         try {
             customService.sendOtpEmail("user@test.com", "SECRET_OTP_777");
-            // If it succeeds (because 2s is less than 10s), that's fine too. We'll just assert on logs.
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         }
         
-        org.junit.jupiter.api.Assertions.assertFalse(output.getOut().contains("SECRET_OTP_777"));
-        org.junit.jupiter.api.Assertions.assertFalse(output.getOut().contains("test-api-key"));
+        assertFalse(output.getOut().contains("SECRET_OTP_777"));
+        assertFalse(output.getOut().contains("test-api-key"));
+    }
+
+    @Test
+    public void testSendOtpSmtpSuccess(CapturedOutput output) {
+        JavaMailSender mockMailSender = mock(JavaMailSender.class);
+        EmailService customService = new EmailService(mockMailSender, objectMapper);
+        ReflectionTestUtils.setField(customService, "provider", "smtp");
+        ReflectionTestUtils.setField(customService, "fromEmail", "noreply@donateconnect.com");
+
+        customService.sendOtpEmail("donor@test.com", "SECRET_OTP_123");
+
+        ArgumentCaptor<SimpleMailMessage> messageCaptor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        verify(mockMailSender, times(1)).send(messageCaptor.capture());
+
+        SimpleMailMessage sentMessage = messageCaptor.getValue();
+        assertEquals("noreply@donateconnect.com", sentMessage.getFrom());
+        assertArrayEquals(new String[]{"donor@test.com"}, sentMessage.getTo());
+        assertTrue(sentMessage.getSubject().contains("Verification Code"));
+        assertTrue(sentMessage.getText().contains("SECRET_OTP_123"));
+
+        // Crucial security check: OTP must never appear in application console / log output
+        assertFalse(output.getOut().contains("SECRET_OTP_123"));
+    }
+
+    @Test
+    public void testSendOtpSmtpAuthenticationFailure(CapturedOutput output) {
+        JavaMailSender mockMailSender = mock(JavaMailSender.class);
+        doThrow(new MailAuthenticationException("535 5.7.8 Authentication failed"))
+                .when(mockMailSender).send(any(SimpleMailMessage.class));
+
+        EmailService customService = new EmailService(mockMailSender, objectMapper);
+        ReflectionTestUtils.setField(customService, "provider", "smtp");
+        ReflectionTestUtils.setField(customService, "fromEmail", "noreply@donateconnect.com");
+
+        EmailDeliveryException ex = assertThrows(
+                EmailDeliveryException.class,
+                () -> customService.sendOtpEmail("user@test.com", "SECRET_OTP_AUTH_FAIL")
+        );
+
+        assertEquals("Failed to send email.", ex.getMessage());
+        assertInstanceOf(MailAuthenticationException.class, ex.getCause());
+        // Verify OTP is not leaked anywhere in logs
+        assertFalse(output.getOut().contains("SECRET_OTP_AUTH_FAIL"));
+    }
+
+    @Test
+    public void testSendOtpSmtpSendFailure(CapturedOutput output) {
+        JavaMailSender mockMailSender = mock(JavaMailSender.class);
+        doThrow(new MailSendException("Connection timed out to smtp-relay.brevo.com"))
+                .when(mockMailSender).send(any(SimpleMailMessage.class));
+
+        EmailService customService = new EmailService(mockMailSender, objectMapper);
+        ReflectionTestUtils.setField(customService, "provider", "smtp");
+        ReflectionTestUtils.setField(customService, "fromEmail", "noreply@donateconnect.com");
+
+        EmailDeliveryException ex = assertThrows(
+                EmailDeliveryException.class,
+                () -> customService.sendOtpEmail("user@test.com", "SECRET_OTP_TIMEOUT")
+        );
+
+        assertEquals("Failed to send email.", ex.getMessage());
+        assertInstanceOf(MailSendException.class, ex.getCause());
+        assertFalse(output.getOut().contains("SECRET_OTP_TIMEOUT"));
+    }
+
+    @Test
+    public void testSendNotificationEmailSmtpSuccess() {
+        JavaMailSender mockMailSender = mock(JavaMailSender.class);
+        EmailService customService = new EmailService(mockMailSender, objectMapper);
+        ReflectionTestUtils.setField(customService, "provider", "smtp");
+        ReflectionTestUtils.setField(customService, "fromEmail", "noreply@donateconnect.com");
+
+        customService.sendNotificationEmail("user@test.com", "Update", "Donation claimed");
+
+        verify(mockMailSender, times(1)).send(any(SimpleMailMessage.class));
+    }
+
+    @Test
+    public void testSendNotificationEmailSmtpFailureDoesNotThrow() {
+        JavaMailSender mockMailSender = mock(JavaMailSender.class);
+        doThrow(new MailSendException("Connection refused"))
+                .when(mockMailSender).send(any(SimpleMailMessage.class));
+
+        EmailService customService = new EmailService(mockMailSender, objectMapper);
+        ReflectionTestUtils.setField(customService, "provider", "smtp");
+        ReflectionTestUtils.setField(customService, "fromEmail", "noreply@donateconnect.com");
+
+        // Notification failure is logged but does not throw to caller
+        assertDoesNotThrow(() ->
+                customService.sendNotificationEmail("user@test.com", "Update", "Donation claimed")
+        );
     }
 }

@@ -1,6 +1,7 @@
 package com.donateconnect.exception;
 
 import com.donateconnect.config.JwtUtils;
+import com.donateconnect.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -59,14 +60,36 @@ class GlobalExceptionHandlerIntegrationTest {
                     "unique violation", new java.sql.SQLException("donation_id violated", "23505")
                 );
             }
+
+            @GetMapping("/api/test/email-delivery-error")
+            public void throwEmailDeliveryError() {
+                throw new EmailDeliveryException("Internal socket timeout on brevo-relay");
+            }
+
+            @GetMapping("/api/test/smtp-auth-error")
+            public void throwSmtpAuthError() {
+                throw new org.springframework.mail.MailAuthenticationException("535 5.7.8 Secret SMTP key invalid");
+            }
         }
+    }
+
+    @Autowired
+    private UserRepository userRepository;
+
+    private String createTestToken(String email) {
+        com.donateconnect.entity.User user = userRepository.save(com.donateconnect.entity.User.builder()
+                .email(email)
+                .fullName("Test User")
+                .passwordHash("hash")
+                .role(com.donateconnect.entity.Role.DONOR)
+                .approved(true)
+                .build());
+        return jwtUtils.generateToken(user);
     }
 
     @Test
     void unauthenticated_runtimeException_returns500WithGenericMessage() throws Exception {
-        com.donateconnect.entity.User user = com.donateconnect.entity.User.builder()
-            .email("test1@exception.com").id(java.util.UUID.randomUUID()).role(com.donateconnect.entity.Role.DONOR).build();
-        String token = jwtUtils.generateToken(user);
+        String token = createTestToken("test1@exception.com");
         mockMvc.perform(get("/api/test/runtime").header("Authorization", "Bearer " + token))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.message").value("An unexpected error occurred"))
@@ -75,13 +98,7 @@ class GlobalExceptionHandlerIntegrationTest {
 
     @Test
     void authenticated_runtimeException_returns500WithGenericMessage() throws Exception {
-        com.donateconnect.entity.User user = com.donateconnect.entity.User.builder()
-            .email("test@exception.com")
-            .id(java.util.UUID.randomUUID())
-            .role(com.donateconnect.entity.Role.DONOR)
-            .build();
-        String token = jwtUtils.generateToken(user);
-        
+        String token = createTestToken("test@exception.com");
         mockMvc.perform(get("/api/test/runtime").header("Authorization", "Bearer " + token))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.message").value("An unexpected error occurred"))
@@ -90,9 +107,7 @@ class GlobalExceptionHandlerIntegrationTest {
 
     @Test
     void illegalStateException_doesNotReturn409() throws Exception {
-        com.donateconnect.entity.User user = com.donateconnect.entity.User.builder()
-            .email("test2@exception.com").id(java.util.UUID.randomUUID()).role(com.donateconnect.entity.Role.DONOR).build();
-        String token = jwtUtils.generateToken(user);
+        String token = createTestToken("test2@exception.com");
         mockMvc.perform(get("/api/test/illegal").header("Authorization", "Bearer " + token))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.message").value("An unexpected error occurred"));
@@ -100,9 +115,7 @@ class GlobalExceptionHandlerIntegrationTest {
 
     @Test
     void maxUploadSizeExceeded_returns413() throws Exception {
-        com.donateconnect.entity.User user = com.donateconnect.entity.User.builder()
-            .email("test3@exception.com").id(java.util.UUID.randomUUID()).role(com.donateconnect.entity.Role.DONOR).build();
-        String token = jwtUtils.generateToken(user);
+        String token = createTestToken("test3@exception.com");
         mockMvc.perform(get("/api/test/size").header("Authorization", "Bearer " + token))
                 .andExpect(status().isPayloadTooLarge())
                 .andExpect(jsonPath("$.message").value("File size exceeds the maximum permitted limit."));
@@ -110,9 +123,7 @@ class GlobalExceptionHandlerIntegrationTest {
 
     @Test
     void fkViolation_doesNotReturn409() throws Exception {
-        com.donateconnect.entity.User user = com.donateconnect.entity.User.builder()
-            .email("test4@exception.com").id(java.util.UUID.randomUUID()).role(com.donateconnect.entity.Role.DONOR).build();
-        String token = jwtUtils.generateToken(user);
+        String token = createTestToken("test4@exception.com");
         mockMvc.perform(get("/api/test/fk-violation").header("Authorization", "Bearer " + token))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.message").value("A database constraint error occurred."));
@@ -120,11 +131,27 @@ class GlobalExceptionHandlerIntegrationTest {
 
     @Test
     void uniqueViolation_returns409() throws Exception {
-        com.donateconnect.entity.User user = com.donateconnect.entity.User.builder()
-            .email("test5@exception.com").id(java.util.UUID.randomUUID()).role(com.donateconnect.entity.Role.DONOR).build();
-        String token = jwtUtils.generateToken(user);
+        String token = createTestToken("test5@exception.com");
         mockMvc.perform(get("/api/test/unique-violation").header("Authorization", "Bearer " + token))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("Donation is already claimed."));
+    }
+
+    @Test
+    void emailDeliveryException_returns503WithSafeMessage() throws Exception {
+        String token = createTestToken("test6@exception.com");
+        mockMvc.perform(get("/api/test/email-delivery-error").header("Authorization", "Bearer " + token))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.message").value("Failed to deliver verification email. Please try again later."))
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Internal socket timeout"))));
+    }
+
+    @Test
+    void mailAuthenticationException_returns503WithSafeMessage() throws Exception {
+        String token = createTestToken("test7@exception.com");
+        mockMvc.perform(get("/api/test/smtp-auth-error").header("Authorization", "Bearer " + token))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.message").value("Failed to deliver verification email. Please try again later."))
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Secret SMTP key invalid"))));
     }
 }

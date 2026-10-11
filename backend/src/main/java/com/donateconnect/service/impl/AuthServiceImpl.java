@@ -105,7 +105,7 @@ public class AuthServiceImpl implements AuthService {
             throw new BadCredentialsException("Invalid email or password");
         }
 
-        if (!user.isApproved() && user.getRole() != Role.DONOR) {
+        if (!user.isApproved() && user.getRole() != Role.DONOR && user.getRole() != Role.ADMIN) {
             throw new BadCredentialsException("Account pending admin approval");
         }
 
@@ -160,7 +160,8 @@ public class AuthServiceImpl implements AuthService {
             throw new BadCredentialsException("Invalid OTP code");
         }
 
-        // Clear OTP on success
+        
+        // Clear OTP on successful verification
         user.setOtp(null);
         user.setOtpExpiry(null);
         user.setOtpAttempts(0);
@@ -168,7 +169,15 @@ public class AuthServiceImpl implements AuthService {
         user.setFirstOtpFailureAt(null);
         userRepository.save(user);
 
+        // Email verification does not grant administrator approval.
+        if (!user.isApproved() && user.getRole() != Role.DONOR && user.getRole() != Role.ADMIN) {
+            throw new BadCredentialsException(
+                    "Email verified successfully. Account pending admin approval."
+            );
+        }
+
         String token = jwtUtils.generateToken(user);
+
 
         return AuthResponse.builder()
                 .token(token)

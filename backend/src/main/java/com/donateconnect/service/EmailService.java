@@ -1,5 +1,6 @@
 package com.donateconnect.service;
 
+import com.donateconnect.exception.EmailDeliveryException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -48,8 +49,8 @@ public class EmailService {
             sendEmail(toEmail, subject, body);
             log.info("OTP email sent successfully to {}", toEmail);
         } catch (Exception e) {
-            log.error("Failed to send OTP email to {}", toEmail, e);
-            log.warn("=== DEV MODE: OTP IS {} ===", otp);
+            log.error("Failed to send OTP email to {}: {}", toEmail, e.getMessage());
+            throw new EmailDeliveryException("Failed to send email.", e);
         }
     }
 
@@ -58,7 +59,7 @@ public class EmailService {
             sendEmail(toEmail, subject, body);
             log.info("Notification email sent successfully to {}", toEmail);
         } catch (Exception e) {
-            log.error("Failed to send notification email to {}", toEmail, e);
+            log.error("Failed to send notification email to {}: {}", toEmail, e.getMessage());
         }
     }
 
@@ -71,6 +72,9 @@ public class EmailService {
     }
 
     private void sendViaSmtp(String to, String subject, String textContent) {
+        if (fromEmail == null || fromEmail.isBlank()) {
+            throw new EmailDeliveryException("Failed to send email: sender address not configured");
+        }
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromEmail);
         message.setTo(to);
