@@ -8,6 +8,7 @@ import com.donateconnect.entity.*;
 import com.donateconnect.repository.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -79,6 +80,7 @@ class DonationServiceTests {
                 .passwordHash(passwordEncoder.encode("password123"))
                 .fullName("Test NGO Manager")
                 .role(Role.NGO)
+                .approved(true)
                 .build());
 
         otherNgoUser = userRepository.save(User.builder()
@@ -86,6 +88,7 @@ class DonationServiceTests {
                 .passwordHash(passwordEncoder.encode("password123"))
                 .fullName("Other NGO Manager")
                 .role(Role.NGO)
+                .approved(true)
                 .build());
 
         ngoProfile = ngoProfileRepository.save(NGOProfile.builder()
@@ -405,6 +408,24 @@ class DonationServiceTests {
         // NGO role is not DONOR → 403
         mockMvc.perform(get("/api/donations/mine/" + donation.getId())
                         .header("Authorization", "Bearer " + ngoToken))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Pending NGO account is blocked with 403 from protected endpoints")
+    void testPendingNgoIsBlockedFromProtectedEndpoints() throws Exception {
+        User pendingNgo = userRepository.save(User.builder()
+                .email("pending.ngo@test.com")
+                .passwordHash(passwordEncoder.encode("password123"))
+                .fullName("Pending NGO")
+                .role(Role.NGO)
+                .approved(false)
+                .build());
+
+        String pendingToken = jwtUtils.generateToken(pendingNgo);
+
+        mockMvc.perform(get("/api/ngo/donations")
+                        .header("Authorization", "Bearer " + pendingToken))
                 .andExpect(status().isForbidden());
     }
 }

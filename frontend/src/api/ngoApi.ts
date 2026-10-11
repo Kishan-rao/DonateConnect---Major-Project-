@@ -74,9 +74,26 @@ export const toggleUrgentNeed = async (id: string): Promise<NgoUrgentNeed> => {
 };
 
 // Admin Role APIs
-export const getAllNgosAdmin = async (): Promise<NGOProfile[]> => {
-  const response = await apiClient.get<ApiResponse<NGOProfile[]>>('/admin/ngo');
-  return response.data.data;
+export const getAllNgosAdmin = async (page: number = 0, size: number = 100): Promise<NGOProfile[]> => {
+  const response = await apiClient.get<ApiResponse<PageResponse<NGOProfile>> | ApiResponse<NGOProfile[]>>('/admin/ngo', {
+    params: { page, size },
+  });
+  const payload: any = response.data;
+  const innerData = payload?.data !== undefined ? payload.data : payload;
+
+  if (Array.isArray(innerData)) {
+    return innerData;
+  }
+  if (innerData && Array.isArray(innerData.content)) {
+    return innerData.content;
+  }
+  if (innerData && Array.isArray(innerData.ngos)) {
+    return innerData.ngos;
+  }
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+  return [];
 };
 
 export const createNgoByAdmin = async (dto: CreateNgoRequest): Promise<NGOProfile> => {

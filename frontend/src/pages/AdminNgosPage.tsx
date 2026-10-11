@@ -30,9 +30,15 @@ export const AdminNgosPage: React.FC = () => {
     setError(null);
     try {
       const data = await getAllNgosAdmin();
-      setNgos(data);
+      const normalized = Array.isArray(data)
+        ? data
+        : (data as any)?.content && Array.isArray((data as any).content)
+        ? (data as any).content
+        : [];
+      setNgos(normalized);
     } catch (err: any) {
       setError(err.message || 'Failed to load NGO list.');
+      setNgos([]);
     } finally {
       setLoading(false);
     }
@@ -45,7 +51,7 @@ export const AdminNgosPage: React.FC = () => {
   const handleVerifyToggle = async (id: string, currentStatus: boolean) => {
     try {
       const updated = await verifyNgoByAdmin(id, !currentStatus);
-      setNgos((prev) => prev.map((n) => (n.id === id ? updated : n)));
+      setNgos((prev) => (Array.isArray(prev) ? prev : []).map((n) => (n.id === id ? updated : n)));
     } catch (err: any) {
       alert('Verification update failed: ' + err.message);
     }
@@ -56,7 +62,7 @@ export const AdminNgosPage: React.FC = () => {
     setCreateError(null);
     try {
       const created = await createNgoByAdmin(data);
-      setNgos((prev) => [...prev, created]);
+      setNgos((prev) => [...(Array.isArray(prev) ? prev : []), created]);
       setIsAddModalOpen(false);
       reset();
     } catch (err: any) {
@@ -71,7 +77,7 @@ export const AdminNgosPage: React.FC = () => {
     setDeleteLoading(true);
     try {
       await deleteNgoByAdmin(deleteTarget.id);
-      setNgos((prev) => prev.filter((n) => n.id !== deleteTarget.id));
+      setNgos((prev) => (Array.isArray(prev) ? prev : []).filter((n) => n.id !== deleteTarget.id));
       setDeleteTarget(null);
     } catch (err: any) {
       alert('Failed to remove NGO: ' + err.message);
@@ -79,6 +85,8 @@ export const AdminNgosPage: React.FC = () => {
       setDeleteLoading(false);
     }
   };
+
+  const safeNgos = Array.isArray(ngos) ? ngos : [];
 
   return (
     <div className="space-y-8 py-6 max-w-6xl mx-auto">
@@ -124,12 +132,13 @@ export const AdminNgosPage: React.FC = () => {
           <p className="font-semibold">{error}</p>
           <button
             onClick={fetchNgos}
-            className="px-4 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-semibold transition-colors"
+            className="px-4 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-semibold transition-colors inline-flex items-center gap-1.5 mx-auto"
           >
+            <RefreshCw className="w-3.5 h-3.5" />
             Retry Loading
           </button>
         </div>
-      ) : ngos.length === 0 ? (
+      ) : safeNgos.length === 0 ? (
         <div className="text-center py-16 bg-slate-900/30 rounded-2xl border border-slate-800 space-y-3">
           <Building2 className="w-12 h-12 text-slate-600 mx-auto" />
           <h3 className="text-slate-300 font-semibold text-lg">No NGO profiles created yet</h3>
@@ -155,7 +164,7 @@ export const AdminNgosPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
-                {ngos.map((ngo) => (
+                {safeNgos.map((ngo) => (
                   <tr key={ngo.id} className="hover:bg-slate-800/30 transition-colors">
                     <td className="px-6 py-4 font-semibold text-white">
                       <div className="flex items-center gap-2">

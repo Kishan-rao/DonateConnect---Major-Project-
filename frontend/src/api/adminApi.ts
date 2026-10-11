@@ -6,10 +6,7 @@ export const getAdminStats = async (): Promise<AdminStats> => {
   return response.data.data;
 };
 
-export const getAllNgosAdmin = async (): Promise<NGOProfile[]> => {
-  const response = await apiClient.get<ApiResponse<NGOProfile[]>>('/admin/ngo');
-  return response.data.data;
-};
+export { getAllNgosAdmin } from './ngoApi';
 
 export const getPendingUsers = async (): Promise<User[]> => {
   const response = await apiClient.get<ApiResponse<any>>('/admin/users/pending');

@@ -1,4 +1,13 @@
 import { test, expect } from '@playwright/test';
+import { Buffer } from 'node:buffer';
+
+const testImageBytes = Uint8Array.from([
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+  0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+  0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+  0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4,
+  0x89
+]);
 
 test.describe('DonateConnect Full Flow E2E', () => {
   // Use a predictable email for the test
@@ -65,7 +74,7 @@ test.describe('DonateConnect Full Flow E2E', () => {
     // Upload photo
     // Provide a dummy image in memory or from a fixture
     // Playwright lets you set input files
-    const buffer = Buffer.from('dummy image', 'utf-8');
+    const buffer = Buffer.from(testImageBytes);
     await page.setInputFiles('input[type="file"]', {
       name: 'test.png',
       mimeType: 'image/png',

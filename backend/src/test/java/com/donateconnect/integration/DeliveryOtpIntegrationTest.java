@@ -84,6 +84,7 @@ class DeliveryOtpIntegrationTest {
                 .passwordHash(passwordEncoder.encode("password123"))
                 .fullName("NGO")
                 .role(Role.NGO)
+                .approved(true)
                 .build());
 
         volunteerUser = userRepository.save(User.builder()
@@ -91,6 +92,7 @@ class DeliveryOtpIntegrationTest {
                 .passwordHash(passwordEncoder.encode("password123"))
                 .fullName("Volunteer")
                 .role(Role.VOLUNTEER)
+                .approved(true)
                 .build());
 
         ngoProfile = ngoProfileRepository.save(NGOProfile.builder()

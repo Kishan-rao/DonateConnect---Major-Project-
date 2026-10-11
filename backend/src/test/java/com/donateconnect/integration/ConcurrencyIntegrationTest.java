@@ -107,6 +107,7 @@ class ConcurrencyIntegrationTest {
                 .passwordHash(passwordEncoder.encode("password123"))
                 .fullName("NGO")
                 .role(Role.NGO)
+                .approved(true)
                 .build());
 
         volunteer1 = userRepository.save(User.builder()
@@ -114,6 +115,7 @@ class ConcurrencyIntegrationTest {
                 .passwordHash(passwordEncoder.encode("password123"))
                 .fullName("Volunteer 1")
                 .role(Role.VOLUNTEER)
+                .approved(true)
                 .build());
 
         volunteer2 = userRepository.save(User.builder()
@@ -121,6 +123,7 @@ class ConcurrencyIntegrationTest {
                 .passwordHash(passwordEncoder.encode("password123"))
                 .fullName("Volunteer 2")
                 .role(Role.VOLUNTEER)
+                .approved(true)
                 .build());
 
         ngoProfile = ngoProfileRepository.save(NGOProfile.builder()

@@ -5,6 +5,7 @@ import com.donateconnect.entity.*;
 import com.donateconnect.repository.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -72,6 +73,7 @@ class VolunteerWorkflowTests {
                 .passwordHash(passwordEncoder.encode("password123"))
                 .fullName("Test Donor")
                 .role(Role.DONOR)
+                .approved(true)
                 .build());
 
         ngoUser = userRepository.save(User.builder()
@@ -79,6 +81,7 @@ class VolunteerWorkflowTests {
                 .passwordHash(passwordEncoder.encode("password123"))
                 .fullName("Test NGO Manager")
                 .role(Role.NGO)
+                .approved(true)
                 .build());
 
         volunteerUser = userRepository.save(User.builder()
@@ -86,6 +89,7 @@ class VolunteerWorkflowTests {
                 .passwordHash(passwordEncoder.encode("password123"))
                 .fullName("Test Volunteer")
                 .role(Role.VOLUNTEER)
+                .approved(true)
                 .build());
 
         anotherVolunteerUser = userRepository.save(User.builder()
@@ -93,6 +97,7 @@ class VolunteerWorkflowTests {
                 .passwordHash(passwordEncoder.encode("password123"))
                 .fullName("Another Volunteer")
                 .role(Role.VOLUNTEER)
+                .approved(true)
                 .build());
 
         ngoProfile = ngoProfileRepository.save(NGOProfile.builder()
@@ -272,5 +277,27 @@ class VolunteerWorkflowTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").isArray())
                 .andExpect(jsonPath("$.data", hasSize(greaterThanOrEqualTo(1))));
+    }
+
+    @Test
+    @DisplayName("Pending volunteer account is blocked with 403 from protected endpoints")
+    void testPendingVolunteerIsBlockedFromClaiming() throws Exception {
+        User pendingVolunteer = userRepository.save(User.builder()
+                .email("pending.vol@voltest.com")
+                .passwordHash(passwordEncoder.encode("password123"))
+                .fullName("Pending Volunteer")
+                .role(Role.VOLUNTEER)
+                .approved(false)
+                .build());
+
+        String pendingToken = jwtUtils.generateToken(pendingVolunteer);
+
+        mockMvc.perform(get("/api/volunteer/pickups")
+                        .header("Authorization", "Bearer " + pendingToken))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(post("/api/volunteer/pickups/" + acceptedDonation.getId() + "/claim")
+                        .header("Authorization", "Bearer " + pendingToken))
+                .andExpect(status().isForbidden());
     }
 }
