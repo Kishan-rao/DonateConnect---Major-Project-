@@ -239,6 +239,7 @@ public class AuthServiceImpl implements AuthService {
                 .email(user.getEmail())
                 .fullName(user.getFullName())
                 .role(user.getRole())
+                .approved(user.isApproved())
                 .averageRating(user.getAverageRating())
                 .ratingCount(user.getRatingCount())
                 .createdAt(user.getCreatedAt())

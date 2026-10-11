@@ -126,7 +126,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ isOpen, onClos
 
         <button
           role="menuitem"
-          onClick={() => handleNavigation('/')}
+          onClick={() => handleNavigation('/settings')}
           className={menuItemClass}
         >
           <Settings className={iconClass} />

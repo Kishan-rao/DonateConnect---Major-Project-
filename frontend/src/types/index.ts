@@ -25,9 +25,26 @@ export interface User {
   email: string;
   fullName: string;
   role: Role;
+  approved?: boolean;
   averageRating?: number;
   ratingCount?: number;
   createdAt: string;
+}
+
+export interface UserPreference {
+  emailNotifications: boolean;
+  donationUpdates: boolean;
+  deliveryUpdates: boolean;
+  commentNotifications: boolean;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface DeleteAccountRequest {
+  confirmation: string;
 }
 
 export interface RegisterRequest {

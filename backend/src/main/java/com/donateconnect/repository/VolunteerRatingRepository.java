@@ -17,4 +17,7 @@ public interface VolunteerRatingRepository extends JpaRepository<VolunteerRating
 
     @org.springframework.data.jpa.repository.Query("SELECT COUNT(r) FROM VolunteerRating r WHERE r.volunteer.id = :volunteerId")
     long countByVolunteerId(@org.springframework.data.repository.query.Param("volunteerId") UUID volunteerId);
+
+    void deleteByDonorId(UUID donorId);
+    void deleteByVolunteerId(UUID volunteerId);
 }

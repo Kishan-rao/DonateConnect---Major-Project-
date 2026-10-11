@@ -18,4 +18,6 @@ public interface VolunteerTaskRepository extends JpaRepository<VolunteerTask, UU
      * Used to prevent double-claiming.
      */
     Optional<VolunteerTask> findByDonationIdAndStatusNot(UUID donationId, VolunteerTask.TaskStatus excludedStatus);
+    void deleteByVolunteerId(UUID volunteerId);
+    void deleteByDonationId(UUID donationId);
 }

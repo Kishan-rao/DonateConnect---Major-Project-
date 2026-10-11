@@ -13,6 +13,11 @@ public interface DeliveryRepository extends JpaRepository<Delivery, UUID> {
     List<Delivery> findByVolunteerId(UUID volunteerId);
     Optional<Delivery> findByDonationId(UUID donationId);
     boolean existsByDonationIdAndStatusIn(UUID donationId, List<com.donateconnect.entity.DeliveryStatus> statuses);
+    void deleteByDonationId(UUID donationId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Query("UPDATE Delivery d SET d.volunteer = null WHERE d.volunteer.id = :volunteerId")
+    void clearVolunteerByVolunteerId(@org.springframework.data.repository.query.Param("volunteerId") UUID volunteerId);
 
     @org.springframework.data.jpa.repository.Modifying
     @org.springframework.data.jpa.repository.Query("UPDATE Delivery d SET d.lastLat = :lat, d.lastLng = :lng, d.lastLocationAt = :time WHERE d.id = :id")

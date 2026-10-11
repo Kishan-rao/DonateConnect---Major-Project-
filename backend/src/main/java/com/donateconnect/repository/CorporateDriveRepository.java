@@ -12,4 +12,5 @@ import java.util.UUID;
 @Repository
 public interface CorporateDriveRepository extends JpaRepository<CorporateDrive, UUID> {
     Page<CorporateDrive> findByCorporateUserIdOrderByCreatedAtDesc(UUID corporateUserId, Pageable pageable);
+    void deleteByCorporateUserId(UUID corporateUserId);
 }

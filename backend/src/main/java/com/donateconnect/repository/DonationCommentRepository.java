@@ -13,4 +13,6 @@ import java.util.UUID;
 public interface DonationCommentRepository extends JpaRepository<DonationComment, UUID> {
     List<DonationComment> findByDonationIdOrderByCreatedAtAsc(UUID donationId);
     Page<DonationComment> findByDonationIdOrderByCreatedAtAsc(UUID donationId, Pageable pageable);
+    void deleteByAuthorId(UUID authorId);
+    void deleteByDonationId(UUID donationId);
 }

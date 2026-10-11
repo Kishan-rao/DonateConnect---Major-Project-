@@ -29,6 +29,7 @@ import { DonorProfilePage } from './pages/DonorProfilePage';
 import { UnauthorizedPage } from './pages/UnauthorizedPage';
 import { TrackDeliveryPage } from './pages/TrackDeliveryPage';
 import { NotificationsPage } from './pages/NotificationsPage';
+import { SettingsPage } from './pages/SettingsPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { EmergencySosBanner } from './components/EmergencySosBanner';
 
@@ -61,6 +62,7 @@ const AppShell: React.FC = () => {
               {/* Protected Routes (Shared) */}
               <Route element={<ProtectedRoute allowedRoles={['DONOR', 'NGO', 'VOLUNTEER', 'ADMIN', 'CORPORATE']} />}>
                 <Route path="/notifications" element={<NotificationsPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/donations/:id/track" element={<TrackDeliveryPage />} />
               </Route>
 

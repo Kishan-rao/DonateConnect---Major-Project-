@@ -21,4 +21,7 @@ public interface NgoRatingRepository extends JpaRepository<NgoRating, UUID> {
 
     @Query("SELECT COUNT(r) FROM NgoRating r WHERE r.ngo.id = :ngoId")
     long countByNgoId(@Param("ngoId") UUID ngoId);
+
+    void deleteByDonorId(UUID donorId);
+    void deleteByNgoId(UUID ngoId);
 }

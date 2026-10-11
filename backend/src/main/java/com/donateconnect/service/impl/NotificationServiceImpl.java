@@ -24,6 +24,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final com.donateconnect.service.EmailService emailService;
+    private final com.donateconnect.repository.UserPreferenceRepository userPreferenceRepository;
 
     @Override
     @Transactional
@@ -34,6 +35,28 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional
     public void notifyUser(User recipient, String message, UUID relatedDonationId, boolean sendEmail) {
+        // Retrieve recipient preferences, default to enabled if none saved
+        com.donateconnect.entity.UserPreference preference = userPreferenceRepository.findByUserId(recipient.getId())
+                .orElse(null);
+
+        boolean emailEnabled = preference == null || preference.isEmailNotifications();
+        boolean donationUpdatesEnabled = preference == null || preference.isDonationUpdates();
+        boolean deliveryUpdatesEnabled = preference == null || preference.isDeliveryUpdates();
+        boolean commentNotificationsEnabled = preference == null || preference.isCommentNotifications();
+
+        // Check if message is a comment notification
+        if (message != null && message.startsWith("New comment on donation")) {
+            if (!commentNotificationsEnabled) {
+                return;
+            }
+        } else if (message != null && (message.contains("Delivery") || message.contains("driver") || message.contains("Driver") || message.contains("pickup"))) {
+            if (!deliveryUpdatesEnabled) {
+                return;
+            }
+        } else if (relatedDonationId != null && !donationUpdatesEnabled) {
+            return;
+        }
+
         Notification notification = Notification.builder()
                 .recipientUser(recipient)
                 .message(message)
@@ -42,7 +65,7 @@ public class NotificationServiceImpl implements NotificationService {
                 .build();
         notificationRepository.save(notification);
 
-        if (sendEmail && recipient.getEmail() != null) {
+        if (sendEmail && emailEnabled && recipient.getEmail() != null) {
             String subject = "DonateConnect: Update on Donation";
             String body = "Hello " + recipient.getFullName() + ",\n\n" + message + "\n\nThank you,\nDonateConnect Team";
             emailService.sendNotificationEmail(recipient.getEmail(), subject, body);

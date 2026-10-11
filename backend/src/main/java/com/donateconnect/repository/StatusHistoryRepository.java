@@ -10,4 +10,5 @@ import java.util.UUID;
 @Repository
 public interface StatusHistoryRepository extends JpaRepository<StatusHistory, UUID> {
     List<StatusHistory> findByDonationIdOrderByChangedAtAsc(UUID donationId);
+    void deleteByDonationId(UUID donationId);
 }

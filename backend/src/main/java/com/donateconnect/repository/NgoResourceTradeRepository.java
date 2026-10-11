@@ -10,4 +10,5 @@ import java.util.UUID;
 @Repository
 public interface NgoResourceTradeRepository extends JpaRepository<NgoResourceTrade, UUID> {
     List<NgoResourceTrade> findByActiveTrueOrderByCreatedAtDesc();
+    void deleteByOfferingNgoId(UUID offeringNgoId);
 }

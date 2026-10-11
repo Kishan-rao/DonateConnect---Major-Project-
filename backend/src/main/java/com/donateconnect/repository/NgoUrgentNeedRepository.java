@@ -11,4 +11,5 @@ import java.util.UUID;
 public interface NgoUrgentNeedRepository extends JpaRepository<NgoUrgentNeed, UUID> {
     List<NgoUrgentNeed> findByActiveTrueOrderByCreatedAtDesc();
     List<NgoUrgentNeed> findByNgoIdOrderByCreatedAtDesc(UUID ngoId);
+    void deleteByNgoId(UUID ngoId);
 }

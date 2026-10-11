@@ -13,4 +13,8 @@ import java.util.UUID;
 public interface AuditLogRepository extends JpaRepository<AuditLog, UUID>, JpaSpecificationExecutor<AuditLog> {
     Page<AuditLog> findByAction(String action, Pageable pageable);
     Page<AuditLog> findByEntityType(String entityType, Pageable pageable);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Query("UPDATE AuditLog a SET a.actor = null WHERE a.actor.id = :actorId")
+    void clearActorByActorId(@org.springframework.data.repository.query.Param("actorId") UUID actorId);
 }
