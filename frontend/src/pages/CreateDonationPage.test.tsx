@@ -22,21 +22,32 @@ vi.mock('react-leaflet', () => ({
   MapContainer: ({ children }: any) => <div data-testid="map-container">{children}</div>,
   TileLayer: () => <div data-testid="tile-layer" />,
   Marker: () => <div data-testid="marker" />,
+  useMap: () => ({
+    setView: vi.fn(),
+    getZoom: () => 13,
+  }),
   useMapEvents: () => null,
 }));
+
 
 describe('CreateDonationPage Form Validation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
     vi.mocked(ngoApi.getVerifiedNgos).mockResolvedValue([
       {
         id: 'ngo1',
+        user: {
+          id: 'user1',
+          email: 'ngo@test.com',
+          fullName: 'Test NGO',
+          role: 'NGO',
+          createdAt: '2023-01-01',
+        },
         name: 'Test NGO',
-        email: 'ngo@test.com',
         phone: '1234567890',
         address: '123 Main St',
         verified: true,
-        role: 'NGO',
         createdAt: '2023-01-01',
       },
     ]);
