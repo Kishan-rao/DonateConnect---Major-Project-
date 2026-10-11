@@ -6,13 +6,14 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 class PasswordHashGeneratorTest {
 
     @Test
-    void generateAdminPasswordHash() {
+    void generateDeliveryPasswordHash() {
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
 
-        String hash = encoder.encode("admin123");
+        String password = "deliver1234";
+        String hash = encoder.encode(password);
 
-        System.out.println("ADMIN_BCRYPT_HASH=" + hash);
+        System.out.println("DELIVERY_BCRYPT_HASH=" + hash);
 
-        assert encoder.matches("admin123", hash);
+        assert encoder.matches(password, hash);
     }
 }
