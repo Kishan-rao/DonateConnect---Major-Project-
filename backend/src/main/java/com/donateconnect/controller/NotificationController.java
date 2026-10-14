@@ -6,7 +6,6 @@ import com.donateconnect.entity.User;
 import com.donateconnect.exception.ResourceNotFoundException;
 import com.donateconnect.repository.UserRepository;
 import com.donateconnect.service.NotificationService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -18,11 +17,15 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/notifications")
-@RequiredArgsConstructor
 public class NotificationController {
 
     private final NotificationService notificationService;
     private final UserRepository userRepository;
+
+    public NotificationController(NotificationService notificationService, UserRepository userRepository) {
+        this.notificationService = notificationService;
+        this.userRepository = userRepository;
+    }
 
     @GetMapping("/mine")
     public ResponseEntity<ApiResponse<Page<NotificationDto>>> getMyNotifications(

@@ -9,7 +9,6 @@ import com.donateconnect.repository.UserRepository;
 import com.donateconnect.service.DeliveryService;
 import com.donateconnect.service.AuditLogService;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -19,13 +18,24 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/volunteer")
-@RequiredArgsConstructor
 public class DeliveryController {
 
     private final DeliveryService deliveryService;
     private final UserRepository userRepository;
     private final com.donateconnect.repository.DeliveryRepository deliveryRepository;
     private final AuditLogService auditLogService;
+
+    public DeliveryController(
+            DeliveryService deliveryService,
+            UserRepository userRepository,
+            com.donateconnect.repository.DeliveryRepository deliveryRepository,
+            AuditLogService auditLogService
+    ) {
+        this.deliveryService = deliveryService;
+        this.userRepository = userRepository;
+        this.deliveryRepository = deliveryRepository;
+        this.auditLogService = auditLogService;
+    }
 
     @GetMapping("/deliveries/donation/{donationId}")
     @PreAuthorize("hasAnyRole('VOLUNTEER', 'NGO', 'ADMIN')")

@@ -8,7 +8,6 @@ import com.donateconnect.exception.ResourceNotFoundException;
 import com.donateconnect.repository.UserRepository;
 import com.donateconnect.service.DonationCommentService;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -23,11 +22,15 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/donations/{donationId}/comments")
 @PreAuthorize("isAuthenticated()")
-@RequiredArgsConstructor
 public class DonationCommentController {
 
     private final DonationCommentService commentService;
     private final UserRepository userRepository;
+
+    public DonationCommentController(DonationCommentService commentService, UserRepository userRepository) {
+        this.commentService = commentService;
+        this.userRepository = userRepository;
+    }
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<DonationCommentDto>>> getComments(

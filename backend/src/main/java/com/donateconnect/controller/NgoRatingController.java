@@ -8,7 +8,6 @@ import com.donateconnect.exception.ResourceNotFoundException;
 import com.donateconnect.repository.UserRepository;
 import com.donateconnect.service.NgoRatingService;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -22,11 +21,15 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/ngo/{ngoId}/ratings")
-@RequiredArgsConstructor
 public class NgoRatingController {
 
     private final NgoRatingService ratingService;
     private final UserRepository userRepository;
+
+    public NgoRatingController(NgoRatingService ratingService, UserRepository userRepository) {
+        this.ratingService = ratingService;
+        this.userRepository = userRepository;
+    }
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<NgoRatingDto>>> getRatings(

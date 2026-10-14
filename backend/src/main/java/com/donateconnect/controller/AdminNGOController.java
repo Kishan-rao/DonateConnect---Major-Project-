@@ -6,7 +6,6 @@ import com.donateconnect.dto.NGOProfileDto;
 import com.donateconnect.service.NGOService;
 import com.donateconnect.service.AuditLogService;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -14,17 +13,20 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/admin/ngo")
 @PreAuthorize("hasRole('ADMIN')")
-@RequiredArgsConstructor
 public class AdminNGOController {
 
     private final NGOService ngoService;
     private final AuditLogService auditLogService;
+
+    public AdminNGOController(NGOService ngoService, AuditLogService auditLogService) {
+        this.ngoService = ngoService;
+        this.auditLogService = auditLogService;
+    }
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<NGOProfileDto>>> getAllNgos(

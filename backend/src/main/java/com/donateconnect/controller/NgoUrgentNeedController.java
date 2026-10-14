@@ -8,7 +8,6 @@ import com.donateconnect.exception.ResourceNotFoundException;
 import com.donateconnect.repository.UserRepository;
 import com.donateconnect.service.NgoUrgentNeedService;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,11 +20,15 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/ngo/urgent-needs")
 @PreAuthorize("hasRole('NGO')")
-@RequiredArgsConstructor
 public class NgoUrgentNeedController {
 
     private final NgoUrgentNeedService urgentNeedService;
     private final UserRepository userRepository;
+
+    public NgoUrgentNeedController(NgoUrgentNeedService urgentNeedService, UserRepository userRepository) {
+        this.urgentNeedService = urgentNeedService;
+        this.userRepository = userRepository;
+    }
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<NgoUrgentNeedDto>>> getOwnUrgentNeeds(Authentication authentication) {

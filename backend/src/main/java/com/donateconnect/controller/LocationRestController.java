@@ -8,31 +8,40 @@ import com.donateconnect.exception.ResourceNotFoundException;
 import com.donateconnect.repository.DeliveryRepository;
 import com.donateconnect.repository.UserRepository;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/deliveries")
-@RequiredArgsConstructor
 public class LocationRestController {
 
     private final DeliveryRepository deliveryRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final UserRepository userRepository;
 
+    public LocationRestController(
+            DeliveryRepository deliveryRepository,
+            SimpMessagingTemplate messagingTemplate,
+            UserRepository userRepository
+    ) {
+        this.deliveryRepository = deliveryRepository;
+        this.messagingTemplate = messagingTemplate;
+        this.userRepository = userRepository;
+    }
+
     @PostMapping("/{id}/location")
     @PreAuthorize("hasRole('VOLUNTEER')")
     @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<ApiResponse<Void>> updateLocationRest(
             Authentication authentication,
-            @PathVariable UUID id,
+            @PathVariable @NonNull UUID id,
             @Valid @RequestBody LocationUpdateDto location
     ) {
         UUID volunteerId = getUserIdFromAuth(authentication);

@@ -5,7 +5,6 @@ import com.donateconnect.dto.DonationResponseDto;
 import com.donateconnect.entity.Category;
 import com.donateconnect.entity.DonationStatus;
 import com.donateconnect.service.DonationService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -18,10 +17,13 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/admin/donations")
 @PreAuthorize("hasRole('ADMIN')")
-@RequiredArgsConstructor
 public class AdminDonationController {
 
     private final DonationService donationService;
+
+    public AdminDonationController(DonationService donationService) {
+        this.donationService = donationService;
+    }
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<DonationResponseDto>>> getAdminDonations(

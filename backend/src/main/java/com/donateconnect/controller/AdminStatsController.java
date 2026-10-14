@@ -8,7 +8,6 @@ import com.donateconnect.entity.Delivery;
 import com.donateconnect.repository.DonationRepository;
 import com.donateconnect.repository.DeliveryRepository;
 import com.donateconnect.repository.NGOProfileRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,12 +22,21 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/admin/stats")
 @PreAuthorize("hasRole('ADMIN')")
-@RequiredArgsConstructor
 public class AdminStatsController {
 
     private final DonationRepository donationRepository;
     private final DeliveryRepository deliveryRepository;
     private final NGOProfileRepository ngoProfileRepository;
+
+    public AdminStatsController(
+            DonationRepository donationRepository,
+            DeliveryRepository deliveryRepository,
+            NGOProfileRepository ngoProfileRepository
+    ) {
+        this.donationRepository = donationRepository;
+        this.deliveryRepository = deliveryRepository;
+        this.ngoProfileRepository = ngoProfileRepository;
+    }
 
     @GetMapping
     public ResponseEntity<ApiResponse<AdminStatsDto>> getAdminStats() {
@@ -50,7 +58,8 @@ public class AdminStatsController {
         // Sort it
         donationsByDate = donationsByDate.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
+                .collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue(),
+                        (e1, e2) -> e1, LinkedHashMap::new));
 
         // 2. Donations by Category
         Map<String, Long> donationsByCategory = allDonations.stream()

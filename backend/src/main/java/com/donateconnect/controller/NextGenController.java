@@ -1,13 +1,9 @@
 package com.donateconnect.controller;
 
 import com.donateconnect.dto.ApiResponse;
-import com.donateconnect.entity.BlockchainBlock;
-import com.donateconnect.entity.NgoResourceTrade;
-import com.donateconnect.entity.SmartLocker;
 import com.donateconnect.repository.BlockchainBlockRepository;
 import com.donateconnect.repository.NgoResourceTradeRepository;
 import com.donateconnect.repository.SmartLockerRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,12 +12,21 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
-@RequiredArgsConstructor
 public class NextGenController {
 
     private final SmartLockerRepository lockerRepository;
     private final BlockchainBlockRepository blockchainRepository;
     private final NgoResourceTradeRepository tradeRepository;
+
+    public NextGenController(
+            SmartLockerRepository lockerRepository,
+            BlockchainBlockRepository blockchainRepository,
+            NgoResourceTradeRepository tradeRepository
+    ) {
+        this.lockerRepository = lockerRepository;
+        this.blockchainRepository = blockchainRepository;
+        this.tradeRepository = tradeRepository;
+    }
 
     @org.springframework.beans.factory.annotation.Value("${app.sos.active:false}")
     private boolean sosModeActive;

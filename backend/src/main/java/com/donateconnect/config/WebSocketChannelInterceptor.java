@@ -3,7 +3,6 @@ package com.donateconnect.config;
 import com.donateconnect.entity.Delivery;
 import com.donateconnect.entity.Role;
 import com.donateconnect.repository.DeliveryRepository;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
@@ -15,20 +14,25 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
+import org.springframework.lang.NonNull;
 
 import java.util.List;
 import java.util.UUID;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class WebSocketChannelInterceptor implements ChannelInterceptor {
 
     private final JwtUtils jwtUtils;
     private final DeliveryRepository deliveryRepository;
 
+    public WebSocketChannelInterceptor(JwtUtils jwtUtils, DeliveryRepository deliveryRepository) {
+        this.jwtUtils = jwtUtils;
+        this.deliveryRepository = deliveryRepository;
+    }
+
     @Override
-    public Message<?> preSend(Message<?> message, MessageChannel channel) {
+    public Message<?> preSend(@NonNull Message<?> message, @NonNull MessageChannel channel) {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
         if (accessor != null) {

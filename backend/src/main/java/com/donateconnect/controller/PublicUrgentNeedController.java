@@ -1,9 +1,7 @@
 package com.donateconnect.controller;
 
 import com.donateconnect.dto.ApiResponse;
-import com.donateconnect.dto.NgoUrgentNeedDto;
 import com.donateconnect.service.NgoUrgentNeedService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,10 +11,13 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/urgent-needs")
-@RequiredArgsConstructor
 public class PublicUrgentNeedController {
 
     private final NgoUrgentNeedService urgentNeedService;
+
+    public PublicUrgentNeedController(NgoUrgentNeedService urgentNeedService) {
+        this.urgentNeedService = urgentNeedService;
+    }
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<com.donateconnect.dto.NgoUrgentNeedPublicDto>>> getActiveUrgentNeeds() {

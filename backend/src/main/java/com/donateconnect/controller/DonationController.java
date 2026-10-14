@@ -11,7 +11,6 @@ import com.donateconnect.service.DonationService;
 import com.donateconnect.service.AuditLogService;
 import com.donateconnect.service.StorageService;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -24,19 +23,30 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api")
-@RequiredArgsConstructor
 public class DonationController {
 
     private final DonationService donationService;
     private final UserRepository userRepository;
     private final StorageService storageService;
     private final AuditLogService auditLogService;
+
+    public DonationController(
+            DonationService donationService,
+            UserRepository userRepository,
+            StorageService storageService,
+            AuditLogService auditLogService
+    ) {
+        this.donationService = donationService;
+        this.userRepository = userRepository;
+        this.storageService = storageService;
+        this.auditLogService = auditLogService;
+    }
 
     // ==================== DONOR ENDPOINTS ====================
 
@@ -157,7 +167,7 @@ public class DonationController {
             byte[] data = storageService.load(filename);
             String contentType = storageService.getContentType(filename);
             return ResponseEntity.ok()
-                    .contentType(MediaType.parseMediaType(contentType))
+                    .contentType(MediaType.parseMediaType(Objects.requireNonNull(contentType)))
                     .body(data);
         } catch (IOException e) {
             return ResponseEntity.notFound().build();

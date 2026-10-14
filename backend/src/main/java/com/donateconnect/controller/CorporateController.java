@@ -8,7 +8,6 @@ import com.donateconnect.entity.User;
 import com.donateconnect.exception.ResourceNotFoundException;
 import com.donateconnect.repository.CorporateDriveRepository;
 import com.donateconnect.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -19,17 +18,23 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/corporate")
 @PreAuthorize("hasAnyRole('CORPORATE', 'ADMIN')")
-@RequiredArgsConstructor
 public class CorporateController {
 
     private final CorporateDriveRepository corporateDriveRepository;
     private final UserRepository userRepository;
+
+    public CorporateController(
+            CorporateDriveRepository corporateDriveRepository,
+            UserRepository userRepository
+    ) {
+        this.corporateDriveRepository = corporateDriveRepository;
+        this.userRepository = userRepository;
+    }
 
     @GetMapping("/drives")
     public ResponseEntity<ApiResponse<Page<CorporateDriveDto>>> getCorporateDrives(
@@ -88,7 +93,7 @@ public class CorporateController {
                 .endDate(dto.getEndDate())
                 .build();
                 
-        CorporateDrive saved = corporateDriveRepository.save(drive);
+        CorporateDrive saved = corporateDriveRepository.save(Objects.requireNonNull(drive));
         return ResponseEntity.ok(ApiResponse.success("Created corporate CSR drive", mapToDto(saved)));
     }
 }

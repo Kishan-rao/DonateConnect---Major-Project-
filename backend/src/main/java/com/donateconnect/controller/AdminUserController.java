@@ -5,25 +5,27 @@ import com.donateconnect.dto.UserResponseDto;
 import com.donateconnect.entity.User;
 import com.donateconnect.repository.UserRepository;
 import com.donateconnect.service.AuditLogService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin/users")
 @PreAuthorize("hasRole('ADMIN')")
-@RequiredArgsConstructor
 public class AdminUserController {
 
     private final UserRepository userRepository;
     private final AuditLogService auditLogService;
+
+    public AdminUserController(UserRepository userRepository, AuditLogService auditLogService) {
+        this.userRepository = userRepository;
+        this.auditLogService = auditLogService;
+    }
 
     @GetMapping("/pending")
     public ResponseEntity<ApiResponse<Page<UserResponseDto>>> getPendingUsers(
@@ -37,7 +39,7 @@ public class AdminUserController {
 
     @PutMapping("/{id}/approve")
     public ResponseEntity<ApiResponse<UserResponseDto>> approveUser(@PathVariable UUID id) {
-        User user = userRepository.findById(id)
+        User user = userRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         user.setApproved(true);
         User saved = userRepository.save(user);
