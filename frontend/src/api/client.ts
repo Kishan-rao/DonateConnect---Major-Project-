@@ -1,9 +1,78 @@
 import axios from 'axios';
+import { Capacitor } from '@capacitor/core';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+export interface ResolveApiBaseUrlOptions {
+  envUrl?: string;
+  isNative?: boolean;
+  isProd?: boolean;
+}
+
+/**
+ * Resolves and normalizes the backend API base URL based on platform and environment.
+ * - In production native Android builds: requires an explicit HTTPS backend URL.
+ * - In dev native Android builds: falls back to local LAN IP if unset.
+ * - In browser dev/prod: falls back to /api (leveraging Vite dev proxy).
+ * - Trims trailing slashes and ensures /api path suffix without duplication.
+ */
+export const resolveApiBaseUrl = (options?: ResolveApiBaseUrlOptions): string => {
+  const isNative = options?.isNative ?? Capacitor.isNativePlatform();
+  const isProd = options?.isProd ?? import.meta.env.PROD;
+  const rawUrl = options?.envUrl !== undefined ? options.envUrl : import.meta.env.VITE_API_BASE_URL;
+
+  let url = (rawUrl || '').trim();
+
+  if (isNative) {
+    if (isProd) {
+      if (!url) {
+        throw new Error(
+          '[DonateConnect] Missing VITE_API_BASE_URL for production Android build. An explicit HTTPS URL is required (e.g., VITE_API_BASE_URL=https://YOUR-DEPLOYED-BACKEND.onrender.com/api).'
+        );
+      }
+      if (!url.startsWith('https://')) {
+        throw new Error(
+          `[DonateConnect] Production Android builds require an explicit HTTPS backend URL (e.g., https://YOUR-DEPLOYED-BACKEND.onrender.com/api). Received: "${url}"`
+        );
+      }
+    } else {
+      // Native Android development fallback
+      if (!url) {
+        url = 'http://192.168.29.227:8080/api';
+      }
+    }
+  } else {
+    // Browser fallback
+    if (!url) {
+      url = '/api';
+    }
+  }
+
+  // Normalize: trim trailing slashes
+  url = url.replace(/\/+$/, '');
+
+  // Ensure /api suffix exists so relative paths route correctly without duplicating
+  if (!url.endsWith('/api') && url !== '/api') {
+    url = `${url}/api`;
+  }
+
+  return url;
+};
+
+let cachedConfigError: Error | null = null;
+let cachedBaseUrl = '/api';
+
+try {
+  cachedBaseUrl = resolveApiBaseUrl();
+} catch (err: any) {
+  cachedConfigError = err instanceof Error ? err : new Error(String(err));
+  console.error('[DonateConnect API Configuration Error]', cachedConfigError);
+}
+
+export const getApiConfigError = (): Error | null => cachedConfigError;
+
+export const getBaseUrl = (): string => cachedBaseUrl;
 
 export const apiClient = axios.create({
-  baseURL: BASE_URL,
+  baseURL: cachedBaseUrl,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -26,8 +95,11 @@ export const registerLogoutCallback = (cb: () => void) => {
   logoutCallback = cb;
 };
 
-// Request Interceptor: Attach JWT Bearer token
+// Request Interceptor: Attach JWT Bearer token and check config errors
 apiClient.interceptors.request.use((config) => {
+  if (cachedConfigError) {
+    return Promise.reject(cachedConfigError);
+  }
   const activeToken = inMemoryToken || localStorage.getItem('dc-token');
   if (activeToken) {
     config.headers.Authorization = `Bearer ${activeToken}`;
@@ -35,14 +107,32 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
-// Response Interceptor: Catch 401 Unauthorized errors
+// Response Interceptor: Validate JSON content and catch 401 Unauthorized errors
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // If the server returns HTML (e.g. SPA fallback index.html for missing routes), reject as API error
+    if (
+      typeof response.data === 'string' &&
+      (response.data.trim().startsWith('<!DOCTYPE') || response.data.trim().startsWith('<html'))
+    ) {
+      const err = new Error('Received HTML response instead of JSON. Check backend server and API URL configuration.') as any;
+      err.response = response;
+      return Promise.reject(err);
+    }
+    return response;
+  },
   (error) => {
-    if (error.response?.status === 401 && logoutCallback) {
+    const requestUrl = error.config?.url || '';
+    const isPublicEndpoint = requestUrl.includes('/health') || requestUrl.includes('/auth/');
+    const hasToken = inMemoryToken || localStorage.getItem('dc-token');
+
+    if (error.response?.status === 401 && !isPublicEndpoint && hasToken && logoutCallback) {
       logoutCallback();
     }
     const message = error.response?.data?.message || error.message || 'An unexpected error occurred';
-    return Promise.reject(new Error(message));
+    const err = new Error(message) as any;
+    err.response = error.response;
+    err.status = error.response?.status;
+    return Promise.reject(err);
   }
 );

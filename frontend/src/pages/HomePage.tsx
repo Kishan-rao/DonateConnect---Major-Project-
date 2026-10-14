@@ -19,14 +19,13 @@ export const HomePage: React.FC = () => {
 
   useEffect(() => {
     getVerifiedNgos()
-      .then((data: NGOProfile[]) => setNgos(data.slice(0, 3)))
-      .catch(() => setNgos([]))
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    getVerifiedNgos()
-      .then((data: NGOProfile[]) => setNgos(data.slice(0, 3)))
+      .then((data: NGOProfile[]) => {
+        if (Array.isArray(data)) {
+          setNgos(data.slice(0, 3));
+        } else {
+          setNgos([]);
+        }
+      })
       .catch(() => setNgos([]))
       .finally(() => setLoading(false));
   }, []);
@@ -95,7 +94,7 @@ export const HomePage: React.FC = () => {
             <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
             <p className="text-slate-400 text-sm">Loading verified NGOs...</p>
           </div>
-        ) : ngos.length === 0 ? (
+        ) : !ngos || ngos.length === 0 ? (
           <div className="text-center py-12 bg-slate-900/30 rounded-2xl border border-slate-800 space-y-3">
             <Building2 className="w-10 h-10 text-slate-600 mx-auto" />
             <h3 className="text-slate-300 font-semibold">No verified NGOs registered yet</h3>

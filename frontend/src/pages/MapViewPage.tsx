@@ -12,8 +12,9 @@ export const MapViewPage: React.FC = () => {
   useEffect(() => {
     getVerifiedNgos()
       .then((data) => {
-        setNgos(data);
-        if (data.length > 0) setSelectedNgo(data[0]);
+        const safeData = Array.isArray(data) ? data : [];
+        setNgos(safeData);
+        if (safeData.length > 0) setSelectedNgo(safeData[0]);
       })
       .catch(() => setNgos([]))
       .finally(() => setLoading(false));

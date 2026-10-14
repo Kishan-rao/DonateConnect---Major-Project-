@@ -12,8 +12,9 @@ export const SmartLockersPage: React.FC = () => {
   useEffect(() => {
     getSmartLockers()
       .then((data) => {
-        setLockers(data);
-        if (data.length > 0) setSelectedLocker(data[0]);
+        const safeData = Array.isArray(data) ? data : [];
+        setLockers(safeData);
+        if (safeData.length > 0) setSelectedLocker(safeData[0]);
       })
       .catch(() => setLockers([]))
       .finally(() => setLoading(false));

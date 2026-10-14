@@ -6,6 +6,12 @@
   font-weight: 400;
   color-scheme: light;
 
+  /* Android Safe Area Inset Tokens */
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+
   /* Warm Organic Light Theme Tokens */
   --bg-app: #FAF8F5;
   --bg-navbar: #FAF8F5;
@@ -28,23 +34,46 @@
   --status-success: #059669;
   --status-warning: #D97706;
   --status-danger: #DC2626;
+
+  /* App Bar & Bottom Bar Dimensions */
+  --top-bar-height: 3.5rem;
+  --bottom-bar-height: 4rem;
 }
 
 * {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  overflow-x: hidden;
+  height: 100%;
 }
 
 body {
   margin: 0;
   padding: 0;
-  min-height: 100vh;
+  min-height: 100%;
+  min-height: 100dvh;
   background-color: #FAF8F5;
   color: #111827;
   background-image: 
-    radial-gradient(at 0% 0%, rgba(117, 103, 232, 0.03) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(227, 106, 154, 0.02) 0px, transparent 50%);
+    radial-gradient(at 0% 0%, rgba(117, 103, 232, 0.04) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(227, 106, 154, 0.03) 0px, transparent 50%);
   background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Touch action optimization to prevent double-tap zoom delay */
+button,
+a,
+input,
+select,
+textarea,
+[role="button"] {
+  touch-action: manipulation;
 }
 
 /* Custom scrollbar */
@@ -114,23 +143,138 @@ a.bg-\[\#7567E8\],
   color: #FFFFFF !important;
 }
 
-/* Form Controls - Very Light Gray #F9FAFB on Warm Soft Ivory */
+/* Form Controls - 16px minimum on mobile to prevent Android WebView viewport zooming */
 input:not([type="checkbox"]):not([type="radio"]),
 select,
 textarea {
-  background-color: #F9FAFB !important;
+  font-size: 16px !important;
+  background-color: #FFFFFF !important;
   color: #111827 !important;
   border-color: #E5E7EB !important;
 }
 
 input::placeholder,
 textarea::placeholder {
-  color: #6B7280 !important;
+  color: #9CA3AF !important;
 }
 
 input:focus,
 select:focus,
 textarea:focus {
   border-color: #7567E8 !important;
+  box-shadow: 0 0 0 2px rgba(117, 103, 232, 0.15) !important;
   outline: none;
+}
+
+/* Custom scrollbar for desktop, hidden or slim on mobile */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #E5E7EB;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #CBD5E1;
+}
+
+/* Utility to hide scrollbars on swipeable chip bars */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Safe area padding utilities for mobile & Capacitor Android */
+.safe-pb {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+}
+.safe-pt {
+  padding-top: max(0px, env(safe-area-inset-top, 0px));
+}
+.safe-pl {
+  padding-left: max(0px, env(safe-area-inset-left, 0px));
+}
+.safe-pr {
+  padding-right: max(0px, env(safe-area-inset-right, 0px));
+}
+
+/* Bottom spacing for pages to avoid content hidden under fixed bottom nav */
+.page-bottom-spacing {
+  padding-bottom: calc(4.5rem + max(0.75rem, env(safe-area-inset-bottom, 0px)));
+}
+
+@media (min-width: 768px) {
+  .page-bottom-spacing {
+    padding-bottom: 2rem;
+  }
+}
+
+/* Mobile typography scale */
+.mobile-title-xl {
+  font-size: 1.5rem; /* 24px */
+  line-height: 1.875rem;
+  font-weight: 800;
+}
+@media (min-width: 640px) {
+  .mobile-title-xl {
+    font-size: 1.875rem; /* 30px */
+    line-height: 2.25rem;
+  }
+}
+
+.mobile-title-lg {
+  font-size: 1.25rem; /* 20px */
+  line-height: 1.625rem;
+  font-weight: 700;
+}
+@media (min-width: 640px) {
+  .mobile-title-lg {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+}
+
+/* Android Touch Feedback */
+.touch-press {
+  transition: transform 0.15s ease, opacity 0.15s ease, background-color 0.15s ease;
+}
+.touch-press:active {
+  transform: scale(0.97);
+  opacity: 0.9;
+}
+
+/* Bottom Sheet Animations for Android */
+@keyframes sheetSlideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0.8;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes sheetFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-bottom-sheet {
+  animation: sheetSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-backdrop-fade {
+  animation: sheetFadeIn 0.2s ease-out forwards;
 }

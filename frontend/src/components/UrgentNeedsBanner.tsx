@@ -9,12 +9,12 @@ export const UrgentNeedsBanner: React.FC = () => {
 
   useEffect(() => {
     getActiveUrgentNeeds()
-      .then((data) => setUrgentNeeds(data))
+      .then((data) => setUrgentNeeds(Array.isArray(data) ? data : []))
       .catch(() => setUrgentNeeds([]))
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading || urgentNeeds.length === 0) {
+  if (loading || !urgentNeeds || urgentNeeds.length === 0) {
     return null;
   }
 

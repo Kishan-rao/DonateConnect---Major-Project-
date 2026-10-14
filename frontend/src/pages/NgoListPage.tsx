@@ -52,7 +52,7 @@ export const NgoListPage: React.FC = () => {
     }
   };
 
-  const filteredNgos = ngos.filter(
+  const filteredNgos = (ngos || []).filter(
     (ngo) =>
       ngo.name.toLowerCase().includes(search.toLowerCase()) ||
       (ngo.description && ngo.description.toLowerCase().includes(search.toLowerCase())) ||

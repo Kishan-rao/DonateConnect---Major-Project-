@@ -11,9 +11,12 @@
  *   3. Data URI: "data:image/..."  → use as-is (legacy inline base64)
  */
 
-const BACKEND_BASE_URL = import.meta.env.VITE_API_BASE_URL
-  ? import.meta.env.VITE_API_BASE_URL.replace(/\/api$/, '')
-  : '';
+import { getBaseUrl } from '../api/client';
+
+export const getBackendBaseUrl = (): string => {
+  const base = getBaseUrl();
+  return base === '/api' ? '' : base.replace(/\/api$/, '');
+};
 
 /**
  * Resolve a photo URL for display.
@@ -29,7 +32,7 @@ export const getPhotoUrl = (url: string): string => {
 
   // Relative path starting with /api/donations/photo/ → prefix with backend base
   if (url.startsWith('/api/')) {
-    return `${BACKEND_BASE_URL}${url}`;
+    return `${getBackendBaseUrl()}${url}`;
   }
 
   // Fallback: just return as-is

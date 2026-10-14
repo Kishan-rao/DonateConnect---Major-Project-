@@ -6,3 +6,8 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# Environment variables — never commit local secrets
+.env
+.env.*
+!.env.example

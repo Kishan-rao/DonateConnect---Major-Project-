@@ -18,23 +18,25 @@ export const getVerifiedNgos = async (params?: {
 
   const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
   const response = await apiClient.get<ApiResponse<NGOProfile[]>>(`/ngo${queryString}`);
-  return response.data.data;
+  const data = response.data?.data;
+  return Array.isArray(data) ? data : [];
 };
 
 export const getNgoById = async (id: string): Promise<NGOProfile> => {
   const response = await apiClient.get<ApiResponse<NGOProfile>>(`/ngo/${id}`);
-  return response.data.data;
+  return response.data?.data;
 };
 
 // Impact & Urgent Needs APIs
 export const getImpactMetrics = async (): Promise<ImpactMetrics> => {
   const response = await apiClient.get<ApiResponse<ImpactMetrics>>('/impact');
-  return response.data.data;
+  return response.data?.data;
 };
 
 export const getActiveUrgentNeeds = async (): Promise<NgoUrgentNeed[]> => {
   const response = await apiClient.get<ApiResponse<NgoUrgentNeed[]>>('/urgent-needs');
-  return response.data.data;
+  const data = response.data?.data;
+  return Array.isArray(data) ? data : [];
 };
 
 export const getNgoRatings = async (ngoId: string): Promise<NgoRating[]> => {
@@ -65,7 +67,8 @@ export const createUrgentNeed = async (dto: CreateUrgentNeedRequest): Promise<Ng
 
 export const getOwnUrgentNeeds = async (): Promise<NgoUrgentNeed[]> => {
   const response = await apiClient.get<ApiResponse<NgoUrgentNeed[]>>('/ngo/urgent-needs');
-  return response.data.data;
+  const data = response.data?.data;
+  return Array.isArray(data) ? data : [];
 };
 
 export const toggleUrgentNeed = async (id: string): Promise<NgoUrgentNeed> => {

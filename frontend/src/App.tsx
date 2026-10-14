@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { HomePage } from './pages/HomePage';
@@ -32,15 +33,29 @@ import { NotificationsPage } from './pages/NotificationsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { EmergencySosBanner } from './components/EmergencySosBanner';
+import { getApiConfigError } from './api/client';
+import { AlertTriangle } from 'lucide-react';
 
 const AppShell: React.FC = () => {
+  const apiConfigError = getApiConfigError();
+
   return (
     <AuthProvider>
-      <Router>
-        <div className="min-h-screen flex flex-col bg-[#FAF8F5] text-[#111827] selection:bg-[#7567E8] selection:text-white">
-          <EmergencySosBanner />
-          <Navbar />
-          <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8">
+      <ToastProvider>
+        <Router>
+          <div className="min-h-screen flex flex-col bg-[#FAF8F5] text-[#111827] selection:bg-[#7567E8] selection:text-white safe-pl safe-pr">
+            {apiConfigError && (
+              <div
+                role="alert"
+                className="bg-rose-50 border-b border-rose-200 px-4 py-3 text-rose-800 text-xs sm:text-sm font-medium flex items-center justify-center gap-2 text-center safe-pt"
+              >
+                <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                <span>{apiConfigError.message}</span>
+              </div>
+            )}
+            <EmergencySosBanner />
+            <Navbar />
+            <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 page-bottom-spacing">
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<HomePage />} />
@@ -105,7 +120,8 @@ const AppShell: React.FC = () => {
           <Footer />
         </div>
       </Router>
-    </AuthProvider>
+    </ToastProvider>
+  </AuthProvider>
   );
 };
 

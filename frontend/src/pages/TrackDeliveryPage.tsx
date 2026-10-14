@@ -11,6 +11,7 @@ import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { OtpInput } from '../components/OtpInput';
 import { getWsUrl } from '../utils/urlUtils';
+import { getBaseUrl } from '../api/client';
 
 // Fix Leaflet icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -82,7 +83,7 @@ export const TrackDeliveryPage: React.FC = () => {
     // Setup STOMP WebSocket
     const client = new Client({
       webSocketFactory: () => {
-        const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
+        const baseUrl = getBaseUrl();
         return new SockJS(getWsUrl(baseUrl));
       },
       connectHeaders: {

@@ -93,8 +93,9 @@ export const CreateDonationPage: React.FC = () => {
   useEffect(() => {
     getVerifiedNgos()
       .then((data) => {
-        setNgos(data);
-        if (preselectedNgoId && data.some((n) => n.id === preselectedNgoId)) {
+        const safeData = Array.isArray(data) ? data : [];
+        setNgos(safeData);
+        if (preselectedNgoId && safeData.some((n) => n.id === preselectedNgoId)) {
           setValue('ngoId', preselectedNgoId);
         }
       })

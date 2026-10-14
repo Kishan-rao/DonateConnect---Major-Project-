@@ -10,6 +10,8 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
     "@stomp/stompjs": "^7.3.0",
     "axios": "^1.7.9",
     "html2canvas": "^1.4.1",
@@ -25,6 +27,7 @@
     "sockjs-client": "^1.6.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.3",
     "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@tailwindcss/vite": "^4.3.3",

@@ -3,7 +3,8 @@ import { ApiResponse, NotificationItem, PageResponse } from '../types';
 
 export const getMyNotifications = async (): Promise<NotificationItem[]> => {
   const response = await apiClient.get<ApiResponse<PageResponse<NotificationItem>>>('/notifications/mine?page=0&size=100');
-  return response.data.data.content;
+  const content = response.data?.data?.content;
+  return Array.isArray(content) ? content : [];
 };
 
 export const markNotificationRead = async (id: string): Promise<void> => {
