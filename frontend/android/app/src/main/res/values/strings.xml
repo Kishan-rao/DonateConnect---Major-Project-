@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">DonateConnect</string>
+    <string name="title_activity_main">DonateConnect</string>
+    <string name="package_name">com.donateconnect.app</string>
+    <string name="custom_url_scheme">com.donateconnect.app</string>
+</resources>

@@ -1,0 +1,20 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.donateconnect.app-mergeDebugResources-2:/values-v30/values-v30.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\Kishan Rao\\.gradle\\caches\\9.8.1\\transforms\\dcf34d59e52979794b0879b90da9468b\\transformed\\core-splashscreen-1.2.0\\res\\values-v30\\values-v30.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endLines": "7",
+                        "endColumns": "12",
+                        "endOffsets": "433"
+                    }
+                }
+            ]
+        }
+    ]
+}

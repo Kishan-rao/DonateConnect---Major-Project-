@@ -1,0 +1,19 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.donateconnect.app-mergeDebugResources-2:/values-h720dp-v13/values-h720dp-v13.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\Kishan Rao\\.gradle\\caches\\9.8.1\\transforms\\9d792810fba819b66f4e411118a02fc6\\transformed\\appcompat-1.7.1\\res\\values-h720dp-v13\\values-h720dp-v13.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "66",
+                        "endOffsets": "117"
+                    }
+                }
+            ]
+        }
+    ]
+}
