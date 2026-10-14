@@ -12,16 +12,14 @@ export default defineConfig(({ mode }) => {
     define: {
       global: 'window',
     },
-    server: {
-      port: 5173,
-      proxy: {
-        '/api': {
-          target: proxyTarget,
-          changeOrigin: true,
-          secure: false,
-        },
-      },
+   server: {
+  proxy: {
+    "/api": {
+      target: "http://localhost:8080",
+      changeOrigin: true,
     },
+  },
+},
     test: {
       globals: true,
       environment: 'jsdom',
