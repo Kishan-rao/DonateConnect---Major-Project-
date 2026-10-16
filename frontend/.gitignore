@@ -11,3 +11,10 @@ node_modules/
 .env
 .env.*
 !.env.example
+
+# Android / Gradle generated files
+frontend/android/.gradle/
+frontend/android/.idea/workspace.xml
+frontend/android/**/build/
+frontend/android/build/
+frontend/android/local.properties
