@@ -8,6 +8,9 @@ import {
   Settings,
   LogOut,
   Shield,
+  Building2,
+  Truck,
+  PlusCircle,
 } from 'lucide-react';
 
 interface ProfileDropdownProps {
@@ -97,32 +100,118 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ isOpen, onClos
 
       {/* Menu items */}
       <div className="p-1.5 space-y-0.5">
-        <button
-          role="menuitem"
-          onClick={() => handleNavigation('/donations')}
-          className={menuItemClass}
-        >
-          <HeartHandshake className={iconClass} />
-          My Donations
-        </button>
+        {user.role === 'NGO' && (
+          <>
+            <button
+              role="menuitem"
+              onClick={() => handleNavigation('/ngo-dashboard')}
+              className={menuItemClass}
+            >
+              <Building2 className={iconClass} />
+              Assigned Requests
+            </button>
+            <button
+              role="menuitem"
+              onClick={() => handleNavigation('/ngo-dashboard/inventory')}
+              className={menuItemClass}
+            >
+              <PackageSearch className={iconClass} />
+              Delivered Inventory
+            </button>
+            <button
+              role="menuitem"
+              onClick={() => handleNavigation('/ngo-dashboard/profile')}
+              className={menuItemClass}
+            >
+              <User className={iconClass} />
+              NGO Profile
+            </button>
+          </>
+        )}
 
-        <button
-          role="menuitem"
-          onClick={() => handleNavigation('/donations')}
-          className={menuItemClass}
-        >
-          <PackageSearch className={iconClass} />
-          My Requests
-        </button>
+        {user.role === 'DONOR' && (
+          <>
+            <button
+              role="menuitem"
+              onClick={() => handleNavigation('/donations')}
+              className={menuItemClass}
+            >
+              <HeartHandshake className={iconClass} />
+              My Donations
+            </button>
+            <button
+              role="menuitem"
+              onClick={() => handleNavigation('/donate/new')}
+              className={menuItemClass}
+            >
+              <PlusCircle className={iconClass} />
+              New Donation
+            </button>
+            <button
+              role="menuitem"
+              onClick={() => handleNavigation('/donor/profile')}
+              className={menuItemClass}
+            >
+              <User className={iconClass} />
+              Donor Profile
+            </button>
+          </>
+        )}
 
-        <button
-          role="menuitem"
-          onClick={() => handleNavigation(getProfilePath())}
-          className={menuItemClass}
-        >
-          <User className={iconClass} />
-          Profile
-        </button>
+        {user.role === 'VOLUNTEER' && (
+          <>
+            <button
+              role="menuitem"
+              onClick={() => handleNavigation('/driver-dashboard')}
+              className={menuItemClass}
+            >
+              <Truck className={iconClass} />
+              Delivery Console
+            </button>
+          </>
+        )}
+
+        {user.role === 'ADMIN' && (
+          <>
+            <button
+              role="menuitem"
+              onClick={() => handleNavigation('/admin')}
+              className={menuItemClass}
+            >
+              <Shield className={iconClass} />
+              Admin Portal
+            </button>
+            <button
+              role="menuitem"
+              onClick={() => handleNavigation('/admin/ngos')}
+              className={menuItemClass}
+            >
+              <Building2 className={iconClass} />
+              Manage NGOs
+            </button>
+            <button
+              role="menuitem"
+              onClick={() => handleNavigation('/admin/profile')}
+              className={menuItemClass}
+            >
+              <User className={iconClass} />
+              Admin Profile
+            </button>
+          </>
+        )}
+
+        {user.role === 'CORPORATE' && (
+          <>
+            <button
+              role="menuitem"
+              onClick={() => handleNavigation('/csr-dashboard')}
+              className={menuItemClass}
+            >
+              <Building2 className={iconClass} />
+              CSR Hub
+            </button>
+          </>
+        )}
 
         <button
           role="menuitem"

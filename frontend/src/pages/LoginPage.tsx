@@ -76,19 +76,20 @@ export const LoginPage: React.FC = () => {
   };
 
   const routeUser = (user: any) => {
-      if (user.role === 'DONOR') {
-        navigate('/donations');
-      } else if (user.role === 'NGO') {
-        navigate('/ngo-dashboard');
-      } else if (user.role === 'ADMIN') {
-        navigate('/admin');
-      } else if (user.role === 'VOLUNTEER') {
-        navigate('/driver-dashboard');
-      } else if (user.role === 'CORPORATE') {
-        navigate('/csr-dashboard');
-      } else {
-        navigate('/');
-      }
+    const role = (user?.role || '').replace(/^ROLE_/, '');
+    if (role === 'DONOR') {
+      navigate('/donations');
+    } else if (role === 'NGO') {
+      navigate('/ngo-dashboard');
+    } else if (role === 'ADMIN') {
+      navigate('/admin');
+    } else if (role === 'VOLUNTEER') {
+      navigate('/driver-dashboard');
+    } else if (role === 'CORPORATE') {
+      navigate('/csr-dashboard');
+    } else {
+      navigate('/');
+    }
   };
 
   return (
@@ -218,8 +219,12 @@ export const LoginPage: React.FC = () => {
             <div className="text-center mt-6 pt-6 border-t border-slate-800/80">
               <p className="text-xs text-slate-400">
                 Don't have an account?{' '}
-                <Link to="/register" className="text-indigo-400 font-semibold hover:underline inline-flex items-center gap-0.5">
-                  Register as Donor <ArrowRight className="w-3 h-3 ml-0.5" />
+                <Link
+                  to={selectedRole === 'NGO' ? '/register?role=ngo' : selectedRole === 'VOLUNTEER' ? '/register?role=volunteer' : '/register?role=donor'}
+                  className="text-indigo-400 font-semibold hover:underline inline-flex items-center gap-0.5"
+                >
+                  {selectedRole === 'NGO' ? 'Register as NGO' : selectedRole === 'VOLUNTEER' ? 'Register as Delivery' : 'Register as Donor'}{' '}
+                  <ArrowRight className="w-3 h-3 ml-0.5" />
                 </Link>
               </p>
             </div>

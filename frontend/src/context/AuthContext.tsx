@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { AuthResponse, LoginRequest, RegisterRequest, User, VerifyOtpRequest } from '../types';
-import { loginApi, registerDonorApi, getCurrentUserApi, verifyOtpApi } from '../api/authApi';
+import { loginApi, registerApi, getCurrentUserApi, verifyOtpApi } from '../api/authApi';
 import { setAuthTokenInMemory, registerLogoutCallback } from '../api/client';
 
 interface AuthContextType {
@@ -10,6 +10,8 @@ interface AuthContextType {
   loading: boolean;
   login: (data: LoginRequest) => Promise<AuthResponse>;
   verifyOtp: (data: VerifyOtpRequest) => Promise<User>;
+  register: (data: RegisterRequest) => Promise<AuthResponse>;
+  /** @deprecated Use register() instead */
   registerDonor: (data: RegisterRequest) => Promise<AuthResponse>;
   logout: () => void;
   refetchUser: () => Promise<void>;
@@ -17,10 +19,18 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const normalizeUser = (user: User | null): User | null => {
+  if (!user) return null;
+  return {
+    ...user,
+    role: (user.role ? (user.role as string).replace(/^ROLE_/, '') : 'DONOR') as any,
+  };
+};
+
 const getInitialUser = (): User | null => {
   try {
     const saved = localStorage.getItem('dc-user');
-    return saved ? JSON.parse(saved) : null;
+    return saved ? normalizeUser(JSON.parse(saved)) : null;
   } catch {
     return null;
   }
@@ -50,8 +60,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setAuthTokenInMemory(savedToken);
       getCurrentUserApi()
         .then((currentUser) => {
-          setUser(currentUser);
-          localStorage.setItem('dc-user', JSON.stringify(currentUser));
+          const norm = normalizeUser(currentUser);
+          setUser(norm);
+          localStorage.setItem('dc-user', JSON.stringify(norm));
         })
         .catch(() => {
           // If token expired or invalid, clear session
@@ -68,12 +79,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (data: LoginRequest): Promise<AuthResponse> => {
     setLoading(true);
     try {
+      // Clear any stale session state to prevent role contamination
+      // from a previously logged-in account.
+      handleLogout();
       const res: AuthResponse = await loginApi(data);
       if (!res.requiresOtp && res.token) {
+        const norm = normalizeUser(res.user);
         setToken(res.token);
-        setUser(res.user);
+        setUser(norm);
         localStorage.setItem('dc-token', res.token);
-        localStorage.setItem('dc-user', JSON.stringify(res.user));
+        localStorage.setItem('dc-user', JSON.stringify(norm));
         setAuthTokenInMemory(res.token);
       }
       return res;
@@ -86,28 +101,33 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setLoading(true);
     try {
       const res: AuthResponse = await verifyOtpApi(data);
+      const norm = normalizeUser(res.user);
       if (res.token) {
         setToken(res.token);
-        setUser(res.user);
+        setUser(norm);
         localStorage.setItem('dc-token', res.token);
-        localStorage.setItem('dc-user', JSON.stringify(res.user));
+        localStorage.setItem('dc-user', JSON.stringify(norm));
         setAuthTokenInMemory(res.token);
       }
-      return res.user;
+      return norm as User;
     } finally {
       setLoading(false);
     }
   };
 
-  const registerDonor = async (data: RegisterRequest): Promise<AuthResponse> => {
+  const registerUser = async (data: RegisterRequest): Promise<AuthResponse> => {
     setLoading(true);
     try {
-      const res: AuthResponse = await registerDonorApi(data);
+      // Clear any stale session state to prevent role contamination
+      // from a previously logged-in account.
+      handleLogout();
+      const res: AuthResponse = await registerApi(data);
       if (!res.requiresOtp && res.token) {
+        const norm = normalizeUser(res.user);
         setToken(res.token);
-        setUser(res.user);
+        setUser(norm);
         localStorage.setItem('dc-token', res.token);
-        localStorage.setItem('dc-user', JSON.stringify(res.user));
+        localStorage.setItem('dc-user', JSON.stringify(norm));
         setAuthTokenInMemory(res.token);
       }
       return res;
@@ -121,8 +141,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!savedToken) return;
     try {
       const currentUser = await getCurrentUserApi();
-      setUser(currentUser);
-      localStorage.setItem('dc-user', JSON.stringify(currentUser));
+      const norm = normalizeUser(currentUser);
+      setUser(norm);
+      localStorage.setItem('dc-user', JSON.stringify(norm));
     } catch {
       handleLogout();
     }
@@ -137,7 +158,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         loading,
         login,
         verifyOtp,
-        registerDonor,
+        register: registerUser,
+        registerDonor: registerUser,
         logout: handleLogout,
         refetchUser,
       }}

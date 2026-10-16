@@ -1,14 +1,19 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../context/AuthContext';
 import { OtpInput } from '../components/OtpInput';
 import { RegisterRequest } from '../types';
-import { UserPlus, Mail, Lock, User as UserIcon, HeartHandshake, ShieldAlert } from 'lucide-react';
+import { UserPlus, Mail, Lock, User as UserIcon, HeartHandshake, ShieldAlert, Building2 } from 'lucide-react';
 
 export const RegisterPage: React.FC = () => {
-  const { registerDonor, verifyOtp } = useAuth();
+  const { register: authRegister, verifyOtp } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialRoleParam = searchParams.get('role')?.toUpperCase();
+  const initialRole: 'DONOR' | 'VOLUNTEER' | 'NGO' =
+    initialRoleParam === 'NGO' || initialRoleParam === 'VOLUNTEER' ? initialRoleParam : 'DONOR';
+
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   
@@ -16,7 +21,7 @@ export const RegisterPage: React.FC = () => {
   const [showOtp, setShowOtp] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [registerEmail, setRegisterEmail] = useState('');
-  const [selectedRole, setSelectedRole] = useState<'DONOR' | 'VOLUNTEER' | 'NGO'>('DONOR');
+  const [selectedRole, setSelectedRole] = useState<'DONOR' | 'VOLUNTEER' | 'NGO'>(initialRole);
 
   const {
     register,
@@ -24,19 +29,36 @@ export const RegisterPage: React.FC = () => {
     formState: { errors },
   } = useForm<RegisterRequest>();
 
+  const routeByRole = (role: string) => {
+    switch (role) {
+      case 'NGO':
+        return '/ngo-dashboard';
+      case 'VOLUNTEER':
+        return '/driver-dashboard';
+      case 'ADMIN':
+        return '/admin';
+      case 'CORPORATE':
+        return '/csr-dashboard';
+      case 'DONOR':
+      default:
+        return '/donations';
+    }
+  };
+
   const onSubmit = async (data: RegisterRequest) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await registerDonor({ ...data, role: selectedRole });
+      const res = await authRegister({ ...data, role: selectedRole });
       if (res.requiresOtp) {
         setShowOtp(true);
         setRegisterEmail(data.email);
       } else {
-        navigate(selectedRole === 'DONOR' ? '/donations' : '/driver-dashboard');
+        // Use the role from the backend response as the authoritative source
+        navigate(routeByRole(res.user?.role ?? selectedRole));
       }
     } catch (err: any) {
-      setError(err.message || 'Registration failed.');
+      setError(err.response?.data?.message || err.message || 'Registration failed.');
     } finally {
       setLoading(false);
     }
@@ -47,10 +69,11 @@ export const RegisterPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      await verifyOtp({ email: registerEmail, otp: otpCode });
-      navigate(selectedRole === 'DONOR' ? '/donations' : '/driver-dashboard');
+      const user = await verifyOtp({ email: registerEmail, otp: otpCode });
+      // Use the role from the backend-verified user as the authoritative source
+      navigate(routeByRole(user?.role ?? selectedRole));
     } catch (err: any) {
-      setError(err.message || 'Invalid OTP code.');
+      setError(err.response?.data?.message || err.message || 'Invalid OTP code.');
     } finally {
       setLoading(false);
     }
@@ -70,7 +93,7 @@ export const RegisterPage: React.FC = () => {
         <div className="mb-6 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-start gap-2.5">
           <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
           <span>
-            <strong>Public Registration:</strong> You can register as a <strong>Donor</strong> or <strong>Delivery Person</strong>. NGO & Admin accounts require an invite.
+            <strong>Public Registration:</strong> You can register as a <strong>Donor</strong>, <strong>Delivery Person</strong>, or <strong>NGO</strong>. NGO & Delivery accounts require admin approval after email verification.
           </span>
         </div>
 
@@ -121,14 +144,20 @@ export const RegisterPage: React.FC = () => {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                  Full Name
+                  {selectedRole === 'NGO' ? 'NGO / Organization Name' : 'Full Name'}
                 </label>
                 <div className="relative">
-                  <UserIcon className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  {selectedRole === 'NGO' ? (
+                    <Building2 className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  ) : (
+                    <UserIcon className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  )}
                   <input
                     type="text"
-                    placeholder="Jane Doe"
-                    {...register('fullName', { required: 'Full name is required' })}
+                    placeholder={selectedRole === 'NGO' ? 'e.g. Akshaya Relief Foundation' : 'Jane Doe'}
+                    {...register('fullName', {
+                      required: selectedRole === 'NGO' ? 'Organization name is required' : 'Full name is required',
+                    })}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition-colors"
                   />
                 </div>
@@ -186,16 +215,17 @@ export const RegisterPage: React.FC = () => {
                 <>
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                      NGO Address
+                      NGO Operational Address (Bengaluru)
                     </label>
                     <div className="relative">
                       <input
                         type="text"
-                        placeholder="123 Main St, City, State"
+                        placeholder="e.g. 123 Indiranagar, Bengaluru, Karnataka"
                         {...register('address', { required: selectedRole === 'NGO' ? 'Address is required' : false })}
                         className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition-colors"
                       />
                     </div>
+                    <p className="text-slate-500 text-[11px] mt-1">Currently registering NGOs operating in Bengaluru / Bangalore region.</p>
                     {errors.address && (
                       <p className="text-rose-400 text-xs mt-1">{errors.address.message}</p>
                     )}

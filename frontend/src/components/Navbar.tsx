@@ -201,6 +201,16 @@ export const Navbar: React.FC = () => {
                 </>
               )}
 
+              {isDonor && (
+                <Link to="/donations" className={navLinkClass('/donations')}>
+                  <PackageSearch className="w-3.5 h-3.5" /> My Donations
+                </Link>
+              )}
+              {isNgo && (
+                <Link to="/ngo-dashboard" className={navLinkClass('/ngo-dashboard')}>
+                  <Building2 className="w-3.5 h-3.5" /> NGO Portal
+                </Link>
+              )}
               {isVolunteer && (
                 <Link to="/driver-dashboard" className={navLinkClass('/driver-dashboard')}>
                   <Truck className="w-3.5 h-3.5" /> Driver

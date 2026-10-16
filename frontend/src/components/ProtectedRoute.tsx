@@ -22,7 +22,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) 
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+  const userRole = (user.role ? (user.role as string).replace(/^ROLE_/, '') : '') as Role;
+
+  if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
     return <Navigate to="/unauthorized" replace />;
   }
 

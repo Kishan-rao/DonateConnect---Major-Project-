@@ -2,10 +2,13 @@ import { apiClient } from './client';
 import { ApiResponse, AuthResponse, LoginRequest, RegisterRequest, User, VerifyOtpRequest } from '../types';
 
 
-export const registerDonorApi = async (data: RegisterRequest): Promise<AuthResponse> => {
+export const registerApi = async (data: RegisterRequest): Promise<AuthResponse> => {
   const response = await apiClient.post<ApiResponse<AuthResponse>>('/auth/register', data);
   return response.data.data;
 };
+
+/** @deprecated Use registerApi() instead */
+export const registerDonorApi = registerApi;
 
 
 export const loginApi = async (data: LoginRequest): Promise<AuthResponse> => {
