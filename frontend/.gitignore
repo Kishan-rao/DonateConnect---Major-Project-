@@ -18,3 +18,7 @@ frontend/android/.idea/workspace.xml
 frontend/android/**/build/
 frontend/android/build/
 frontend/android/local.properties
+
+uploads/
+dist/
+node_modules/

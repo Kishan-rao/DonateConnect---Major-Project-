@@ -198,6 +198,7 @@ class NgoRegistrationIntegrationTest {
         LoginRequest loginRequest = new LoginRequest();
         loginRequest.setEmail("active.ngo@bangalore.org");
         loginRequest.setPassword("NgoPassword123!");
+        loginRequest.setExpectedRole("NGO");
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)

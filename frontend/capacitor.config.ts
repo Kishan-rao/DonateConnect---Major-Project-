@@ -5,11 +5,7 @@ const config: CapacitorConfig = {
   appName: 'DonateConnect',
   webDir: 'dist',
   server: {
-    androidScheme: 'http',
-    cleartext: true
-  },
-  android: {
-    allowMixedContent: true
+    androidScheme: 'https'
   }
 };
 

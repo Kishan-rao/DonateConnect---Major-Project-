@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../context/AuthContext';
 import { OtpInput } from '../components/OtpInput';
@@ -9,6 +9,7 @@ import { LogIn, Mail, Lock, HeartHandshake, ArrowRight } from 'lucide-react';
 export const LoginPage: React.FC = () => {
   const { login, verifyOtp } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState<'DONOR' | 'NGO' | 'ADMIN' | 'VOLUNTEER'>('DONOR');
@@ -27,6 +28,7 @@ export const LoginPage: React.FC = () => {
 
   const handleRoleSelect = (role: 'DONOR' | 'NGO' | 'ADMIN' | 'VOLUNTEER') => {
     setSelectedRole(role);
+    setError(null);
     // Auto-fill demo credentials to make testing easier
     if (role === 'DONOR') {
       setValue('email', 'priya.patel@gmail.com');
@@ -43,11 +45,21 @@ export const LoginPage: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    const roleParam = searchParams.get('role')?.toUpperCase();
+    if (roleParam === 'NGO' || roleParam === 'ADMIN' || roleParam === 'VOLUNTEER' || roleParam === 'DONOR') {
+      handleRoleSelect(roleParam as 'DONOR' | 'NGO' | 'ADMIN' | 'VOLUNTEER');
+    }
+  }, [searchParams]);
+
   const onSubmit = async (data: LoginRequest) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await login(data);
+      const res = await login({
+        ...data,
+        expectedRole: selectedRole,
+      });
       if (res.requiresOtp) {
         setShowOtp(true);
         setLoginEmail(data.email);

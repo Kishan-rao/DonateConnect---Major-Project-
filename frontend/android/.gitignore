@@ -99,3 +99,12 @@ app/src/main/assets/public
 app/src/main/assets/capacitor.config.json
 app/src/main/assets/capacitor.plugins.json
 app/src/main/res/xml/config.xml
+
+
+local.properties
+.idea/
+*.iml
+.gradle/
+build/
+app/build/
+app/src/main/assets/public/

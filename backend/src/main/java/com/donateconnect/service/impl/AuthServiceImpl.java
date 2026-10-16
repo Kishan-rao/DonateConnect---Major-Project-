@@ -178,6 +178,25 @@ public class AuthServiceImpl implements AuthService {
             throw new BadCredentialsException("Invalid email or password");
         }
 
+        // Enforce role-specific sign in. Validate expectedRole against the user's stored database role.
+        Role expectedRoleEnum = parseAndNormalizeRole(request.getExpectedRole());
+        if (expectedRoleEnum == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Sign-in requires a valid expected role (DONOR, VOLUNTEER, NGO, ADMIN)."
+            );
+        }
+
+        Role actualRole = normalizeRole(user.getRole());
+        if (actualRole != expectedRoleEnum) {
+            String errorMsg = String.format(
+                    "This account is not registered as %s. Please use %s.",
+                    getRoleArticleAndName(expectedRoleEnum),
+                    getRoleSignInName(actualRole)
+            );
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, errorMsg);
+        }
+
         // Admin approval is separate from email verification.
         if (!user.isApproved()
                 && user.getRole() != Role.DONOR
@@ -370,5 +389,61 @@ public class AuthServiceImpl implements AuthService {
                 .ratingCount(user.getRatingCount())
                 .createdAt(user.getCreatedAt())
                 .build();
+    }
+
+    private Role parseAndNormalizeRole(String roleStr) {
+        if (roleStr == null || roleStr.isBlank()) {
+            return null;
+        }
+        String normalized = roleStr.trim().toUpperCase(Locale.ROOT);
+        if (normalized.startsWith("ROLE_")) {
+            normalized = normalized.substring(5);
+        }
+        try {
+            return Role.valueOf(normalized);
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    private Role normalizeRole(Role role) {
+        if (role == null) {
+            return null;
+        }
+        String roleStr = role.name().trim().toUpperCase(Locale.ROOT);
+        if (roleStr.startsWith("ROLE_")) {
+            roleStr = roleStr.substring(5);
+        }
+        try {
+            return Role.valueOf(roleStr);
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    private String getRoleArticleAndName(Role role) {
+        if (role == null) {
+            return "the requested role";
+        }
+        return switch (role) {
+            case DONOR -> "a donor";
+            case VOLUNTEER -> "a volunteer";
+            case NGO -> "an NGO";
+            case ADMIN -> "an admin";
+            case CORPORATE -> "a corporate partner";
+        };
+    }
+
+    private String getRoleSignInName(Role role) {
+        if (role == null) {
+            return "the appropriate Sign In option";
+        }
+        return switch (role) {
+            case DONOR -> "Donor Sign In";
+            case VOLUNTEER -> "Volunteer Sign In";
+            case NGO -> "NGO Sign In";
+            case ADMIN -> "Admin Sign In";
+            case CORPORATE -> "Corporate Sign In";
+        };
     }
 }

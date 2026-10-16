@@ -92,6 +92,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setAuthTokenInMemory(res.token);
       }
       return res;
+    } catch (error) {
+      handleLogout();
+      throw error;
     } finally {
       setLoading(false);
     }

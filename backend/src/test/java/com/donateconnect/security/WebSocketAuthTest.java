@@ -59,6 +59,7 @@ public class WebSocketAuthTest {
         stompClient = new WebSocketStompClient(sockJsClient);
         stompClient.setMessageConverter(new StringMessageConverter());
 
+        userRepository.findByEmail("ws@test.com").ifPresent(u -> userRepository.deleteById(u.getId()));
         testUser = userRepository.save(User.builder()
                 .email("ws@test.com")
                 .fullName("WS User")
@@ -79,7 +80,9 @@ public class WebSocketAuthTest {
 
     @AfterEach
     void tearDown() {
-        userRepository.deleteAll();
+        if (testUser != null && testUser.getId() != null) {
+            userRepository.deleteById(testUser.getId());
+        }
     }
 
     private String getWsUrl() {

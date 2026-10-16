@@ -324,6 +324,7 @@ class SecurityAndRbacTests {
         LoginRequest request = LoginRequest.builder()
                 .email("donor@test.com")
                 .password("password123")
+                .expectedRole("DONOR")
                 .build();
 
         mockMvc.perform(post("/api/auth/login")
