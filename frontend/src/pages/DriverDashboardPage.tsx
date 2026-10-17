@@ -86,7 +86,7 @@ export const DriverDashboardPage: React.FC = () => {
         <div>
           <h1 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
             <Truck className="w-8 h-8 text-amber-400" />
-            Volunteer Driver Console
+            Delivery Partner Console
           </h1>
           <p className="text-slate-400 text-sm mt-1">
             Claim and manage donation pickups from donors to NGO partners

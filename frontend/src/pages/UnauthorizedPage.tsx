@@ -15,7 +15,7 @@ export const UnauthorizedPage: React.FC = () => {
       case 'DONOR':
         return { label: 'Go to Donor Portal', path: '/donations' };
       case 'VOLUNTEER':
-        return { label: 'Go to Delivery Console', path: '/driver-dashboard' };
+        return { label: 'Go to Delivery Partner Console', path: '/driver-dashboard' };
       case 'ADMIN':
         return { label: 'Go to Admin Portal', path: '/admin' };
       case 'CORPORATE':

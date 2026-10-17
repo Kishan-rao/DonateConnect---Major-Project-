@@ -100,6 +100,8 @@ const AppShell: React.FC = () => {
               {/* Protected Volunteer Driver Routes */}
               <Route element={<ProtectedRoute allowedRoles={['VOLUNTEER', 'ADMIN']} />}>
                 <Route path="/driver-dashboard" element={<DriverDashboardPage />} />
+                <Route path="/delivery-dashboard" element={<Navigate to="/driver-dashboard" replace />} />
+                <Route path="/volunteer-dashboard" element={<Navigate to="/driver-dashboard" replace />} />
               </Route>
 
               {/* Protected Corporate CSR Routes */}

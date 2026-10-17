@@ -40,15 +40,17 @@ export const LoginPage: React.FC = () => {
       setValue('email', 'admin@donateconnect.in');
       setValue('password', 'admin123');
     } else if (role === 'VOLUNTEER') {
-      setValue('email', 'delivery@example.com');
+      setValue('email', 'dispatch@donateconnect.in');
       setValue('password', 'driver123');
     }
   };
 
   useEffect(() => {
     const roleParam = searchParams.get('role')?.toUpperCase();
-    if (roleParam === 'NGO' || roleParam === 'ADMIN' || roleParam === 'VOLUNTEER' || roleParam === 'DONOR') {
-      handleRoleSelect(roleParam as 'DONOR' | 'NGO' | 'ADMIN' | 'VOLUNTEER');
+    if (roleParam === 'NGO' || roleParam === 'ADMIN' || roleParam === 'DONOR') {
+      handleRoleSelect(roleParam as 'DONOR' | 'NGO' | 'ADMIN');
+    } else if (roleParam === 'VOLUNTEER' || roleParam === 'DELIVERY' || roleParam === 'DELIVERY_PARTNER' || roleParam === 'DELIVERY-PARTNER') {
+      handleRoleSelect('VOLUNTEER');
     }
   }, [searchParams]);
 
@@ -160,7 +162,7 @@ export const LoginPage: React.FC = () => {
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                 }`}
               >
-                Delivery
+                Delivery Partner
               </button>
               <button
                 type="button"
@@ -235,7 +237,7 @@ export const LoginPage: React.FC = () => {
                   to={selectedRole === 'NGO' ? '/register?role=ngo' : selectedRole === 'VOLUNTEER' ? '/register?role=volunteer' : '/register?role=donor'}
                   className="text-indigo-400 font-semibold hover:underline inline-flex items-center gap-0.5"
                 >
-                  {selectedRole === 'NGO' ? 'Register as NGO' : selectedRole === 'VOLUNTEER' ? 'Register as Delivery' : 'Register as Donor'}{' '}
+                  {selectedRole === 'NGO' ? 'Register as NGO' : selectedRole === 'VOLUNTEER' ? 'Register as Delivery Partner' : 'Register as Donor'}{' '}
                   <ArrowRight className="w-3 h-3 ml-0.5" />
                 </Link>
               </p>

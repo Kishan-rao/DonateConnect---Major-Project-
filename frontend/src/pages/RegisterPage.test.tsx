@@ -243,6 +243,44 @@ describe('RegisterPage Component & Role Routing', () => {
     });
   });
 
+  it('routes to /driver-dashboard when Delivery Partner registers via ?role=delivery_partner', async () => {
+    mockRegister.mockResolvedValueOnce({
+      requiresOtp: false,
+      token: 'jwt-driver-token',
+      user: {
+        id: 'driver-2',
+        email: 'delivery@example.com',
+        fullName: 'Amit Delivery',
+        role: 'VOLUNTEER',
+        createdAt: '2026-10-16',
+      },
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/register?role=delivery_partner']}>
+        <RegisterPage />
+      </MemoryRouter>
+    );
+
+    const user = userEvent.setup();
+
+    await user.type(screen.getByPlaceholderText('Jane Doe'), 'Amit Delivery');
+    await user.type(screen.getByPlaceholderText('jane@example.com'), 'delivery@example.com');
+    await user.type(screen.getByPlaceholderText('Minimum 6 characters'), 'Password123!');
+
+    await user.click(screen.getByRole('button', { name: /Complete Registration/i }));
+
+    await waitFor(() => {
+      expect(mockRegister).toHaveBeenCalledWith(
+        expect.objectContaining({
+          role: 'VOLUNTEER',
+          email: 'delivery@example.com',
+        })
+      );
+      expect(mockNavigate).toHaveBeenCalledWith('/driver-dashboard');
+    });
+  });
+
   it('displays backend error message if registration fails', async () => {
     mockRegister.mockRejectedValueOnce({
       response: {

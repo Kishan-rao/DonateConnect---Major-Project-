@@ -42,7 +42,7 @@ const TestComponent = () => {
       <div data-testid="user-name">{user ? user.name : 'null'}</div>
       <button
         data-testid="login-btn"
-        onClick={() => login({ email: 'test@example.com', password: 'password' })}
+        onClick={() => login({ email: 'test@example.com', password: 'password', expectedRole: 'DONOR' })}
       >
         Login
       </button>

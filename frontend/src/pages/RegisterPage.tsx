@@ -11,8 +11,12 @@ export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialRoleParam = searchParams.get('role')?.toUpperCase();
-  const initialRole: 'DONOR' | 'VOLUNTEER' | 'NGO' =
-    initialRoleParam === 'NGO' || initialRoleParam === 'VOLUNTEER' ? initialRoleParam : 'DONOR';
+  const getInitialRole = (param?: string): 'DONOR' | 'VOLUNTEER' | 'NGO' => {
+    if (param === 'NGO') return 'NGO';
+    if (param === 'VOLUNTEER' || param === 'DELIVERY' || param === 'DELIVERY_PARTNER' || param === 'DELIVERY-PARTNER') return 'VOLUNTEER';
+    return 'DONOR';
+  };
+  const initialRole: 'DONOR' | 'VOLUNTEER' | 'NGO' = getInitialRole(initialRoleParam);
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -93,7 +97,7 @@ export const RegisterPage: React.FC = () => {
         <div className="mb-6 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-start gap-2.5">
           <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
           <span>
-            <strong>Public Registration:</strong> You can register as a <strong>Donor</strong>, <strong>Delivery Person</strong>, or <strong>NGO</strong>. NGO & Delivery accounts require admin approval after email verification.
+            <strong>Public Registration:</strong> You can register as a <strong>Donor</strong>, <strong>Delivery Partner</strong>, or <strong>NGO</strong>. NGO & Delivery Partner accounts require admin approval after email verification.
           </span>
         </div>
 
@@ -126,7 +130,7 @@ export const RegisterPage: React.FC = () => {
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                 }`}
               >
-                Register as Delivery
+                Register as Delivery Partner
               </button>
               <button
                 type="button"

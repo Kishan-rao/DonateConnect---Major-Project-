@@ -392,33 +392,14 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private Role parseAndNormalizeRole(String roleStr) {
-        if (roleStr == null || roleStr.isBlank()) {
-            return null;
-        }
-        String normalized = roleStr.trim().toUpperCase(Locale.ROOT);
-        if (normalized.startsWith("ROLE_")) {
-            normalized = normalized.substring(5);
-        }
-        try {
-            return Role.valueOf(normalized);
-        } catch (IllegalArgumentException ex) {
-            return null;
-        }
+        return Role.fromString(roleStr);
     }
 
     private Role normalizeRole(Role role) {
         if (role == null) {
             return null;
         }
-        String roleStr = role.name().trim().toUpperCase(Locale.ROOT);
-        if (roleStr.startsWith("ROLE_")) {
-            roleStr = roleStr.substring(5);
-        }
-        try {
-            return Role.valueOf(roleStr);
-        } catch (IllegalArgumentException ex) {
-            return null;
-        }
+        return Role.fromString(role.name());
     }
 
     private String getRoleArticleAndName(Role role) {

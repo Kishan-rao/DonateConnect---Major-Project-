@@ -166,7 +166,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ isOpen, onClos
               className={menuItemClass}
             >
               <Truck className={iconClass} />
-              Delivery Console
+              Delivery Partner Console
             </button>
           </>
         )}

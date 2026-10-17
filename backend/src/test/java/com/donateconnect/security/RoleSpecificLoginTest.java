@@ -419,4 +419,69 @@ public class RoleSpecificLoginTest {
                 .andExpect(jsonPath("$.data.token").isString())
                 .andExpect(jsonPath("$.data.user.role").value("DONOR"));
     }
+
+    // ==========================================
+    // 16. VOLUNTEER & DELIVERY PARTNER UNIFICATION
+    // ==========================================
+
+    @ParameterizedTest
+    @CsvSource({
+            "DELIVERY_PARTNER",
+            "Delivery Partner",
+            "DELIVERY",
+            "driver",
+            "ROLE_DELIVERY_PARTNER"
+    })
+    @DisplayName("16. Volunteer credentials succeed with delivery aliases as expectedRole")
+    void testVolunteerLogin_WithDeliveryPartnerAliases_Succeeds(String alias) throws Exception {
+        LoginRequest request = LoginRequest.builder()
+                .email("volunteer@roleauth.org")
+                .password(DEFAULT_PASSWORD)
+                .expectedRole(alias)
+                .build();
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.token").isString())
+                .andExpect(jsonPath("$.data.user.role").value("VOLUNTEER"));
+    }
+
+    @Test
+    @DisplayName("17. Donor account attempting sign-in via DELIVERY_PARTNER portal is rejected with 403")
+    void testDonorLogin_WithExpectedRoleDeliveryPartner_FailsWithForbidden() throws Exception {
+        LoginRequest request = LoginRequest.builder()
+                .email("donor@roleauth.org")
+                .password(DEFAULT_PASSWORD)
+                .expectedRole("DELIVERY_PARTNER")
+                .build();
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("This account is not registered as a volunteer. Please use Donor Sign In."));
+    }
+
+    @Test
+    @DisplayName("18. Public login endpoint succeeds even when request contains an expired or invalid Authorization Bearer header")
+    void testLogin_WithStaleBearerTokenInHeader_Succeeds() throws Exception {
+        LoginRequest request = LoginRequest.builder()
+                .email("donor@roleauth.org")
+                .password(DEFAULT_PASSWORD)
+                .expectedRole("DONOR")
+                .build();
+
+        mockMvc.perform(post("/api/auth/login")
+                        .header("Authorization", "Bearer invalid-or-expired-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.token").isString())
+                .andExpect(jsonPath("$.data.user.role").value("DONOR"));
+    }
 }

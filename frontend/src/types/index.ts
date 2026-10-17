@@ -59,7 +59,7 @@ export interface RegisterRequest {
 export interface LoginRequest {
   email: string;
   password: string;
-  expectedRole?: Role;
+  expectedRole: Role;
 }
 
 export interface VerifyOtpRequest {

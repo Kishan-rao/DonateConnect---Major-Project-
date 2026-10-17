@@ -164,7 +164,7 @@ export const Navbar: React.FC = () => {
                     : isNgo
                     ? 'NGO Portal'
                     : isVolunteer
-                    ? 'Driver Console'
+                    ? 'Delivery Partner Console'
                     : isCorporate
                     ? 'CSR Console'
                     : 'Community Relief'}
@@ -213,7 +213,7 @@ export const Navbar: React.FC = () => {
               )}
               {isVolunteer && (
                 <Link to="/driver-dashboard" className={navLinkClass('/driver-dashboard')}>
-                  <Truck className="w-3.5 h-3.5" /> Driver
+                  <Truck className="w-3.5 h-3.5" /> Delivery Partner
                 </Link>
               )}
               {isCorporate && (
@@ -427,7 +427,7 @@ export const Navbar: React.FC = () => {
                     {isVolunteer && (
                       <>
                         <Link to="/driver-dashboard" className={drawerLinkClass('/driver-dashboard')}>
-                          <Truck className="w-4 h-4 text-[#7567E8]" /> Volunteer Delivery Console
+                          <Truck className="w-4 h-4 text-[#7567E8]" /> Delivery Partner Console
                         </Link>
                         <Link to="/settings" className={drawerLinkClass('/settings')}>
                           <Settings className="w-4 h-4 text-[#7567E8]" /> Account Settings

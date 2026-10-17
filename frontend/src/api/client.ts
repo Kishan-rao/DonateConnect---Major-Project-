@@ -100,8 +100,15 @@ apiClient.interceptors.request.use((config) => {
   if (cachedConfigError) {
     return Promise.reject(cachedConfigError);
   }
+  const requestUrl = config.url || '';
+  const isPublicAuthEndpoint =
+    requestUrl.includes('/auth/login') ||
+    requestUrl.includes('/auth/register') ||
+    requestUrl.includes('/auth/verify-otp') ||
+    requestUrl.includes('/auth/resend-otp');
+
   const activeToken = inMemoryToken || localStorage.getItem('dc-token');
-  if (activeToken) {
+  if (activeToken && !isPublicAuthEndpoint) {
     config.headers.Authorization = `Bearer ${activeToken}`;
   }
   return config;

@@ -45,7 +45,7 @@ describe('LoginPage Component & Role-Specific Login', () => {
 
     expect(screen.getByRole('button', { name: 'Donor' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'NGO' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Delivery' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Delivery Partner' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Admin' })).toBeInTheDocument();
   });
 
@@ -84,10 +84,10 @@ describe('LoginPage Component & Role-Specific Login', () => {
     });
   });
 
-  it('submits login with expectedRole VOLUNTEER when Delivery tab is active and navigates to /driver-dashboard', async () => {
+  it('submits login with expectedRole VOLUNTEER when Delivery Partner tab is active and navigates to /driver-dashboard', async () => {
     mockLogin.mockResolvedValueOnce({
       token: 'jwt-volunteer-token',
-      user: { id: '2', email: 'delivery@example.com', fullName: 'Driver User', role: 'VOLUNTEER' },
+      user: { id: '2', email: 'dispatch@donateconnect.in', fullName: 'Driver User', role: 'VOLUNTEER' },
       requiresOtp: false,
     });
 
@@ -97,7 +97,7 @@ describe('LoginPage Component & Role-Specific Login', () => {
       </MemoryRouter>
     );
 
-    const deliveryTab = screen.getByRole('button', { name: 'Delivery' });
+    const deliveryTab = screen.getByRole('button', { name: 'Delivery Partner' });
     fireEvent.click(deliveryTab);
 
     const user = userEvent.setup();
@@ -216,8 +216,8 @@ describe('LoginPage Component & Role-Specific Login', () => {
       expect(screen.getByText(roleMismatchMessage)).toBeInTheDocument();
     });
 
-    // Switch to Delivery tab
-    const deliveryTab = screen.getByRole('button', { name: 'Delivery' });
+    // Switch to Delivery Partner tab
+    const deliveryTab = screen.getByRole('button', { name: 'Delivery Partner' });
     fireEvent.click(deliveryTab);
 
     // Error should be cleared
@@ -249,6 +249,60 @@ describe('LoginPage Component & Role-Specific Login', () => {
           expectedRole: 'NGO',
         })
       );
+    });
+  });
+
+  it('initializes Delivery Partner tab from query parameter ?role=volunteer', async () => {
+    render(
+      <MemoryRouter initialEntries={['/login?role=volunteer']}>
+        <LoginPage />
+      </MemoryRouter>
+    );
+
+    const user = userEvent.setup();
+    mockLogin.mockResolvedValueOnce({
+      token: 'jwt-vol-token',
+      user: { id: '2', email: 'dispatch@donateconnect.in', fullName: 'Partner User', role: 'VOLUNTEER' },
+      requiresOtp: false,
+    });
+
+    const submitBtn = screen.getByRole('button', { name: /sign in/i });
+    await user.click(submitBtn);
+
+    await waitFor(() => {
+      expect(mockLogin).toHaveBeenCalledWith(
+        expect.objectContaining({
+          expectedRole: 'VOLUNTEER',
+        })
+      );
+      expect(mockNavigate).toHaveBeenCalledWith('/driver-dashboard');
+    });
+  });
+
+  it('initializes Delivery Partner tab from query parameter ?role=delivery_partner', async () => {
+    render(
+      <MemoryRouter initialEntries={['/login?role=delivery_partner']}>
+        <LoginPage />
+      </MemoryRouter>
+    );
+
+    const user = userEvent.setup();
+    mockLogin.mockResolvedValueOnce({
+      token: 'jwt-vol-token',
+      user: { id: '2', email: 'dispatch@donateconnect.in', fullName: 'Partner User', role: 'VOLUNTEER' },
+      requiresOtp: false,
+    });
+
+    const submitBtn = screen.getByRole('button', { name: /sign in/i });
+    await user.click(submitBtn);
+
+    await waitFor(() => {
+      expect(mockLogin).toHaveBeenCalledWith(
+        expect.objectContaining({
+          expectedRole: 'VOLUNTEER',
+        })
+      );
+      expect(mockNavigate).toHaveBeenCalledWith('/driver-dashboard');
     });
   });
 });
