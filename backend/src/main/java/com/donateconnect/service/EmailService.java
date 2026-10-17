@@ -28,10 +28,10 @@ public class EmailService {
     @Value("${app.mail.from:noreply@donateconnect.com}")
     private String fromEmail;
 
-    @Value("${app.mail.provider:smtp}")
+    @Value("${app.mail.provider:auto}")
     private String provider;
 
-    @Value("${BREVO_API_KEY:}")
+    @Value("${app.mail.brevo-api-key:}")
     private String brevoApiKey;
 
     @Value("${app.mail.brevo-url:https://api.brevo.com/v3/smtp/email}")
@@ -39,7 +39,7 @@ public class EmailService {
 
     @PostConstruct
     public void init() {
-        log.info("EmailService initialized with provider: {}", provider);
+        log.info("EmailService initialized with provider: {}, fromEmail: {}", provider, fromEmail);
     }
 
     public void sendOtpEmail(String toEmail, String otp) {
@@ -48,6 +48,8 @@ public class EmailService {
         try {
             sendEmail(toEmail, subject, body);
             log.info("OTP email sent successfully to {}", toEmail);
+        } catch (EmailDeliveryException ede) {
+            throw ede;
         } catch (Exception e) {
             log.error("Failed to send OTP email to {}: {}", toEmail, e.getMessage());
             throw new EmailDeliveryException("Failed to send email.", e);
@@ -64,10 +66,18 @@ public class EmailService {
     }
 
     private void sendEmail(String to, String subject, String textContent) throws Exception {
-        if ("brevo".equalsIgnoreCase(provider)) {
+        if ("brevo".equalsIgnoreCase(provider) || "api".equalsIgnoreCase(provider)) {
             sendViaBrevoHttp(to, subject, textContent);
-        } else {
+        } else if ("smtp".equalsIgnoreCase(provider)) {
             sendViaSmtp(to, subject, textContent);
+        } else {
+            // Auto mode: If BREVO_API_KEY is configured, prefer Brevo HTTP API (HTTPS port 443,
+            // which bypasses Render Free Tier outbound SMTP port restrictions). Otherwise, use SMTP.
+            if (brevoApiKey != null && !brevoApiKey.isBlank()) {
+                sendViaBrevoHttp(to, subject, textContent);
+            } else {
+                sendViaSmtp(to, subject, textContent);
+            }
         }
     }
 
@@ -80,7 +90,58 @@ public class EmailService {
         message.setTo(to);
         message.setSubject(subject);
         message.setText(textContent);
-        mailSender.send(message);
+
+        if (mailSender instanceof org.springframework.mail.javamail.JavaMailSenderImpl impl) {
+            int originalPort = impl.getPort();
+            try {
+                impl.send(message);
+            } catch (org.springframework.mail.MailSendException mse) {
+                if (originalPort == 587 && isConnectionTimeoutOrRefused(mse)) {
+                    log.warn("SMTP connection failed on port 587 (connection timeout/blocked). Attempting fallback to port 2525...");
+                    impl.setPort(2525);
+                    try {
+                        impl.send(message);
+                        log.info("Email sent successfully via SMTP fallback port 2525 to {}", to);
+                        return;
+                    } catch (Exception fallbackEx) {
+                        log.error("SMTP fallback on port 2525 also failed: {}", fallbackEx.getMessage());
+                        throw mse;
+                    } finally {
+                        impl.setPort(originalPort);
+                    }
+                }
+                throw mse;
+            }
+        } else {
+            mailSender.send(message);
+        }
+    }
+
+    private boolean isConnectionTimeoutOrRefused(org.springframework.mail.MailSendException mse) {
+        if (mse.getMessage() != null && (mse.getMessage().contains("timed out") || mse.getMessage().contains("Connection refused"))) {
+            return true;
+        }
+        for (Exception subEx : mse.getMessageExceptions()) {
+            Throwable cause = subEx;
+            while (cause != null) {
+                if (cause instanceof java.net.SocketTimeoutException
+                        || cause instanceof java.net.ConnectException
+                        || cause.getClass().getName().contains("MailConnectException")) {
+                    return true;
+                }
+                cause = cause.getCause();
+            }
+        }
+        Throwable cause = mse.getCause();
+        while (cause != null) {
+            if (cause instanceof java.net.SocketTimeoutException
+                    || cause instanceof java.net.ConnectException
+                    || cause.getClass().getName().contains("MailConnectException")) {
+                return true;
+            }
+            cause = cause.getCause();
+        }
+        return false;
     }
 
     void sendViaBrevoHttp(String to, String subject, String textContent) throws Exception {
@@ -89,7 +150,7 @@ public class EmailService {
         }
         
         java.util.Map<String, Object> payload = new java.util.HashMap<>();
-        payload.put("sender", java.util.Map.of("email", fromEmail));
+        payload.put("sender", java.util.Map.of("email", fromEmail, "name", "DonateConnect"));
         payload.put("to", java.util.List.of(java.util.Map.of("email", to)));
         payload.put("subject", subject);
         payload.put("textContent", textContent);
@@ -108,6 +169,7 @@ public class EmailService {
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            log.error("Brevo API error: HTTP {} - {}", response.statusCode(), response.body());
             throw new RuntimeException("Brevo API error: " + response.statusCode());
         }
     }

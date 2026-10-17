@@ -25,3 +25,8 @@ export const getCurrentUserApi = async (): Promise<User> => {
   const response = await apiClient.get<ApiResponse<User>>('/auth/me');
   return response.data.data;
 };
+
+export const resendOtpApi = async (email: string): Promise<void> => {
+  await apiClient.post(`/auth/resend-otp?email=${encodeURIComponent(email)}`);
+};
+

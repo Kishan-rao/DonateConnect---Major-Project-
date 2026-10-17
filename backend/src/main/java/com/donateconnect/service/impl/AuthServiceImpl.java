@@ -85,10 +85,32 @@ public class AuthServiceImpl implements AuthService {
             );
         }
 
-        if (userRepository.existsByEmail(email)) {
-            throw new IllegalArgumentException(
-                    "Email address is already registered."
-            );
+        java.util.Optional<User> existingUserOpt = userRepository.findByEmail(email);
+        User userToSave;
+        if (existingUserOpt.isPresent()) {
+            User existing = existingUserOpt.get();
+            // If the account has already verified their email, do not allow duplicate registration.
+            if (existing.getOtp() == null) {
+                throw new IllegalArgumentException(
+                        "Email address is already registered."
+                );
+            }
+            // Account was created but NEVER verified (e.g. prior email delivery failure or abandoned session).
+            // Safe retry: update credentials, role, reset attempts, and generate a fresh OTP.
+            existing.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+            existing.setFullName(request.getFullName().trim());
+            existing.setRole(requestedRole);
+            existing.setApproved(requestedRole == Role.DONOR);
+            userToSave = existing;
+        } else {
+            userToSave = User.builder()
+                    .email(email)
+                    .passwordHash(passwordEncoder.encode(request.getPassword()))
+                    .fullName(request.getFullName().trim())
+                    .role(requestedRole)
+                    // NGO and Delivery Partner accounts need admin approval.
+                    .approved(requestedRole == Role.DONOR)
+                    .build();
         }
 
         String address = request.getAddress() == null
@@ -115,28 +137,17 @@ public class AuthServiceImpl implements AuthService {
             }
         }
 
-        User user = User.builder()
-                .email(email)
-                .passwordHash(passwordEncoder.encode(request.getPassword()))
-                .fullName(request.getFullName().trim())
-                .role(requestedRole)
-                // NGO and Delivery Partner accounts need admin approval.
-                .approved(requestedRole == Role.DONOR)
-                .build();
+        User savedUser = userRepository.save(userToSave);
 
-        User savedUser = userRepository.save(user);
-
-        // Create the NGO profile in the same transaction as the user.
+        // Create or update the NGO profile in the same transaction as the user.
         if (requestedRole == Role.NGO) {
-            NGOProfile ngoProfile = NGOProfile.builder()
-                    .user(savedUser)
-                    .name(savedUser.getFullName())
-                    .description("")
-                    .address(address)
-                    .phone(phone)
-                    .verified(false)
-                    .build();
-
+            NGOProfile ngoProfile = ngoProfileRepository.findByUserId(savedUser.getId())
+                    .orElseGet(() -> NGOProfile.builder().user(savedUser).build());
+            ngoProfile.setName(savedUser.getFullName());
+            ngoProfile.setDescription("");
+            ngoProfile.setAddress(address);
+            ngoProfile.setPhone(phone);
+            ngoProfile.setVerified(false);
             ngoProfileRepository.save(ngoProfile);
         }
 

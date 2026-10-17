@@ -22,6 +22,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import com.donateconnect.service.EmailService;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -57,6 +59,9 @@ class NgoRegistrationIntegrationTest {
 
     @Autowired
     private JwtUtils jwtUtils;
+
+    @MockBean
+    private EmailService emailService;
 
     @Test
     @DisplayName("NGO registration persists Role.NGO and creates associated NGOProfile")

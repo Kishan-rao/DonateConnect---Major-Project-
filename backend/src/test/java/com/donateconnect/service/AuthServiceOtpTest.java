@@ -129,7 +129,7 @@ class AuthServiceOtpTest {
                 .role(Role.DONOR)
                 .build();
 
-        when(userRepository.existsByEmail("donor@test.com")).thenReturn(false);
+        when(userRepository.findByEmail("donor@test.com")).thenReturn(Optional.empty());
         when(passwordEncoder.encode(any())).thenReturn("hashed");
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -152,7 +152,7 @@ class AuthServiceOtpTest {
                 .role(Role.VOLUNTEER)
                 .build();
 
-        when(userRepository.existsByEmail("volunteer@test.com")).thenReturn(false);
+        when(userRepository.findByEmail("volunteer@test.com")).thenReturn(Optional.empty());
         when(passwordEncoder.encode(any())).thenReturn("hashed");
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -177,7 +177,7 @@ class AuthServiceOtpTest {
                 .phone("9876543210")
                 .build();
 
-        when(userRepository.existsByEmail("ngo@test.com")).thenReturn(false);
+        when(userRepository.findByEmail("ngo@test.com")).thenReturn(Optional.empty());
         when(passwordEncoder.encode(any())).thenReturn("hashed");
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(ngoProfileRepository.save(any(NGOProfile.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -201,7 +201,7 @@ class AuthServiceOtpTest {
                 .role(Role.DONOR)
                 .build();
 
-        when(userRepository.existsByEmail("donor@test.com")).thenReturn(false);
+        when(userRepository.findByEmail("donor@test.com")).thenReturn(Optional.empty());
         when(passwordEncoder.encode(any())).thenReturn("hashed");
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
         doThrow(new EmailDeliveryException("Failed to send email."))
@@ -284,5 +284,58 @@ class AuthServiceOtpTest {
         );
 
         verify(jwtUtils, never()).generateToken(any());
+    }
+
+    @Test
+    void testRegisterExistingUnverifiedUserUpdatesDetailsAndRetriesOtp() {
+        testUser.setOtp("654321"); // unverified
+        when(userRepository.findByEmail("donor@test.com")).thenReturn(Optional.of(testUser));
+        when(passwordEncoder.encode(any())).thenReturn("hashed_new");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        RegisterRequest request = RegisterRequest.builder()
+                .fullName("Updated Donor")
+                .email("donor@test.com")
+                .password("NewPassword123!")
+                .role(Role.DONOR)
+                .build();
+
+        AuthResponse response = authService.register(request);
+
+        assertTrue(response.isRequiresOtp());
+        assertEquals("Updated Donor", testUser.getFullName());
+        assertEquals("hashed_new", testUser.getPasswordHash());
+        verify(emailService, times(1)).sendOtpEmail(eq("donor@test.com"), anyString());
+    }
+
+    @Test
+    void testRegisterExistingVerifiedUserThrowsDuplicateError() {
+        testUser.setOtp(null); // verified
+        when(userRepository.findByEmail("donor@test.com")).thenReturn(Optional.of(testUser));
+
+        RegisterRequest request = RegisterRequest.builder()
+                .fullName("Donor Again")
+                .email("donor@test.com")
+                .password("Password123!")
+                .role(Role.DONOR)
+                .build();
+
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> authService.register(request)
+        );
+
+        assertEquals("Email address is already registered.", ex.getMessage());
+        verify(emailService, never()).sendOtpEmail(anyString(), anyString());
+    }
+
+    @Test
+    void testResendOtpForVerifiedUserDoesNotSendEmail() {
+        testUser.setOtp(null); // verified
+        when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(testUser));
+
+        authService.resendOtp("test@test.com", "127.0.0.1");
+
+        verify(emailService, never()).sendOtpEmail(anyString(), anyString());
     }
 }

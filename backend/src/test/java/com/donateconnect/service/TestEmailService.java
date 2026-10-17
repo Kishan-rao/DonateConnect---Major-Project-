@@ -235,4 +235,39 @@ public class TestEmailService {
                 customService.sendNotificationEmail("user@test.com", "Update", "Donation claimed")
         );
     }
+
+    @Test
+    public void testAutoModeUsesBrevoWhenApiKeyPresent(CapturedOutput output) {
+        simulateTimeout.set(false);
+        simulateFailure.set(false);
+        EmailService customService = setupCustomService();
+        ReflectionTestUtils.setField(customService, "provider", "auto");
+        ReflectionTestUtils.setField(customService, "brevoApiKey", "test-api-key");
+        java.net.http.HttpClient customClient = java.net.http.HttpClient.newBuilder()
+            .connectTimeout(java.time.Duration.ofSeconds(1)).build();
+        ReflectionTestUtils.setField(customService, "httpClient", customClient);
+
+        customService.sendOtpEmail("user@test.com", "SECRET_OTP_AUTO");
+        assertFalse(output.getOut().contains("SECRET_OTP_AUTO"));
+    }
+
+    @Test
+    public void testSmtpFallbackToPort2525When587TimesOut() {
+        org.springframework.mail.javamail.JavaMailSenderImpl mockMailSender = mock(org.springframework.mail.javamail.JavaMailSenderImpl.class);
+        when(mockMailSender.getPort()).thenReturn(587);
+
+        doThrow(new MailSendException("Connection timed out to smtp-relay.brevo.com"))
+                .doAnswer(invocation -> null)
+                .when(mockMailSender).send(any(SimpleMailMessage.class));
+
+        EmailService customService = new EmailService(mockMailSender, objectMapper);
+        ReflectionTestUtils.setField(customService, "provider", "smtp");
+        ReflectionTestUtils.setField(customService, "fromEmail", "noreply@donateconnect.com");
+
+        assertDoesNotThrow(() -> customService.sendOtpEmail("user@test.com", "SECRET_OTP_FB"));
+
+        verify(mockMailSender, times(2)).send(any(SimpleMailMessage.class));
+        verify(mockMailSender).setPort(2525);
+        verify(mockMailSender).setPort(587);
+    }
 }

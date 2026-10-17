@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { useAuth } from '../context/AuthContext';
 import { OtpInput } from '../components/OtpInput';
 import { LoginRequest } from '../types';
+import { resendOtpApi } from '../api/authApi';
 import { LogIn, Mail, Lock, HeartHandshake, ArrowRight } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
@@ -18,6 +19,9 @@ export const LoginPage: React.FC = () => {
   const [showOtp, setShowOtp] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [loginEmail, setLoginEmail] = useState('');
+  const [resending, setResending] = useState(false);
+  const [resendCountdown, setResendCountdown] = useState(0);
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
 
   const {
     register,
@@ -72,6 +76,28 @@ export const LoginPage: React.FC = () => {
       setError(err.message || 'Login failed. Check your email and password.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (resendCountdown <= 0) return;
+    const timer = setTimeout(() => setResendCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCountdown]);
+
+  const handleResendOtp = async () => {
+    if (resending || resendCountdown > 0 || !loginEmail) return;
+    setResending(true);
+    setError(null);
+    setResendMessage(null);
+    try {
+      await resendOtpApi(loginEmail);
+      setResendMessage('Verification code resent successfully.');
+      setResendCountdown(60);
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || 'Failed to resend verification code.');
+    } finally {
+      setResending(false);
     }
   };
 
@@ -253,6 +279,22 @@ export const LoginPage: React.FC = () => {
                 <OtpInput value={otpCode} onChange={setOtpCode} />
               </div>
             </div>
+
+            <div className="flex items-center justify-between text-xs pt-1">
+              <span className="text-slate-400">Didn't receive the code?</span>
+              <button
+                type="button"
+                onClick={handleResendOtp}
+                disabled={resending || resendCountdown > 0}
+                className="text-indigo-400 hover:text-indigo-300 font-semibold disabled:opacity-50 transition-colors"
+              >
+                {resendCountdown > 0 ? `Resend in ${resendCountdown}s` : resending ? 'Sending...' : 'Resend Code'}
+              </button>
+            </div>
+
+            {resendMessage && (
+              <p className="text-emerald-400 text-xs text-center font-medium">{resendMessage}</p>
+            )}
 
             <button
               type="submit"
