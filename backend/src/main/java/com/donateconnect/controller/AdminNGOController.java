@@ -40,6 +40,7 @@ public class AdminNGOController {
     @PostMapping
     public ResponseEntity<ApiResponse<NGOProfileDto>> createNgo(@Valid @RequestBody CreateNgoRequest request) {
         NGOProfileDto created = ngoService.createNgo(request);
+        auditLogService.logAction("CREATE_NGO", "NGO", created.getId().toString(), "Created NGO partner account for " + created.getUser().getEmail());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("NGO user and profile created successfully", created));
     }

@@ -36,15 +36,18 @@ public class NGOServiceImpl implements NGOService {
     @Override
     @Transactional
     public NGOProfileDto createNgo(CreateNgoRequest request) {
-        if (userRepository.existsByEmail(request.getEmail().toLowerCase().trim())) {
+        String email = request.getEmail().toLowerCase().trim();
+        if (userRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("User email is already registered");
         }
 
         User user = User.builder()
-                .email(request.getEmail().toLowerCase().trim())
+                .email(email)
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getName().trim())
                 .role(Role.NGO)
+                .approved(true)
+                .otp(null)
                 .build();
 
         User savedUser = userRepository.save(user);
@@ -55,7 +58,7 @@ public class NGOServiceImpl implements NGOService {
                 .description(request.getDescription())
                 .address(request.getAddress().trim())
                 .phone(request.getPhone().trim())
-                .verified(false)
+                .verified(true)
                 .build();
 
         NGOProfile savedProfile = ngoProfileRepository.save(ngoProfile);
@@ -144,6 +147,11 @@ public class NGOServiceImpl implements NGOService {
         NGOProfile profile = ngoProfileRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("NGO profile not found with id: " + id));
         profile.setVerified(verified);
+        User user = profile.getUser();
+        if (user != null) {
+            user.setApproved(verified);
+            userRepository.save(user);
+        }
         NGOProfile updated = ngoProfileRepository.save(profile);
         return mapToDto(updated);
     }
@@ -201,6 +209,7 @@ public class NGOServiceImpl implements NGOService {
                 .email(u.getEmail())
                 .fullName(u.getFullName())
                 .role(u.getRole())
+                .approved(u.isApproved())
                 .averageRating(u.getAverageRating())
                 .ratingCount(u.getRatingCount())
                 .createdAt(u.getCreatedAt())

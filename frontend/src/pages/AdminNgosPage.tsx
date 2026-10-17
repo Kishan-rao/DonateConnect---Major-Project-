@@ -86,6 +86,13 @@ export const AdminNgosPage: React.FC = () => {
     }
   };
 
+  const isNgoVerified = (ngo: NGOProfile) => {
+    if (ngo.user && typeof ngo.user.approved === 'boolean') {
+      return ngo.verified && ngo.user.approved;
+    }
+    return ngo.verified;
+  };
+
   const safeNgos = Array.isArray(ngos) ? ngos : [];
 
   return (
@@ -164,54 +171,57 @@ export const AdminNgosPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
-                {safeNgos.map((ngo) => (
-                  <tr key={ngo.id} className="hover:bg-slate-800/30 transition-colors">
-                    <td className="px-6 py-4 font-semibold text-white">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="w-4 h-4 text-indigo-400" />
-                        <span>{ngo.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-slate-400 font-mono text-xs">{ngo.user?.email || 'N/A'}</td>
-                    <td className="px-6 py-4 text-xs text-slate-400">
-                      <div>{ngo.address}</div>
-                      <div className="text-[11px] text-slate-500">{ngo.phone}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      {ngo.verified ? (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                          <ShieldCheck className="w-3.5 h-3.5" /> Verified
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                          <ShieldAlert className="w-3.5 h-3.5" /> Unverified
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleVerifyToggle(ngo.id, ngo.verified)}
-                          className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors border flex items-center gap-1 ${
-                            ngo.verified
-                              ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
-                              : 'bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border-emerald-500/30'
-                          }`}
-                        >
-                          <Check className="w-3.5 h-3.5" />
-                          {ngo.verified ? 'Unverify' : 'Verify'}
-                        </button>
-                        <button
-                          onClick={() => setDeleteTarget(ngo)}
-                          className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-colors"
-                          title="Remove NGO"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {safeNgos.map((ngo) => {
+                  const isVerified = isNgoVerified(ngo);
+                  return (
+                    <tr key={ngo.id} className="hover:bg-slate-800/30 transition-colors">
+                      <td className="px-6 py-4 font-semibold text-white">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="w-4 h-4 text-indigo-400" />
+                          <span>{ngo.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-slate-400 font-mono text-xs">{ngo.user?.email || 'N/A'}</td>
+                      <td className="px-6 py-4 text-xs text-slate-400">
+                        <div>{ngo.address}</div>
+                        <div className="text-[11px] text-slate-500">{ngo.phone}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        {isVerified ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            <ShieldCheck className="w-3.5 h-3.5" /> Verified
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                            <ShieldAlert className="w-3.5 h-3.5" /> Unverified
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleVerifyToggle(ngo.id, isVerified)}
+                            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors border flex items-center gap-1 ${
+                              isVerified
+                                ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+                                : 'bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border-emerald-500/30'
+                            }`}
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            {isVerified ? 'Unverify' : 'Verify'}
+                          </button>
+                          <button
+                            onClick={() => setDeleteTarget(ngo)}
+                            className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-colors"
+                            title="Remove NGO"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

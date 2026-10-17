@@ -2,7 +2,9 @@ package com.donateconnect.controller;
 
 import com.donateconnect.dto.ApiResponse;
 import com.donateconnect.dto.UserResponseDto;
+import com.donateconnect.entity.Role;
 import com.donateconnect.entity.User;
+import com.donateconnect.repository.NGOProfileRepository;
 import com.donateconnect.repository.UserRepository;
 import com.donateconnect.service.AuditLogService;
 import org.springframework.data.domain.Page;
@@ -20,10 +22,12 @@ import java.util.UUID;
 public class AdminUserController {
 
     private final UserRepository userRepository;
+    private final NGOProfileRepository ngoProfileRepository;
     private final AuditLogService auditLogService;
 
-    public AdminUserController(UserRepository userRepository, AuditLogService auditLogService) {
+    public AdminUserController(UserRepository userRepository, NGOProfileRepository ngoProfileRepository, AuditLogService auditLogService) {
         this.userRepository = userRepository;
+        this.ngoProfileRepository = ngoProfileRepository;
         this.auditLogService = auditLogService;
     }
 
@@ -43,6 +47,12 @@ public class AdminUserController {
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         user.setApproved(true);
         User saved = userRepository.save(user);
+        if (saved.getRole() == Role.NGO) {
+            ngoProfileRepository.findByUserId(saved.getId()).ifPresent(profile -> {
+                profile.setVerified(true);
+                ngoProfileRepository.save(profile);
+            });
+        }
         auditLogService.logAction("APPROVE_USER", "USER", saved.getId().toString(), "Approved user account for " + saved.getEmail());
         return ResponseEntity.ok(ApiResponse.success("User approved successfully", mapToDto(saved)));
     }
@@ -53,6 +63,7 @@ public class AdminUserController {
                 .email(user.getEmail())
                 .fullName(user.getFullName())
                 .role(user.getRole())
+                .approved(user.isApproved())
                 .createdAt(user.getCreatedAt())
                 .build();
     }
