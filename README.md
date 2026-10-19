@@ -1,159 +1,117 @@
-# 🤝 DonateConnect - Full-Stack Donation Platform
+# DonateConnect
 
-DonateConnect is a modern, full-stack web application connecting generous donors with verified NGO partners. Built with Spring Boot 3, Java 21, PostgreSQL, React 18, Vite, and TypeScript.
+DonateConnect is a full-stack platform for coordinating donations between donors, verified non-governmental organizations (NGOs), volunteers, and corporate partners. The application combines a role-based React web client with a Spring Boot REST API and PostgreSQL persistence.
 
----
+## Features
 
-## ✨ Features & Architecture Updates
+- **Donor experience:** discover and filter verified NGOs, review organization profiles and urgent needs, submit donation requests with photos, follow donation status, and view donation history.
+- **NGO operations:** manage an organization profile and inventory, publish urgent needs, review donation requests, and accept or reject them.
+- **Volunteer deliveries:** claim available pickups, update delivery progress, share delivery location, and complete delivery with an OTP and proof photo.
+- **Live delivery tracking:** view delivery progress and location updates on a map.
+- **Impact and community:** browse impact metrics, comment on donations, rate NGOs and volunteers, and receive in-app notifications.
+- **Corporate CSR:** manage corporate donation drives and view an impact dashboard.
+- **Administration:** view platform statistics, manage and verify NGO partners, approve pending users, audit donations, and review audit logs.
+- **Account management:** email OTP verification, JWT authentication, role-based access control, notification preferences, password changes, and account deletion.
+- **Emergency and discovery tools:** SOS urgent-needs banner, NGO map, and public urgent-needs listings.
+- **Optional prototype pages:** smart lockers, a blockchain ledger, and a circular resource marketplace are available when `VITE_SHOW_PROTOTYPES=true`.
 
-- **Authenticated Profile Dropdown**: Top-right navbar profile section displaying user initial avatar, full name, role badge (`DONOR`, `NGO`, `VOLUNTEER`, `CORPORATE`, `ADMIN`), and navigation links (`My Donations`, `My Requests`, `Profile`, `Settings`, `Sign Out`).
-- **My Donations History (`/donations`)**: Complete donor donation management interface with real summary metrics (`Total Donations`, `NGOs Supported`, `Delivered Donations`), dual responsive table & mobile card layouts, status filter bar, and pagination.
-- **Single Donation Inspector**: Detailed inspector modal featuring a status lifecycle timeline (`REQUESTED` $\rightarrow$ `ACCEPTED` $\rightarrow$ `PICKED_UP` $\rightarrow$ `DELIVERED`, or `REJECTED`), attached photo gallery with lightbox, and NGO partner information.
-- **Single Donation Ownership Security (`GET /api/donations/mine/{id}`)**: End-to-end database-level ownership isolation (`findByIdAndDonorId`) preventing unauthorized cross-user access.
-- **Warm Organic Light Theme**: Human-centric design system featuring Warm Pearl (`#FAF8F5`) page background, Pure White (`#FFFFFF`) card surfaces, Deep Espresso (`#111827`) high-contrast typography, and flat brick-red (`#DC2626`) Emergency SOS banner.
-- **Session Persistence**: Persistent JWT authentication state (`dc-token` & `dc-user` in `localStorage`), enabling seamless user re-validation across page reloads and browser restarts.
+## Technology
 
----
+- **Backend:** Java 21, Spring Boot 3.4, Spring Security, Spring Data JPA/Hibernate, Maven, PostgreSQL, JWT, WebSocket/STOMP, and email delivery.
+- **Frontend:** React 18, TypeScript, Vite, React Router, Tailwind CSS, Axios, Leaflet, and Lucide icons.
+- **Testing:** JUnit/Spring Boot Test and Vitest/Testing Library.
 
-## 🏗️ Technology Stack
+## Run locally
 
-- **Backend**: Spring Boot 3.4.2, Java 21, Maven, PostgreSQL JPA/Hibernate, Spring Security 6 (Stateless JWT), Lombok.
-- **Frontend**: React 18, Vite, TypeScript, Tailwind CSS, Lucide Icons, Axios, React Hook Form, React Router DOM.
-- **Security & RBAC**:
-  - `DONOR`: Can browse verified NGOs, submit donation requests with multi-photo upload, view personal donation history, and inspect status timelines.
-  - `NGO`: Can view assigned donation requests, accept/reject, update status to Picked Up / Delivered, manage inventory statistics, and edit organization profile.
-  - `ADMIN`: System-wide analytics overview, NGO partner creation & verification, and paginated cross-NGO donation auditing.
-  - `VOLUNTEER`: Driver logistics console with live GPS simulation.
-  - `CORPORATE`: Corporate Social Responsibility (CSR) impact dashboard.
+### Prerequisites
 
----
+- Java 21
+- Node.js and npm
+- PostgreSQL
 
-## 🛠️ Local Development Setup
+### Backend
 
-### 1. Prerequisites
-- **Java 21 JDK** installed
-- **Node.js 18+** & `npm` installed
-- **PostgreSQL 14+** running locally (or via Docker)
+Configure the backend environment before starting the API. The application imports an optional `backend/.env` file when launched from the repository root or `backend/.env` when launched from the backend directory. Do not commit credentials.
 
----
+Required settings:
 
-### 2. Backend Setup (`backend/`)
-
-1. **Database Configuration (Neon PostgreSQL)**:
-   The application is configured to use **Neon (Serverless PostgreSQL)** in the cloud.
-
-2. **Environment Variables**:
-   Create a `.env` file inside the `backend/` directory with your Neon credentials and configuration:
-   ```properties
-   DB_URL=jdbc:postgresql://<your-neon-url>.aws.neon.tech/neondb?sslmode=require
-   DB_USERNAME=<your-username>
-   DB_PASSWORD=<your-password>
-   DB_DRIVER=org.postgresql.Driver
-   DB_PLATFORM=org.hibernate.dialect.PostgreSQLDialect
-   
-   JWT_SECRET=your_jwt_secret_key_here
-   JWT_EXPIRATION_MS=86400000
-   ```
-
-3. **Run Backend**:
-   ```bash
-   cd backend
-   mvn spring-boot:run
-   ```
-   The backend server starts at `http://localhost:8080` (health check at `http://localhost:8080/api/health`). Run test suite with:
-   ```bash
-   mvn test
-   ```
-
----
-
-### 3. Frontend Setup (`frontend/`)
-
-1. **Environment Variables**:
-   Create `.env` inside `frontend/`:
-   ```properties
-   VITE_API_BASE_URL=http://localhost:8080/api
-   ```
-
-2. **Install Dependencies & Run**:
-   ```bash
-   cd frontend
-   npm install
-   npm run dev
-   ```
-   Open `http://localhost:5173` in your browser. Verify TypeScript types and production build with:
-   ```bash
-   npx tsc --noEmit
-   npm run build
-   ```
-
----
-
-## 🐳 Docker Setup
-
-Build and run the backend container locally:
-
-```bash
-cd backend
-
-# Build Docker image
-docker build -t donateconnect-backend .
-
-# Run Docker container linked to PostgreSQL
-docker run -p 8080:8080 \
-  -e DB_URL=jdbc:postgresql://host.docker.internal:5432/donateconnect \
-  -e DB_USERNAME=postgres \
-  -e DB_PASSWORD=postgres \
-  -e JWT_SECRET=donateConnectSecretKey32BytesLongString123! \
-  donateconnect-backend
+```properties
+DB_URL=jdbc:postgresql://localhost:5432/donateconnect_db
+DB_USERNAME=postgres
+DB_PASSWORD=<your-database-password>
+JWT_SECRET=<a-long-random-secret>
 ```
 
-## 🚀 Deployment (Render + Vercel + Neon)
+`CORS_ALLOWED_ORIGINS` is required and should include the frontend origin, for example `http://localhost:5173`. See [backend/README.md](backend/README.md) for optional mail, upload, and server settings.
 
-### 1. Render (Backend)
-Deploy the backend Dockerfile as a **Web Service** on Render.
-* **Environment Variables (Render)**:
-  * `DB_URL`: `jdbc:postgresql://<neon-db-url>?sslmode=require`
-  * `DB_USERNAME` & `DB_PASSWORD`: Neon credentials
-  * `JWT_SECRET`: A secure 32+ character string
-  * `CORS_ALLOWED_ORIGINS`: Temporarily leave blank or set to `*`. We will update this after Vercel is deployed.
-  * `MAIL_PROVIDER`: `brevo`
-  * `BREVO_API_KEY`: Your Brevo API key
-  * `MAIL_FROM`: `noreply@yourdomain.com`
-  * `APP_SEED_ENABLED`: `true` (Only for the very first deployment to seed users, then set to `false`!)
-  * `SEED_PASSWORD`: `YourSecurePassword!` (Required when seeding in production)
-* **Disk Note**: Render's free tier disk is ephemeral. Uploaded photos (in `UPLOAD_DIR`) will disappear upon restart.
-* **Database Init**: New tables and columns are automatically created by Hibernate (`ddl-auto=update`) on first start.
+Start the API from `backend/`:
 
-### 2. Vercel (Frontend)
-Deploy the `frontend/` directory to Vercel.
-* **Environment Variables (Vercel)**:
-  * `VITE_API_BASE_URL`: The URL of your Render backend (e.g., `https://your-backend.onrender.com/api`)
-  * Do NOT set `VITE_SHOW_PROTOTYPES` or `VITE_APP_DEMO_ENABLED` in production unless you want prototype features exposed.
-* **Framework Preset**: Vite
-* **Root Directory**: `frontend`
+```powershell
+.\mvnw.cmd spring-boot:run
+```
 
-### 3. Connect the Two (CORS)
-Once Vercel gives you your frontend URL (e.g., `https://your-frontend.vercel.app`), go back to the Render dashboard and set `CORS_ALLOWED_ORIGINS` to that exact URL. Redeploy the Render service.
+The API listens on `http://localhost:8080` by default. Check `http://localhost:8080/api/health`.
 
-> **💡 Cold-Start Tip**: Free instances on Render spin down after 15 minutes of inactivity. The first API request may take 30-50 seconds to wake the server up.
+### Frontend
 
----
+Create `frontend/.env`:
 
-## 🔒 API & Endpoint Reference
+```properties
+VITE_API_BASE_URL=http://localhost:8080/api
+```
 
-| Endpoint | Method | Role | Description |
-|---|---|---|---|
-| `/api/health` | GET | Public | Health check (`{"status":"UP"}`) |
-| `/api/auth/register` | POST | Public | Donor-only self-registration |
-| `/api/auth/login` | POST | Public | User login (returns JWT token & role) |
-| `/api/auth/me` | GET | Authenticated | Current user profile |
-| `/api/ngo` | GET | Public/Donor | List verified NGOs |
-| `/api/donations` | POST | DONOR | Submit new donation request |
-| `/api/donations/mine` | GET | DONOR | Donor's own paginated donation list |
-| `/api/donations/mine/{id}` | GET | DONOR | Single donation details (ownership isolated) |
-| `/api/ngo/donations` | GET | NGO | NGO's assigned donations |
-| `/api/ngo/donations/{id}/status` | PATCH | NGO | Update status (`ACCEPTED`, `REJECTED`, `PICKED_UP`, `DELIVERED`) |
-| `/api/admin/stats` | GET | ADMIN | System-wide JPA count aggregations |
-| `/api/admin/ngo` | GET/POST | ADMIN | List all NGOs / Create NGO partner |
-| `/api/admin/donations` | GET | ADMIN | Paginated cross-NGO donation audit |
+Then start the web client:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Open `http://localhost:5173`. See [frontend/README.md](frontend/README.md) for the route guide and available scripts.
+
+## Common commands
+
+```powershell
+# Backend tests (from backend/)
+.\mvnw.cmd test
+
+# Frontend tests (from frontend/)
+npm test
+
+# Frontend type-check and production build (from frontend/)
+npm run build
+```
+
+## API overview
+
+All API routes are under `/api`. Protected routes require a valid bearer JWT and the appropriate role.
+
+| Area | Selected routes | Purpose |
+|---|---|---|
+| Health and authentication | `GET /health`, `/auth/register`, `/auth/login`, `/auth/verify-otp`, `/auth/resend-otp`, `/auth/me` | Health check, account verification, sign-in, and current user |
+| NGOs and urgent needs | `/ngo`, `/ngo/{id}`, `/ngo/me/profile`, `/urgent-needs`, `/ngo/urgent-needs` | Discover organizations, manage an NGO profile, and publish or view urgent needs |
+| Donations and comments | `/donations`, `/donations/mine`, `/donations/mine/{id}`, `/donations/{id}/comments` | Submit and review donations, access a donor's own donation details, and discuss a donation |
+| NGO donation workflow | `/ngo/donations`, `/ngo/donations/{id}/status` | Review assigned requests and update donation status |
+| Deliveries and tracking | `/volunteer/pickups`, `/volunteer/deliveries/...`, `/deliveries/{id}/location`, `/deliveries/donations/{id}/location` | Claim pickups, manage delivery completion, and exchange location updates |
+| Notifications and impact | `/notifications/...`, `/impact` | Read notifications and retrieve platform impact metrics |
+| Administration | `/admin/stats`, `/admin/ngo`, `/admin/users/pending`, `/admin/donations`, `/admin/audit` | Platform oversight, partner and user management, donation review, and audit history |
+| Corporate and volunteer | `/corporate/drives`, `/volunteer/...`, `/ngo/{id}/ratings`, `/volunteer/{id}/ratings` | CSR drives, volunteer workflows, and ratings |
+
+## Docker
+
+Build the backend image from the repository root:
+
+```powershell
+docker build -t donateconnect-backend .\backend
+```
+
+Run it with the backend environment file (configure `DB_URL` to a database reachable from the container):
+
+```powershell
+docker run --env-file .\backend\.env -p 8080:8080 donateconnect-backend
+```
+
+## Deployment
+
+The frontend can be deployed as a Vite site (for example, Vercel) and the backend as a Spring Boot service or Docker image (for example, Render), with PostgreSQL hosted separately. Configure the frontend's `VITE_API_BASE_URL`, backend database/JWT settings, and `CORS_ALLOWED_ORIGINS` for the deployed frontend origin. Use persistent storage for uploaded photos if the hosting platform has an ephemeral filesystem. Keep prototype pages disabled in production unless they are intentionally being exposed.
