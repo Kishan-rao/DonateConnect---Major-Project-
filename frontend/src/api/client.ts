@@ -136,8 +136,19 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401 && !isPublicEndpoint && hasToken && logoutCallback) {
       logoutCallback();
     }
-    const message = error.response?.data?.message || error.message || 'An unexpected error occurred';
+    let message = error.response?.data?.message;
+    if (!message) {
+      if (error.code === 'ECONNABORTED' || (error.message && /timeout/i.test(error.message))) {
+        message = 'Connection timed out. The server may be starting up—please wait a moment and try again.';
+      } else if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+        message = 'Unable to connect to the server. Please check your internet connection.';
+      } else {
+        message = error.message || 'An unexpected error occurred';
+      }
+    }
+
     const err = new Error(message) as any;
+    err.code = error.code;
     err.response = error.response;
     err.status = error.response?.status;
     return Promise.reject(err);

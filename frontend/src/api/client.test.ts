@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveApiBaseUrl, getBaseUrl, getApiConfigError } from './client';
+import { resolveApiBaseUrl, getBaseUrl, getApiConfigError, apiClient } from './client';
 
 describe('API client base URL resolution', () => {
   describe('resolveApiBaseUrl', () => {
@@ -117,6 +117,69 @@ describe('API client base URL resolution', () => {
     it('getApiConfigError returns null or Error instance', () => {
       const err = getApiConfigError();
       expect(err === null || err instanceof Error).toBe(true);
+    });
+  });
+
+  describe('apiClient response interceptor error handling', () => {
+    const getResponseErrorHandler = () => {
+      // Find the response error rejection handler on apiClient
+      const handlers = (apiClient.interceptors.response as any).handlers;
+      const responseHandler = handlers[handlers.length - 1];
+      return responseHandler.rejected;
+    };
+
+    it('transforms ECONNABORTED timeout errors into clear, actionable messages', async () => {
+      const errorHandler = getResponseErrorHandler();
+      const mockError = {
+        code: 'ECONNABORTED',
+        message: 'timeout of 60000ms exceeded',
+        config: { url: '/auth/login' },
+      };
+
+      await expect(errorHandler(mockError)).rejects.toThrow(
+        'Connection timed out. The server may be starting up—please wait a moment and try again.'
+      );
+    });
+
+    it('transforms ERR_NETWORK and Network Error into clear connection messages', async () => {
+      const errorHandler = getResponseErrorHandler();
+      const mockError = {
+        code: 'ERR_NETWORK',
+        message: 'Network Error',
+        config: { url: '/auth/login' },
+      };
+
+      await expect(errorHandler(mockError)).rejects.toThrow(
+        'Unable to connect to the server. Please check your internet connection.'
+      );
+    });
+
+    it('preserves server-provided error messages on 401 or 400 responses', async () => {
+      const errorHandler = getResponseErrorHandler();
+      const mockError = {
+        response: {
+          status: 401,
+          data: {
+            success: false,
+            message: 'Invalid email or password',
+          },
+        },
+        config: { url: '/auth/login' },
+      };
+
+      await expect(errorHandler(mockError)).rejects.toThrow('Invalid email or password');
+    });
+
+    it('rejects with descriptive error when server returns HTML instead of JSON', async () => {
+      const handlers = (apiClient.interceptors.response as any).handlers;
+      const successHandler = handlers[handlers.length - 1].fulfilled;
+      const htmlResponse = {
+        data: '<!DOCTYPE html><html><body>Error</body></html>',
+      };
+
+      await expect(successHandler(htmlResponse)).rejects.toThrow(
+        'Received HTML response instead of JSON. Check backend server and API URL configuration.'
+      );
     });
   });
 });
