@@ -23,7 +23,16 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
     private final ObjectMapper objectMapper;
-    private java.net.http.HttpClient httpClient = java.net.http.HttpClient.newBuilder().connectTimeout(java.time.Duration.ofSeconds(5)).build();
+    private java.net.http.HttpClient httpClient;
+
+    private synchronized java.net.http.HttpClient getHttpClient() {
+        if (httpClient == null) {
+            httpClient = java.net.http.HttpClient.newBuilder()
+                    .connectTimeout(java.time.Duration.ofSeconds(5))
+                    .build();
+        }
+        return httpClient;
+    }
 
     @Value("${app.mail.from:noreply@donateconnect.com}")
     private String fromEmail;
@@ -66,6 +75,10 @@ public class EmailService {
     }
 
     private void sendEmail(String to, String subject, String textContent) throws Exception {
+        if ("none".equalsIgnoreCase(provider) || "noop".equalsIgnoreCase(provider) || "mock".equalsIgnoreCase(provider)) {
+            log.info("Email sending bypassed for provider={}", provider);
+            return;
+        }
         if ("brevo".equalsIgnoreCase(provider) || "api".equalsIgnoreCase(provider)) {
             sendViaBrevoHttp(to, subject, textContent);
         } else if ("smtp".equalsIgnoreCase(provider)) {
@@ -166,7 +179,7 @@ public class EmailService {
                 .POST(HttpRequest.BodyPublishers.ofString(json))
                 .build();
                 
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = getHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
         
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
             log.error("Brevo API error: HTTP {} - {}", response.statusCode(), response.body());

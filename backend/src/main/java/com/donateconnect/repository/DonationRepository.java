@@ -39,6 +39,8 @@ public interface DonationRepository extends JpaRepository<Donation, UUID>, JpaSp
 
     long countByStatus(DonationStatus status);
     long countByCategory(Category category);
+    boolean existsByDonorIdAndStatusIn(UUID donorId, List<DonationStatus> statuses);
+    boolean existsByNgoIdAndStatusIn(UUID ngoId, List<DonationStatus> statuses);
 
     /**
      * Find ACCEPTED donations that have NOT been claimed by any volunteer yet.

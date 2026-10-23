@@ -61,6 +61,15 @@ class UserControllerTest {
     @Autowired
     private com.donateconnect.repository.NGOProfileRepository ngoProfileRepository;
 
+    @Autowired
+    private com.donateconnect.repository.VolunteerTaskRepository volunteerTaskRepository;
+
+    @Autowired
+    private com.donateconnect.repository.AuditLogRepository auditLogRepository;
+
+    @Autowired
+    private com.donateconnect.repository.NotificationRepository notificationRepository;
+
     private User donorUser;
     private String donorToken;
 
@@ -261,13 +270,13 @@ class UserControllerTest {
                 .ngo(ngoProfile)
                 .category(com.donateconnect.entity.Category.CLOTHES)
                 .description("Warm jackets")
-                .status(com.donateconnect.entity.DonationStatus.ACCEPTED)
+                .status(com.donateconnect.entity.DonationStatus.DELIVERED)
                 .build());
 
         com.donateconnect.entity.Delivery delivery = deliveryRepository.save(com.donateconnect.entity.Delivery.builder()
                 .donation(donation)
                 .volunteer(volunteerUser)
-                .status(com.donateconnect.entity.DeliveryStatus.ASSIGNED)
+                .status(com.donateconnect.entity.DeliveryStatus.DELIVERED)
                 .build());
 
         // Delete volunteer account
@@ -288,6 +297,177 @@ class UserControllerTest {
         var updatedDelivery = deliveryRepository.findById(delivery.getId()).orElseThrow();
         assertNull(updatedDelivery.getVolunteer());
         assertEquals(donation.getId(), updatedDelivery.getDonation().getId());
+    }
+
+    @Test
+    @DisplayName("Volunteer deletion is blocked with 409 Conflict when delivery is in progress")
+    void testVolunteerCannotDeleteWithActiveDelivery() throws Exception {
+        User ngoUser = userRepository.save(User.builder()
+                .email("ngo_active_" + UUID.randomUUID() + "@test.com")
+                .passwordHash("hash")
+                .fullName("Test Active NGO")
+                .role(Role.NGO)
+                .approved(true)
+                .build());
+
+        com.donateconnect.entity.NGOProfile ngoProfile = ngoProfileRepository.save(com.donateconnect.entity.NGOProfile.builder()
+                .user(ngoUser)
+                .name("Active NGO Hub")
+                .address("Bengaluru Hub")
+                .phone("9876543210")
+                .verified(true)
+                .build());
+
+        com.donateconnect.entity.Donation donation = donationRepository.save(com.donateconnect.entity.Donation.builder()
+                .donor(donorUser)
+                .ngo(ngoProfile)
+                .category(com.donateconnect.entity.Category.FOOD)
+                .description("Fresh meals")
+                .status(com.donateconnect.entity.DonationStatus.PICKED_UP)
+                .build());
+
+        deliveryRepository.save(com.donateconnect.entity.Delivery.builder()
+                .donation(donation)
+                .volunteer(volunteerUser)
+                .status(com.donateconnect.entity.DeliveryStatus.EN_ROUTE_TO_NGO)
+                .build());
+
+        DeleteAccountRequest request = DeleteAccountRequest.builder().confirmation("DELETE").build();
+        mockMvc.perform(delete("/api/users/me")
+                        .header("Authorization", "Bearer " + volunteerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict());
+
+        // Account is still intact
+        assertTrue(userRepository.findById(volunteerUser.getId()).isPresent());
+    }
+
+    @Test
+    @DisplayName("Volunteer deletion is blocked with 409 Conflict when volunteer task is active")
+    void testVolunteerCannotDeleteWithActiveVolunteerTask() throws Exception {
+        User ngoUser = userRepository.save(User.builder()
+                .email("ngo_task_" + UUID.randomUUID() + "@test.com")
+                .passwordHash("hash")
+                .fullName("Test Task NGO")
+                .role(Role.NGO)
+                .approved(true)
+                .build());
+
+        com.donateconnect.entity.NGOProfile ngoProfile = ngoProfileRepository.save(com.donateconnect.entity.NGOProfile.builder()
+                .user(ngoUser)
+                .name("Task NGO Hub")
+                .address("Bengaluru Hub")
+                .phone("9876543210")
+                .verified(true)
+                .build());
+
+        com.donateconnect.entity.Donation donation = donationRepository.save(com.donateconnect.entity.Donation.builder()
+                .donor(donorUser)
+                .ngo(ngoProfile)
+                .category(com.donateconnect.entity.Category.BOOKS)
+                .description("School notebooks")
+                .status(com.donateconnect.entity.DonationStatus.ACCEPTED)
+                .build());
+
+        volunteerTaskRepository.save(com.donateconnect.entity.VolunteerTask.builder()
+                .donation(donation)
+                .volunteer(volunteerUser)
+                .status(com.donateconnect.entity.VolunteerTask.TaskStatus.CLAIMED)
+                .build());
+
+        DeleteAccountRequest request = DeleteAccountRequest.builder().confirmation("DELETE").build();
+        mockMvc.perform(delete("/api/users/me")
+                        .header("Authorization", "Bearer " + volunteerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict());
+
+        assertTrue(userRepository.findById(volunteerUser.getId()).isPresent());
+    }
+
+    @Test
+    @DisplayName("Donor deletion is blocked with 409 Conflict when donations are in progress")
+    void testDonorCannotDeleteWithActiveDonation() throws Exception {
+        User ngoUser = userRepository.save(User.builder()
+                .email("ngo_donor_guard_" + UUID.randomUUID() + "@test.com")
+                .passwordHash("hash")
+                .fullName("Test Donor Guard NGO")
+                .role(Role.NGO)
+                .approved(true)
+                .build());
+
+        com.donateconnect.entity.NGOProfile ngoProfile = ngoProfileRepository.save(com.donateconnect.entity.NGOProfile.builder()
+                .user(ngoUser)
+                .name("Donor Guard NGO")
+                .address("Bengaluru Hub")
+                .phone("9876543210")
+                .verified(true)
+                .build());
+
+        donationRepository.save(com.donateconnect.entity.Donation.builder()
+                .donor(donorUser)
+                .ngo(ngoProfile)
+                .category(com.donateconnect.entity.Category.BOOKS)
+                .description("First aid kits")
+                .status(com.donateconnect.entity.DonationStatus.REQUESTED)
+                .build());
+
+        DeleteAccountRequest request = DeleteAccountRequest.builder().confirmation("DELETE").build();
+        mockMvc.perform(delete("/api/users/me")
+                        .header("Authorization", "Bearer " + donorToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict());
+
+        assertTrue(userRepository.findById(donorUser.getId()).isPresent());
+    }
+
+    @Test
+    @DisplayName("Donor deletion cleans up preferences, notifications, and anonymizes audit logs")
+    void testAuditLogsAndPreferencesCleanedOnDonorDelete() throws Exception {
+        // Create user preference
+        userPreferenceRepository.save(com.donateconnect.entity.UserPreference.builder()
+                .user(donorUser)
+                .emailNotifications(true)
+                .donationUpdates(true)
+                .deliveryUpdates(true)
+                .commentNotifications(true)
+                .build());
+
+        // Create notification
+        notificationRepository.save(com.donateconnect.entity.Notification.builder()
+                .recipientUser(donorUser)
+                .message("Test notification")
+                .read(false)
+                .build());
+
+        // Create audit log
+        var audit = auditLogRepository.save(com.donateconnect.entity.AuditLog.builder()
+                .actor(donorUser)
+                .action("LOGIN")
+                .entityType("USER")
+                .entityId(donorUser.getId().toString())
+                .build());
+
+        DeleteAccountRequest request = DeleteAccountRequest.builder().confirmation("DELETE").build();
+        mockMvc.perform(delete("/api/users/me")
+                        .header("Authorization", "Bearer " + donorToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
+
+        // Verify user is gone
+        assertFalse(userRepository.findById(donorUser.getId()).isPresent());
+
+        // Verify preferences and notifications are gone
+        assertFalse(userPreferenceRepository.findByUserId(donorUser.getId()).isPresent());
+        assertTrue(notificationRepository.findByRecipientUserIdOrderByCreatedAtDesc(donorUser.getId()).isEmpty());
+
+        // Verify audit log exists with actor anonymized to null
+        var updatedAudit = auditLogRepository.findById(audit.getId()).orElseThrow();
+        assertNull(updatedAudit.getActor());
+        assertEquals("LOGIN", updatedAudit.getAction());
     }
 
     @Test

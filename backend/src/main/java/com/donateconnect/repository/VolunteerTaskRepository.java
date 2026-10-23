@@ -12,6 +12,7 @@ import java.util.UUID;
 public interface VolunteerTaskRepository extends JpaRepository<VolunteerTask, UUID> {
     List<VolunteerTask> findByVolunteerIdOrderByClaimedAtDesc(UUID volunteerId);
     List<VolunteerTask> findByStatus(VolunteerTask.TaskStatus status);
+    boolean existsByVolunteerIdAndStatusIn(UUID volunteerId, List<VolunteerTask.TaskStatus> statuses);
 
     /**
      * Check whether a donation already has an active (non-cancelled) volunteer task.

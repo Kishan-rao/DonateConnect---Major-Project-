@@ -136,7 +136,7 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
-        // Last administrator protection check
+        // 1. Last administrator protection check
         if (user.getRole() == Role.ADMIN) {
             long adminCount = userRepository.countByRole(Role.ADMIN);
             if (adminCount <= 1) {
@@ -145,98 +145,141 @@ public class UserServiceImpl implements UserService {
             }
         }
 
+        // 2. Workflow safety guards: reject deletion if active operations exist
+        if (user.getRole() == Role.VOLUNTEER) {
+            List<DeliveryStatus> activeDeliveryStatuses = List.of(
+                    DeliveryStatus.ASSIGNED,
+                    DeliveryStatus.ACCEPTED_BY_VOLUNTEER,
+                    DeliveryStatus.EN_ROUTE_TO_PICKUP,
+                    DeliveryStatus.PICKED_UP,
+                    DeliveryStatus.EN_ROUTE_TO_NGO
+            );
+            if (deliveryRepository.existsByVolunteerIdAndStatusIn(userId, activeDeliveryStatuses)) {
+                log.warn("Attempt to delete volunteer account {} with active deliveries in progress", userId);
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Cannot delete account while you have active deliveries in progress. Please complete or cancel them first.");
+            }
+
+            List<VolunteerTask.TaskStatus> activeTaskStatuses = List.of(
+                    VolunteerTask.TaskStatus.CLAIMED,
+                    VolunteerTask.TaskStatus.IN_TRANSIT
+            );
+            if (volunteerTaskRepository.existsByVolunteerIdAndStatusIn(userId, activeTaskStatuses)) {
+                log.warn("Attempt to delete volunteer account {} with active volunteer tasks in progress", userId);
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Cannot delete account while you have active volunteer tasks in progress. Please complete or cancel them first.");
+            }
+        } else if (user.getRole() == Role.DONOR) {
+            List<DonationStatus> activeDonationStatuses = List.of(
+                    DonationStatus.REQUESTED,
+                    DonationStatus.ACCEPTED,
+                    DonationStatus.PICKED_UP
+            );
+            if (donationRepository.existsByDonorIdAndStatusIn(userId, activeDonationStatuses)) {
+                log.warn("Attempt to delete donor account {} with active donations in progress", userId);
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Cannot delete account while you have active donations in progress. Please wait for deliveries to complete or cancel your pending requests.");
+            }
+        } else if (user.getRole() == Role.NGO) {
+            Optional<NGOProfile> ngoProfileOpt = ngoProfileRepository.findByUserId(userId);
+            if (ngoProfileOpt.isPresent()) {
+                UUID ngoId = ngoProfileOpt.get().getId();
+                List<DonationStatus> activeDonationStatuses = List.of(
+                        DonationStatus.REQUESTED,
+                        DonationStatus.ACCEPTED,
+                        DonationStatus.PICKED_UP
+                );
+                if (donationRepository.existsByNgoIdAndStatusIn(ngoId, activeDonationStatuses)) {
+                    log.warn("Attempt to delete NGO account {} with incoming donations in progress", userId);
+                    throw new ResponseStatusException(HttpStatus.CONFLICT,
+                            "Cannot delete NGO account while there are active incoming donations or deliveries pending.");
+                }
+            }
+        }
+
         log.info("Initiating account deletion for user ID: {} with role: {}", userId, user.getRole());
 
-        // 1. Clear actor from audit logs to preserve audit history while removing FK reference
+        // 3. Clear actor from audit logs to preserve audit history while removing FK reference
         auditLogRepository.clearActorByActorId(userId);
 
-        // 2. Delete user preferences
+        // 4. Delete user preferences
         userPreferenceRepository.deleteByUserId(userId);
 
-        // 3. Delete user notifications
+        // 5. Delete user notifications
         notificationRepository.deleteByRecipientUserId(userId);
 
-        // 4. Delete user's comments on donations
+        // 6. Delete user's comments on donations
         donationCommentRepository.deleteByAuthorId(userId);
 
-        // 5. Delete ratings given by or received by this user
+        // 7. Delete ratings given by or received by this user
         ngoRatingRepository.deleteByDonorId(userId);
         volunteerRatingRepository.deleteByDonorId(userId);
         volunteerRatingRepository.deleteByVolunteerId(userId);
 
-        // 6. Role-specific cleanup
+        // 8. Role-specific cleanup
         if (user.getRole() == Role.VOLUNTEER) {
-            // Clear volunteer reference on deliveries so donations stay intact
-            List<Delivery> assignedDeliveries = deliveryRepository.findByVolunteerId(userId);
-            for (Delivery del : assignedDeliveries) {
-                del.setVolunteer(null);
-                deliveryRepository.save(del);
-            }
-            deliveryRepository.flush();
+            // Unlink volunteer from completed deliveries so donation & delivery records remain intact with delivery proof
+            deliveryRepository.clearVolunteerByVolunteerId(userId);
 
-            // Delete volunteer tasks assigned to this volunteer
+            // Delete completed/cancelled volunteer tasks assigned to this volunteer
             volunteerTaskRepository.deleteByVolunteerId(userId);
         } else if (user.getRole() == Role.CORPORATE) {
             corporateDriveRepository.deleteByCorporateUserId(userId);
+        } else if (user.getRole() == Role.NGO) {
+            Optional<NGOProfile> ngoProfileOpt = ngoProfileRepository.findByUserId(userId);
+            if (ngoProfileOpt.isPresent()) {
+                NGOProfile ngoProfile = ngoProfileOpt.get();
+                UUID ngoId = ngoProfile.getId();
+
+                // Clear NGO urgent needs and trades
+                ngoUrgentNeedRepository.deleteByNgoId(ngoId);
+                ngoResourceTradeRepository.deleteByOfferingNgoId(ngoId);
+                ngoRatingRepository.deleteByNgoId(ngoId);
+
+                // For non-active terminal donations targeted at this NGO
+                List<Donation> ngoDonations = donationRepository.findByNgoIdOrderByCreatedAtDesc(ngoId);
+                for (Donation donation : ngoDonations) {
+                    cleanUpDonationDependencies(donation);
+                    donationRepository.delete(donation);
+                }
+
+                ngoProfileRepository.delete(ngoProfile);
+            }
+        } else if (user.getRole() == Role.DONOR) {
+            // Cascade delete donor's terminal donations and dependencies
+            List<Donation> donorDonations = donationRepository.findByDonorIdOrderByCreatedAtDesc(userId);
+            for (Donation donation : donorDonations) {
+                cleanUpDonationDependencies(donation);
+                donationRepository.delete(donation);
+            }
         }
 
-        // 7. If user is an NGO, clean up NGO profile and handle donations
-    Optional<NGOProfile> ngoProfileOpt = ngoProfileRepository.findByUserId(userId);
-    if (ngoProfileOpt.isPresent()) {
-        NGOProfile ngoProfile = ngoProfileOpt.get();
-        UUID ngoId = ngoProfile.getId();
+        // 9. Finally delete the user entity (frees up the email for reuse)
+        userRepository.delete(user);
+        userRepository.flush();
 
-        // Clear NGO urgent needs and trades
-        ngoUrgentNeedRepository.deleteByNgoId(ngoId);
-        ngoResourceTradeRepository.deleteByOfferingNgoId(ngoId);
-        ngoRatingRepository.deleteByNgoId(ngoId);
-
-        // For donations targeted at this NGO, do NOT delete the donor's donation history.
-        // Instead, clean up pending deliveries/tasks and cancel or reassign. But if foreign key requires it,
-        // let's see: Donation has nullable=false on ngo. If ngo is being deleted, can we reassign or must we handle carefully?
-        // Note: Donation.ngo is @ManyToOne(optional = false, @JoinColumn(nullable = false)).
-        // If an NGO deletes their account, deleting the NGOProfile will violate FK if donations reference it!
-        // To preserve donor donations, if they were already DELIVERED, they are historical records.
-        // But since NGO is optional=false on Donation, donations linked to this NGO must either be deleted
-        // or the schema requires it. Let's delete only donations specifically created for/by this NGO.
-        List<Donation> ngoDonations = donationRepository.findByNgoIdOrderByCreatedAtDesc(ngoId);
-        for (Donation donation : ngoDonations) {
-            cleanUpDonationDependencies(donation);
-            donationRepository.delete(donation);
-        }
-
-        ngoProfileRepository.delete(ngoProfile);
+        log.info("Successfully deleted user ID: {} and all associated personal data.", userId);
     }
 
-    // 8. If user created donations as a DONOR, cascade delete only their own donations and dependencies
-    List<Donation> donorDonations = donationRepository.findByDonorIdOrderByCreatedAtDesc(userId);
-    for (Donation donation : donorDonations) {
-        cleanUpDonationDependencies(donation);
-        donationRepository.delete(donation);
-    }
+    private void cleanUpDonationDependencies(Donation donation) {
+        UUID donationId = donation.getId();
+        deliveryRepository.deleteByDonationId(donationId);
+        volunteerTaskRepository.deleteByDonationId(donationId);
+        donationCommentRepository.deleteByDonationId(donationId);
+        statusHistoryRepository.deleteByDonationId(donationId);
 
-    // 9. Finally delete the user entity (frees up the email for reuse)
-    userRepository.delete(user);
-    userRepository.flush();
-
-    log.info("Successfully deleted user ID: {} and all associated personal data.", userId);
-}
-
-private void cleanUpDonationDependencies(Donation donation) {
-    UUID donationId = donation.getId();
-    deliveryRepository.deleteByDonationId(donationId);
-    volunteerTaskRepository.deleteByDonationId(donationId);
-    donationCommentRepository.deleteByDonationId(donationId);
-    statusHistoryRepository.deleteByDonationId(donationId);
-
-    // Clean up photo files from storage
-    if (donation.getPhotoUrls() != null) {
-        for (String photoUrl : donation.getPhotoUrls()) {
-            if (photoUrl != null && photoUrl.contains("/api/donations/photo/")) {
-                String filename = photoUrl.substring(photoUrl.lastIndexOf('/') + 1);
-                storageService.delete(filename);
+        // Clean up photo files from storage safely
+        if (donation.getPhotoUrls() != null) {
+            for (String photoUrl : donation.getPhotoUrls()) {
+                if (photoUrl != null && photoUrl.contains("/api/donations/photo/")) {
+                    String filename = photoUrl.substring(photoUrl.lastIndexOf('/') + 1);
+                    try {
+                        storageService.delete(filename);
+                    } catch (Exception e) {
+                        log.warn("Could not delete photo file {}: {}", filename, e.getMessage());
+                    }
+                }
             }
         }
     }
-}
 }
