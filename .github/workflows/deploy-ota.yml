@@ -1,0 +1,96 @@
+name: DonateConnect OTA Release Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - android-integration
+    paths:
+      - 'frontend/**'
+      - '!frontend/**/*.test.ts'
+      - '!frontend/**/*.test.tsx'
+      - '!frontend/tests/**'
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: 'Publish release assets to GitHub Releases'
+        type: boolean
+        required: true
+        default: true
+      notes:
+        description: 'Release Notes'
+        required: false
+        default: 'Manual OTA update trigger'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release-ota:
+    name: Validate, Package & Publish OTA Bundle
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        run: npm ci
+
+      - name: Run Test Suite (Validation Gate)
+        run: npm run test
+
+      - name: Build Production Web Bundle
+        run: npm run build
+        env:
+          VITE_API_BASE_URL: https://donateconnect-backend.onrender.com/api
+
+      - name: Generate Release Identifier
+        id: release_meta
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          DATE_TAG=$(date -u +'%Y%m%d%H%M')
+          RELEASE_ID="rel-${DATE_TAG}-${SHORT_SHA}"
+          echo "RELEASE_ID=${RELEASE_ID}" >> $GITHUB_ENV
+          echo "SHORT_SHA=${SHORT_SHA}" >> $GITHUB_ENV
+
+      - name: Package & Sign OTA Bundle
+        run: node scripts/build-ota-bundle.js
+        env:
+          OTA_RELEASE_ID: ${{ env.RELEASE_ID }}
+          OTA_SIGNING_PRIVATE_KEY: ${{ secrets.OTA_SIGNING_PRIVATE_KEY }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+      - name: Publish Versioned GitHub Release
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || inputs.publish_release == true)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ota-${{ env.RELEASE_ID }}
+          name: DonateConnect OTA ${{ env.RELEASE_ID }}
+          body: |
+            ### DonateConnect Over-The-Air (OTA) Release
+            - **Release ID:** `${{ env.RELEASE_ID }}`
+            - **Git Commit:** `${{ env.SHORT_SHA }}`
+            - **Branch:** `${{ github.ref_name }}`
+            - **Published At:** `$(date -u +'%Y-%m-%dT%H:%M:%SZ')`
+            - **Notes:** `${{ github.event.inputs.notes || 'Automated production OTA update' }}`
+          files: |
+            frontend/ota-dist/bundle.zip
+            frontend/ota-dist/manifest.json
+          make_latest: true
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
