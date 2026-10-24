@@ -17,6 +17,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -54,6 +55,9 @@ class VolunteerWorkflowTests {
     private StatusHistoryRepository statusHistoryRepository;
 
     @Autowired
+    private DeliveryRepository deliveryRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     private User donorUser;
@@ -65,6 +69,7 @@ class VolunteerWorkflowTests {
     private String volunteerToken;
     private String anotherVolunteerToken;
     private String donorToken;
+    private String ngoToken;
 
     @BeforeEach
     void setup() {
@@ -121,6 +126,7 @@ class VolunteerWorkflowTests {
         volunteerToken = jwtUtils.generateToken(volunteerUser);
         anotherVolunteerToken = jwtUtils.generateToken(anotherVolunteerUser);
         donorToken = jwtUtils.generateToken(donorUser);
+        ngoToken = jwtUtils.generateToken(ngoUser);
     }
 
     // ==================== AVAILABLE PICKUPS TESTS ====================
@@ -131,6 +137,7 @@ class VolunteerWorkflowTests {
                         .header("Authorization", "Bearer " + volunteerToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content").isArray())
+                .andExpect(jsonPath("$.data.content", hasSize(1)))
                 .andExpect(jsonPath("$.data.content[*].status", everyItem(is("ACCEPTED"))));
     }
 
@@ -139,6 +146,85 @@ class VolunteerWorkflowTests {
         mockMvc.perform(get("/api/volunteer/pickups/available")
                         .header("Authorization", "Bearer " + donorToken))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void testWorkflowFromSubmissionToApprovalToVolunteerPortal() throws Exception {
+        // Step 1: Donor creates a donation
+        String donationJson = """
+            {
+                "ngoId": "%s",
+                "category": "BOOKS",
+                "description": "Textbooks for donation",
+                "pickupAddress": "456 Elm Street, Bengaluru, Karnataka 560001",
+                "pickupLat": 12.9716,
+                "pickupLng": 77.5946,
+                "pickupDate": "%s",
+                "pickupTimeSlot": "MORNING_9_12"
+            }
+        """.formatted(ngoProfile.getId(), LocalDate.now().plusDays(3).toString());
+
+        String createResp = mockMvc.perform(post("/api/donations")
+                        .header("Authorization", "Bearer " + donorToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(donationJson))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.status").value("REQUESTED"))
+                .andReturn().getResponse().getContentAsString();
+
+        String newDonationId = objectMapper.readTree(createResp).get("data").get("id").asText();
+        UUID donationUuid = UUID.fromString(newDonationId);
+
+        // Step 2: NGO approves / accepts the donation
+        mockMvc.perform(patch("/api/ngo/donations/" + newDonationId + "/status")
+                        .header("Authorization", "Bearer " + ngoToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\": \"ACCEPTED\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("ACCEPTED"));
+
+        // Step 2b: Verify Delivery entity was automatically initialized in ASSIGNED status
+        Delivery assignedDelivery = deliveryRepository.findByDonationId(donationUuid).orElse(null);
+        assertNotNull(assignedDelivery, "Delivery record should be initialized upon NGO acceptance");
+        assertEquals(DeliveryStatus.ASSIGNED, assignedDelivery.getStatus());
+        assertNull(assignedDelivery.getVolunteer(), "Delivery volunteer should be null prior to claim");
+
+        // Step 3: Volunteer checks available pickups and sees the new donation at the top
+        mockMvc.perform(get("/api/volunteer/pickups/available")
+                        .header("Authorization", "Bearer " + volunteerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content").isArray())
+                .andExpect(jsonPath("$.data.content[0].id").value(newDonationId))
+                .andExpect(jsonPath("$.data.content[0].status").value("ACCEPTED"))
+                .andExpect(jsonPath("$.data.content[0].pickupAddress").value("456 Elm Street, Bengaluru, Karnataka 560001"))
+                .andExpect(jsonPath("$.data.content[0].pickupTimeSlot").value("MORNING_9_12"))
+                .andExpect(jsonPath("$.data.content[0].pickupLat").value(12.9716))
+                .andExpect(jsonPath("$.data.content[0].pickupLng").value(77.5946));
+
+        // Step 4: Volunteer claims the pickup
+        mockMvc.perform(post("/api/volunteer/pickups/" + newDonationId + "/claim")
+                        .header("Authorization", "Bearer " + volunteerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("CLAIMED"))
+                .andExpect(jsonPath("$.data.deliveryId").value(assignedDelivery.getId().toString()));
+
+        // Step 5: Verify Delivery updated to ACCEPTED_BY_VOLUNTEER with volunteer assigned
+        Delivery claimedDelivery = deliveryRepository.findByDonationId(donationUuid).orElseThrow();
+        assertEquals(DeliveryStatus.ACCEPTED_BY_VOLUNTEER, claimedDelivery.getStatus());
+        assertEquals(volunteerUser.getId(), claimedDelivery.getVolunteer().getId());
+
+        // Step 6: Verify donation is no longer in available pickups
+        mockMvc.perform(get("/api/volunteer/pickups/available")
+                        .header("Authorization", "Bearer " + volunteerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content[*].id", not(hasItem(newDonationId))));
+
+        // Step 7: Verify delivery details can be retrieved by volunteer
+        mockMvc.perform(get("/api/volunteer/deliveries/donation/" + newDonationId)
+                        .header("Authorization", "Bearer " + volunteerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(assignedDelivery.getId().toString()))
+                .andExpect(jsonPath("$.data.status").value("ACCEPTED_BY_VOLUNTEER"));
     }
 
     // ==================== CLAIM PICKUP TESTS ====================

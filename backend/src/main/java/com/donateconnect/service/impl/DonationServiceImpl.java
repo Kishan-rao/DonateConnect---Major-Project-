@@ -157,9 +157,9 @@ public class DonationServiceImpl implements DonationService {
             throw new AccessDeniedException("Forbidden: You are not authorized to update status for another NGO's donation");
         }
 
-        if (newStatus == DonationStatus.REJECTED) {
+        if (newStatus == DonationStatus.REJECTED && deliveryRepository != null) {
             boolean hasActiveDelivery = deliveryRepository.existsByDonationIdAndStatusIn(donationId, 
-                List.of(DeliveryStatus.ASSIGNED, DeliveryStatus.ACCEPTED_BY_VOLUNTEER, DeliveryStatus.EN_ROUTE_TO_PICKUP, DeliveryStatus.PICKED_UP, DeliveryStatus.EN_ROUTE_TO_NGO));
+                List.of(DeliveryStatus.ACCEPTED_BY_VOLUNTEER, DeliveryStatus.EN_ROUTE_TO_PICKUP, DeliveryStatus.PICKED_UP, DeliveryStatus.EN_ROUTE_TO_NGO));
             if (hasActiveDelivery) {
                 throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT, "Cannot reject a donation that has already been accepted by a volunteer courier");
             }
@@ -167,6 +167,27 @@ public class DonationServiceImpl implements DonationService {
 
         donation.setStatus(newStatus);
         Donation updated = donationRepository.save(donation);
+
+        // Ensure Delivery entity is initialized when donation is accepted by NGO
+        if (deliveryRepository != null) {
+            if (newStatus == DonationStatus.ACCEPTED) {
+                if (deliveryRepository.findByDonationId(updated.getId()).isEmpty()) {
+                    com.donateconnect.entity.Delivery delivery = com.donateconnect.entity.Delivery.builder()
+                            .donation(updated)
+                            .volunteer(null)
+                            .status(DeliveryStatus.ASSIGNED)
+                            .assignedAt(java.time.LocalDateTime.now())
+                            .build();
+                    deliveryRepository.save(delivery);
+                }
+            } else if (newStatus == DonationStatus.REJECTED) {
+                deliveryRepository.findByDonationId(updated.getId()).ifPresent(del -> {
+                    if (del.getStatus() == DeliveryStatus.ASSIGNED) {
+                        deliveryRepository.delete(del);
+                    }
+                });
+            }
+        }
 
         // Record Status History Audit Trail
         StatusHistory history = StatusHistory.builder()

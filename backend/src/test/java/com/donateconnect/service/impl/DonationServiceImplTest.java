@@ -38,6 +38,8 @@ class DonationServiceImplTest {
     private NotificationService notificationService;
     @Mock
     private GeocodingService geocodingService;
+    @Mock
+    private com.donateconnect.repository.DeliveryRepository deliveryRepository;
 
     @InjectMocks
     private DonationServiceImpl donationService;

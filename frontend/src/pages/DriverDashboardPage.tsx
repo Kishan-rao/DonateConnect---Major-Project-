@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getMyVolunteerTasks, getAvailablePickups, claimVolunteerPickup, updateVolunteerTaskStatus } from '../api/volunteerApi';
 import { Donation, PageResponse, VolunteerTask } from '../types';
 import { useToast } from '../context/ToastContext';
@@ -9,7 +9,9 @@ type DashboardTab = 'my-tasks' | 'available';
 
 export const DriverDashboardPage: React.FC = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<DashboardTab>('my-tasks');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab: DashboardTab = searchParams.get('tab') === 'available' ? 'available' : 'my-tasks';
+  const [activeTab, setActiveTab] = useState<DashboardTab>(initialTab);
   const [tasks, setTasks] = useState<VolunteerTask[]>([]);
   const [available, setAvailable] = useState<PageResponse<Donation> | null>(null);
   const [loading, setLoading] = useState(true);
@@ -17,36 +19,42 @@ export const DriverDashboardPage: React.FC = () => {
   const { showSuccess, showError } = useToast();
 
   const fetchMyTasks = async () => {
-    setLoading(true);
     try {
       const data = await getMyVolunteerTasks();
       setTasks(data);
     } catch {
       showError('Failed to load volunteer tasks');
-    } finally {
-      setLoading(false);
     }
   };
 
   const fetchAvailable = async (page = 0) => {
-    setLoading(true);
     try {
       const data = await getAvailablePickups(page, 20);
       setAvailable(data);
     } catch {
       showError('Failed to load available pickups');
-    } finally {
-      setLoading(false);
     }
   };
 
+  // On mount: fetch both tasks and available pickups so tab counts are accurate immediately
   useEffect(() => {
-    if (activeTab === 'my-tasks') {
+    const loadInitialData = async () => {
+      setLoading(true);
+      await Promise.all([fetchMyTasks(), fetchAvailable()]);
+      setLoading(false);
+    };
+    loadInitialData();
+  }, []);
+
+  const handleTabChange = (tab: DashboardTab) => {
+    setActiveTab(tab);
+    setSearchParams(tab === 'available' ? { tab: 'available' } : {});
+    if (tab === 'my-tasks') {
       fetchMyTasks();
     } else {
       fetchAvailable();
     }
-  }, [activeTab]);
+  };
 
   const handleStatusChange = async (taskId: string, status: VolunteerTask['status']) => {
     try {
@@ -63,8 +71,8 @@ export const DriverDashboardPage: React.FC = () => {
     try {
       await claimVolunteerPickup(donationId);
       showSuccess('Pickup claimed successfully!');
-      // Refresh both tabs
-      setActiveTab('my-tasks');
+      await Promise.all([fetchMyTasks(), fetchAvailable()]);
+      handleTabChange('my-tasks');
     } catch (err: any) {
       showError(err.message || 'Failed to claim pickup');
     } finally {
@@ -94,7 +102,11 @@ export const DriverDashboardPage: React.FC = () => {
         </div>
 
         <button
-          onClick={() => activeTab === 'my-tasks' ? fetchMyTasks() : fetchAvailable()}
+          onClick={async () => {
+            setLoading(true);
+            await Promise.all([fetchMyTasks(), fetchAvailable()]);
+            setLoading(false);
+          }}
           disabled={loading}
           className="p-2.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white transition-colors border border-slate-700 self-start md:self-auto"
         >
@@ -104,10 +116,10 @@ export const DriverDashboardPage: React.FC = () => {
 
       {/* Tab Switcher */}
       <div className="flex gap-3">
-        <button onClick={() => setActiveTab('my-tasks')} className={tabButtonClass('my-tasks')}>
+        <button onClick={() => handleTabChange('my-tasks')} className={tabButtonClass('my-tasks')}>
           My Tasks {tasks.length > 0 && <span className="ml-1.5 text-xs bg-white/10 px-1.5 py-0.5 rounded">{tasks.length}</span>}
         </button>
-        <button onClick={() => setActiveTab('available')} className={tabButtonClass('available')}>
+        <button onClick={() => handleTabChange('available')} className={tabButtonClass('available')}>
           <PackageSearch className="w-4 h-4 inline mr-1.5" />
           Available Pickups
           {available && <span className="ml-1.5 text-xs bg-white/10 px-1.5 py-0.5 rounded">{available.totalElements}</span>}
@@ -126,7 +138,7 @@ export const DriverDashboardPage: React.FC = () => {
               <Truck className="w-12 h-12 text-slate-600 mx-auto" />
               <h3 className="text-slate-300 font-semibold text-base">No active pickup assignments</h3>
               <p className="text-slate-500 text-xs max-w-sm mx-auto">
-                Browse <button onClick={() => setActiveTab('available')} className="text-indigo-400 hover:underline">Available Pickups</button> to claim your next delivery.
+                Browse <button onClick={() => handleTabChange('available')} className="text-indigo-400 hover:underline">Available Pickups</button>{available && available.totalElements > 0 ? ` (${available.totalElements} waiting)` : ''} to claim your next delivery.
               </p>
             </div>
           ) : (

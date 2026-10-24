@@ -6,6 +6,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { TrackDeliveryPage } from './TrackDeliveryPage';
 import * as donationApi from '../api/donationApi';
 import * as AuthContextModule from '../context/AuthContext';
+import { ToastProvider } from '../context/ToastContext';
 import '@testing-library/jest-dom/vitest';
 import { Client } from '@stomp/stompjs';
 
@@ -51,6 +52,7 @@ vi.mock('react-leaflet', () => ({
   Marker: ({ children }: any) => <div data-testid="marker">{children}</div>,
   Popup: ({ children }: any) => <div data-testid="popup">{children}</div>,
   Polyline: () => <div data-testid="polyline" />,
+  useMap: () => ({ panTo: vi.fn(), setView: vi.fn() }),
 }));
 
 describe('TrackDeliveryPage', () => {
@@ -102,11 +104,13 @@ describe('TrackDeliveryPage', () => {
 
   const renderPage = () => {
     return render(
-      <MemoryRouter initialEntries={['/track/test-id']}>
-        <Routes>
-          <Route path="/track/:id" element={<TrackDeliveryPage />} />
-        </Routes>
-      </MemoryRouter>
+      <ToastProvider>
+        <MemoryRouter initialEntries={['/track/test-id']}>
+          <Routes>
+            <Route path="/track/:id" element={<TrackDeliveryPage />} />
+          </Routes>
+        </MemoryRouter>
+      </ToastProvider>
     );
   };
 

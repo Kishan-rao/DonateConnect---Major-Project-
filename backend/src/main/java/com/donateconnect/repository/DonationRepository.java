@@ -46,7 +46,7 @@ public interface DonationRepository extends JpaRepository<Donation, UUID>, JpaSp
      * Find ACCEPTED donations that have NOT been claimed by any volunteer yet.
      * Used for the volunteer "available pickups" endpoint.
      */
-    @Query("SELECT d FROM Donation d WHERE d.status = 'ACCEPTED' " +
-           "AND NOT EXISTS (SELECT t FROM VolunteerTask t WHERE t.donation = d AND t.status <> 'CANCELLED')")
+    @Query("SELECT d FROM Donation d WHERE d.status = com.donateconnect.entity.DonationStatus.ACCEPTED " +
+           "AND NOT EXISTS (SELECT t FROM VolunteerTask t WHERE t.donation = d AND t.status <> com.donateconnect.entity.VolunteerTask.TaskStatus.CANCELLED)")
     Page<Donation> findAvailableForPickup(Pageable pageable);
 }

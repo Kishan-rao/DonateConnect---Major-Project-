@@ -20,7 +20,8 @@ export const LiveLocationTracker: React.FC<Props> = ({ deliveryId, status, donat
     
     const watchIdRef = useRef<number | null>(null);
     const latestPosRef = useRef<GeolocationPosition | null>(null);
-    const intervalRef = useRef<NodeJS.Timeout | null>(null);
+    const lastSharedRef = useRef<Date | null>(null);
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const { showError } = useToast();
 
     // Check visibility
@@ -39,6 +40,39 @@ export const LiveLocationTracker: React.FC<Props> = ({ deliveryId, status, donat
         }
     }, [status]);
 
+    const transmitLocation = (pos: GeolocationPosition) => {
+        const ageMs = Date.now() - pos.timestamp;
+        if (ageMs > 30000) {
+            console.warn(`[GPS] Skipping stale coordinate (${Math.round(ageMs / 1000)}s old)`);
+            return;
+        }
+
+        const { latitude, longitude, speed, heading } = pos.coords;
+        sendLocationUpdate(deliveryId, {
+            deliveryId,
+            lat: latitude,
+            lng: longitude,
+            speed: speed || 0,
+            heading: heading || 0,
+            timestamp: new Date().toISOString()
+        }).then(() => {
+            const now = new Date();
+            setLastShared(now);
+            lastSharedRef.current = now;
+            setPermissionError('');
+        }).catch((e) => {
+            if (e.response?.status === 400) {
+                // Backend reports delivery is completed or cancelled
+                stopTracking();
+            } else if (e.response?.status === 403) {
+                showError('Unauthorized to update location for this delivery.');
+                stopTracking();
+            } else if (e.response?.status !== 429) {
+                console.error('[GPS] Failed to send location update', e);
+            }
+        });
+    };
+
     const startTracking = () => {
         if (status === 'COMPLETED' || status === 'DELIVERED' || status === 'CANCELLED' || status === 'REJECTED') {
             showError('Location sharing is disabled for inactive deliveries');
@@ -46,7 +80,7 @@ export const LiveLocationTracker: React.FC<Props> = ({ deliveryId, status, donat
         }
 
         if (!navigator.geolocation) {
-            setPermissionError('Geolocation is not supported by your browser');
+            setPermissionError('Geolocation is not supported by this device.');
             return;
         }
 
@@ -56,35 +90,29 @@ export const LiveLocationTracker: React.FC<Props> = ({ deliveryId, status, donat
         watchIdRef.current = navigator.geolocation.watchPosition(
             (pos) => {
                 latestPosRef.current = pos;
+                // Transmit first position immediately once acquired
+                if (!lastSharedRef.current) {
+                    transmitLocation(pos);
+                }
             },
             (err) => {
                 if (err.code === err.PERMISSION_DENIED) {
-                    setPermissionError('Location permission denied. Please enable it in browser settings.');
+                    setPermissionError('Location permission denied. Please enable location access in App Settings.');
                     stopTracking();
+                } else if (err.code === err.POSITION_UNAVAILABLE) {
+                    setPermissionError('GPS signal unavailable. Please ensure device location (GPS) is turned on.');
+                } else if (err.code === err.TIMEOUT) {
+                    console.warn('[GPS] Position acquisition timed out, retrying...');
                 } else {
                     showError('GPS error: ' + err.message);
                 }
             },
-            { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+            { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
         );
 
         intervalRef.current = setInterval(() => {
             if (latestPosRef.current) {
-                const { latitude, longitude, speed, heading } = latestPosRef.current.coords;
-                sendLocationUpdate(deliveryId, {
-                    deliveryId,
-                    lat: latitude,
-                    lng: longitude,
-                    speed: speed || 0,
-                    heading: heading || 0,
-                    timestamp: new Date().toISOString()
-                }).then(() => {
-                    setLastShared(new Date());
-                }).catch((e) => {
-                    if (e.response?.status !== 429) {
-                        console.error('Failed to send location', e);
-                    }
-                });
+                transmitLocation(latestPosRef.current);
             }
         }, 5000);
     };
@@ -174,6 +202,8 @@ export const LiveLocationTracker: React.FC<Props> = ({ deliveryId, status, donat
             clearInterval(intervalRef.current);
             intervalRef.current = null;
         }
+        latestPosRef.current = null;
+        lastSharedRef.current = null;
         setIsSimulating(false);
     };
 

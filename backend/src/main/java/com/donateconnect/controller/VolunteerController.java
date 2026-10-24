@@ -39,7 +39,7 @@ public class VolunteerController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        PageRequest pageRequest = PageRequest.of(page, size, Sort.by("createdAt").ascending());
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by("createdAt").descending());
         Page<DonationResponseDto> available = volunteerService.getAvailablePickups(pageRequest);
         return ResponseEntity.ok(ApiResponse.success("Available pickups retrieved", available));
     }

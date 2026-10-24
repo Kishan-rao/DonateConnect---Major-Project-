@@ -27,6 +27,7 @@ public class VolunteerServiceImpl implements VolunteerService {
     private final DonationRepository donationRepository;
     private final UserRepository userRepository;
     private final DeliveryRepository deliveryRepository;
+    private final com.donateconnect.service.GeocodingService geocodingService;
 
     @Override
     @Transactional(readOnly = true)
@@ -77,18 +78,25 @@ public class VolunteerServiceImpl implements VolunteerService {
                 .build();
         task = volunteerTaskRepository.save(task);
 
-        if (deliveryRepository.findByDonationId(donation.getId()).isPresent()) {
+        Delivery delivery = deliveryRepository.findByDonationId(donation.getId())
+                .orElseGet(() -> {
+                    Delivery d = new Delivery();
+                    d.setDonation(donation);
+                    d.setAssignedAt(java.time.LocalDateTime.now());
+                    return d;
+                });
+
+        if (delivery.getVolunteer() != null && delivery.getStatus() != DeliveryStatus.ASSIGNED) {
             throw new org.springframework.dao.DataIntegrityViolationException("Delivery already exists for donation");
         }
 
-        Delivery delivery = new Delivery();
-        delivery.setDonation(donation);
         delivery.setVolunteer(volunteer);
         delivery.setStatus(DeliveryStatus.ACCEPTED_BY_VOLUNTEER);
-        delivery.setAssignedAt(java.time.LocalDateTime.now());
-        delivery.setDeliveryOtp(String.format("%06d", new java.security.SecureRandom().nextInt(1000000)));
-        delivery.setDeliveryOtpExpiry(java.time.LocalDateTime.now().plusHours(24));
-        delivery.setDeliveryOtpAttempts(0);
+        if (delivery.getDeliveryOtp() == null) {
+            delivery.setDeliveryOtp(String.format("%06d", new java.security.SecureRandom().nextInt(1000000)));
+            delivery.setDeliveryOtpExpiry(java.time.LocalDateTime.now().plusHours(24));
+            delivery.setDeliveryOtpAttempts(0);
+        }
         deliveryRepository.save(delivery);
 
         return mapTaskToDto(task);
@@ -164,6 +172,13 @@ public class VolunteerServiceImpl implements VolunteerService {
                 .build();
 
         NGOProfile ngo = d.getNgo();
+        if (ngo != null && (ngo.getLatitude() == null || ngo.getLongitude() == null)) {
+            NGOProfile geocoded = geocodingService.geocodeAndCacheNgoAddress(ngo);
+            if (geocoded != null) {
+                ngo = geocoded;
+            }
+        }
+
         User ngoUser = ngo.getUser();
         UserResponseDto ngoUserDto = UserResponseDto.builder()
                 .id(ngoUser.getId())
@@ -195,6 +210,10 @@ public class VolunteerServiceImpl implements VolunteerService {
                 .photoUrls(d.getPhotoUrls())
                 .status(d.getStatus())
                 .pickupDate(d.getPickupDate())
+                .pickupTimeSlot(d.getPickupTimeSlot())
+                .pickupAddress(d.getPickupAddress())
+                .pickupLat(d.getPickupLat())
+                .pickupLng(d.getPickupLng())
                 .createdAt(d.getCreatedAt())
                 .updatedAt(d.getUpdatedAt())
                 .build();

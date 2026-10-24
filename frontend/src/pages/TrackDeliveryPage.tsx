@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getDonationById, getLiveLocation, getDeliveryByDonationId, completeDelivery } from '../api/donationApi';
 import { Donation, DeliveryDto } from '../types';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useAuth } from '../context/AuthContext';
@@ -10,6 +10,7 @@ import { ArrowLeft, Navigation, Clock, ShieldCheck, MapPin, AlertTriangle, Refre
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { OtpInput } from '../components/OtpInput';
+import { LiveLocationTracker } from '../components/LiveLocationTracker';
 import { getWsUrl } from '../utils/urlUtils';
 import { getBaseUrl } from '../api/client';
 
@@ -27,6 +28,15 @@ const truckIcon = new L.Icon({
   iconAnchor: [20, 20],
   popupAnchor: [0, -20],
 });
+
+/** Smoothly pan map viewport to follow driver's live GPS coordinates */
+const MapPanController: React.FC<{ center: [number, number] }> = ({ center }) => {
+  const map = useMap();
+  useEffect(() => {
+    map.panTo(center, { animate: true });
+  }, [center[0], center[1], map]);
+  return null;
+};
 
 export const TrackDeliveryPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -115,9 +125,13 @@ export const TrackDeliveryPage: React.FC = () => {
     // Fallback polling
     pollInterval.current = setInterval(async () => {
       if (!client.connected) {
+        if (donation?.status === 'DELIVERED' || donation?.status === 'REJECTED') {
+          if (pollInterval.current) clearInterval(pollInterval.current);
+          return;
+        }
         try {
           const loc = await getLiveLocation(id);
-          if (loc.lat && loc.lng) {
+          if (loc && loc.lat && loc.lng) {
             setCurrentLoc({ lat: loc.lat, lng: loc.lng });
             setPath((prev) => {
               const last = prev[prev.length - 1];
@@ -126,8 +140,13 @@ export const TrackDeliveryPage: React.FC = () => {
             });
             setLastUpdated(new Date());
           }
-        } catch (e) {
-          console.error('Polling failed', e);
+        } catch (e: any) {
+          if (e.response?.status === 400) {
+            // Live tracking closed by backend
+            if (pollInterval.current) clearInterval(pollInterval.current);
+          } else {
+            console.error('Polling failed', e);
+          }
         }
       }
     }, 10000);
@@ -229,6 +248,7 @@ export const TrackDeliveryPage: React.FC = () => {
       // Refresh page data
       const updatedDonation = await getDonationById(id as string);
       setDonation(updatedDonation);
+      if (pollInterval.current) clearInterval(pollInterval.current);
     } catch (err: any) {
       setProofError(err.response?.data?.message || err.message || 'Failed to complete delivery');
     } finally {
@@ -305,6 +325,13 @@ export const TrackDeliveryPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Volunteer Live Tracking Controller */}
+      {isVolunteer && delivery && donation?.status !== 'DELIVERED' && donation?.status !== 'REJECTED' && (
+        <div className="bg-slate-900 rounded-3xl p-5 border border-slate-800 shadow-xl">
+          <LiveLocationTracker deliveryId={delivery.id} status={delivery.status} donation={donation || undefined} />
+        </div>
+      )}
 
       {/* Proof of Delivery Panel */}
       {showProofForm && (
@@ -428,6 +455,7 @@ export const TrackDeliveryPage: React.FC = () => {
               style={{ height: '100%', width: '100%' }}
               zoomControl={false}
             >
+              <MapPanController center={[currentLoc.lat, currentLoc.lng]} />
               <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
