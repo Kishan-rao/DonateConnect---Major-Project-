@@ -6,12 +6,14 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:ota": "tsc && vite build && node scripts/build-ota-bundle.js",
     "preview": "vite preview",
     "test": "vitest run"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.3",
     "@capacitor/core": "^8.5.3",
+    "@capawesome/capacitor-live-update": "^8.7.1",
     "@stomp/stompjs": "^7.3.0",
     "axios": "^1.7.9",
     "html2canvas": "^1.4.1",
@@ -34,6 +36,7 @@
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",
+    "@types/archiver": "^8.0.0",
     "@types/leaflet": "^1.9.22",
     "@types/node": "^22.20.5",
     "@types/react": "^18.3.18",
@@ -41,6 +44,7 @@
     "@types/sockjs-client": "^1.5.4",
     "@types/stompjs": "^2.3.10",
     "@vitejs/plugin-react": "^4.3.4",
+    "archiver": "^8.0.0",
     "autoprefixer": "^10.5.4",
     "jsdom": "^29.1.1",
     "postcss": "^8.5.26",

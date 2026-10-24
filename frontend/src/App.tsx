@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
@@ -34,10 +34,19 @@ import { SettingsPage } from './pages/SettingsPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { EmergencySosBanner } from './components/EmergencySosBanner';
 import { getApiConfigError } from './api/client';
+import { notifyOtaAppReady, checkForOtaUpdate } from './utils/otaUpdate';
 import { AlertTriangle } from 'lucide-react';
 
 const AppShell: React.FC = () => {
   const apiConfigError = getApiConfigError();
+
+  useEffect(() => {
+    // Notify native runtime that app is ready (stops the 10-second rollback watchdog)
+    notifyOtaAppReady();
+
+    // Check for OTA updates asynchronously in the background
+    checkForOtaUpdate();
+  }, []);
 
   return (
     <AuthProvider>

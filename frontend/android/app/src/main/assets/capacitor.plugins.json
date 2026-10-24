@@ -1,1 +1,6 @@
-[]
+[
+	{
+		"pkg": "@capawesome/capacitor-live-update",
+		"classpath": "io.capawesome.capacitorjs.plugins.liveupdate.LiveUpdatePlugin"
+	}
+]

@@ -1,24 +1,42 @@
-
-# Playwright
+# ==========================================
+# Dependencies
+# ==========================================
 node_modules/
-/test-results/
-/playwright-report/
-/blob-report/
-/playwright/.cache/
-/playwright/.auth/
 
-# Environment variables — never commit local secrets
+# ==========================================
+# Test Reports & Playwright
+# ==========================================
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+playwright/.cache/
+playwright/.auth/
+
+# ==========================================
+# Environment variables & Signing Keys
+# ==========================================
+# Never commit local secrets or private keys
 .env
 .env.*
+*.env
+*.env.*
 !.env.example
+*.pem
+*.key
+keys/
 
-# Android / Gradle generated files
-frontend/android/.gradle/
-frontend/android/.idea/workspace.xml
-frontend/android/**/build/
-frontend/android/build/
-frontend/android/local.properties
-
-uploads/
+# ==========================================
+# Build & OTA Artifacts
+# ==========================================
 dist/
-node_modules/
+ota-dist/
+uploads/
+
+# ==========================================
+# Android / Gradle Local Files
+# ==========================================
+android/.gradle/
+android/**/build/
+android/local.properties
+android/.idea/
