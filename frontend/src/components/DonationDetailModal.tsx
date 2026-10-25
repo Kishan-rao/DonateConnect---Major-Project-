@@ -371,8 +371,9 @@ export const DonationDetailModal: React.FC<DonationDetailModalProps> = ({
         {/* Modal Footer */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-[#E5E7EB] pt-4">
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            {donation && onOpenTracker && (
+            {donation && (donation.status === 'ACCEPTED' || donation.status === 'PICKED_UP' || donation.status === 'DELIVERED') && onOpenTracker && (
               <button
+                data-testid="detail-track-donation-btn"
                 onClick={() => {
                   onClose();
                   onOpenTracker(donation);
@@ -380,7 +381,7 @@ export const DonationDetailModal: React.FC<DonationDetailModalProps> = ({
                 className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition-colors bg-[#7567E8]/10 hover:bg-[#7567E8]/20 text-[#7567E8] border-[#7567E8]/20"
               >
                 <Navigation className="w-3.5 h-3.5 text-[#7567E8]" />
-                Live Driver GPS
+                Track Delivery
               </button>
             )}
 

@@ -71,19 +71,28 @@ export const TrackDeliveryPage: React.FC = () => {
     
     // Fetch Donation to get NGO/Donor info
     getDonationById(id).then((d) => setDonation(d)).catch(console.error);
-    getDeliveryByDonationId(id).then((d) => setDelivery(d)).catch(console.error);
+    getDeliveryByDonationId(id).then((d) => {
+      setDelivery(d);
+      if (d.lastLat && d.lastLng) {
+        setCurrentLoc((prev) => prev || { lat: d.lastLat!, lng: d.lastLng! });
+        setPath((prev) => prev.length === 0 ? [[d.lastLat!, d.lastLng!]] : prev);
+        if (d.lastLocationAt) {
+          setLastUpdated((prev) => prev || new Date(d.lastLocationAt!));
+        }
+      }
+    }).catch(console.error);
 
     // Initial Location fetch
     const fetchLoc = async () => {
       try {
         const loc = await getLiveLocation(id);
-        if (loc.lat && loc.lng) {
+        if (loc && loc.lat && loc.lng) {
           setCurrentLoc({ lat: loc.lat, lng: loc.lng });
           setPath((prev) => [...prev, [loc.lat, loc.lng]]);
           setLastUpdated(new Date());
         }
-      } catch (err) {
-        console.error('Failed to fetch initial location', err);
+      } catch (err: any) {
+        console.warn('Initial live location fetch deferred to delivery state:', err?.message);
       } finally {
         setLoading(false);
       }
@@ -101,17 +110,29 @@ export const TrackDeliveryPage: React.FC = () => {
       },
       debug: () => {},
       onConnect: () => {
+        // Refetch latest delivery state on connect/reconnect
+        getDeliveryByDonationId(id).then((d) => {
+          setDelivery(d);
+          if (d.lastLat && d.lastLng) {
+            setCurrentLoc((prev) => prev || { lat: d.lastLat!, lng: d.lastLng! });
+          }
+        }).catch(() => {});
+
         client.subscribe(`/topic/donation/${id}`, (msg) => {
-          const loc = JSON.parse(msg.body);
-          if (loc.lat && loc.lng) {
-            setCurrentLoc({ lat: loc.lat, lng: loc.lng });
-            setPath((prev) => {
-              const last = prev[prev.length - 1];
-              if (last && last[0] === loc.lat && last[1] === loc.lng) return prev;
-              return [...prev, [loc.lat, loc.lng]];
-            });
-            setLastUpdated(new Date());
-            setIsOffline(false);
+          try {
+            const loc = JSON.parse(msg.body);
+            if (loc.lat && loc.lng) {
+              setCurrentLoc({ lat: loc.lat, lng: loc.lng });
+              setPath((prev) => {
+                const last = prev[prev.length - 1];
+                if (last && last[0] === loc.lat && last[1] === loc.lng) return prev;
+                return [...prev, [loc.lat, loc.lng]];
+              });
+              setLastUpdated(new Date());
+              setIsOffline(false);
+            }
+          } catch (e) {
+            console.error('Failed to parse incoming location update', e);
           }
         });
       },
@@ -297,7 +318,7 @@ export const TrackDeliveryPage: React.FC = () => {
           <div>
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Distance to {isRoutingToPickup ? 'Pickup' : 'NGO'}</p>
             <p className="text-xl font-black text-slate-900">
-              {distanceKm ? `${distanceKm} km` : 'Calculating...'}
+              {distanceKm ? `${distanceKm} km` : currentLoc ? 'Calculating...' : '—'}
             </p>
           </div>
         </div>
@@ -309,7 +330,7 @@ export const TrackDeliveryPage: React.FC = () => {
           <div>
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Estimated ETA</p>
             <p className="text-xl font-black text-slate-900">
-              {etaMinutes !== null ? `${etaMinutes} mins` : 'Calculating...'}
+              {etaMinutes !== null ? `${etaMinutes} mins` : currentLoc ? 'Calculating...' : '—'}
             </p>
           </div>
         </div>
@@ -415,6 +436,10 @@ export const TrackDeliveryPage: React.FC = () => {
                   <span className="text-emerald-400">Delivery Completed</span>
                 ) : donation?.status === 'REJECTED' ? (
                   <span className="text-rose-400">Delivery Cancelled</span>
+                ) : delivery?.status === 'ASSIGNED' ? (
+                  <span className="text-amber-400">Awaiting Volunteer Assignment</span>
+                ) : delivery?.status === 'ACCEPTED_BY_VOLUNTEER' ? (
+                  <span className="text-indigo-400">Volunteer Assigned (Pre-Trip)</span>
                 ) : (
                   'Volunteer En Route'
                 )}
@@ -424,18 +449,26 @@ export const TrackDeliveryPage: React.FC = () => {
                   </span>
                 ) : isOffline ? (
                   <span className="text-[10px] font-bold bg-amber-500 text-slate-900 px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <AlertTriangle className="w-3 h-3" /> Offline
+                    <AlertTriangle className="w-3 h-3" /> Offline (Signal Inactive)
                   </span>
-                ) : (
+                ) : currentLoc ? (
                   <span className="text-[10px] font-bold bg-emerald-500 text-slate-900 px-2 py-0.5 rounded-full flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-slate-900 animate-pulse" /> Live GPS
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <Clock className="w-3 h-3" /> Pending Signal
                   </span>
                 )}
               </h3>
               <p className="text-xs text-slate-400 font-mono mt-1">
                 {donation?.status === 'DELIVERED'
-                  ? 'Live location tracking ended.'
-                  : `Last GPS Signal: ${lastUpdated ? lastUpdated.toLocaleTimeString() : 'Waiting for signal...'}`}
+                  ? 'Delivery completed and verified.'
+                  : currentLoc && lastUpdated
+                  ? `Last GPS Signal: ${lastUpdated.toLocaleTimeString()}`
+                  : delivery?.status === 'ASSIGNED'
+                  ? 'Accepted by NGO. Pickup open for volunteer claiming.'
+                  : 'Waiting for driver to initiate GPS broadcast...'}
               </p>
             </div>
           </div>
@@ -448,60 +481,70 @@ export const TrackDeliveryPage: React.FC = () => {
 
         {/* Map Container */}
         <div className="h-[520px] w-full z-0 relative bg-slate-100">
-          {currentLoc ? (
-            <MapContainer
-              center={[currentLoc.lat, currentLoc.lng]}
-              zoom={14}
-              style={{ height: '100%', width: '100%' }}
-              zoomControl={false}
-            >
-              <MapPanController center={[currentLoc.lat, currentLoc.lng]} />
-              <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              />
-              
-              {/* Pickup Marker */}
-              {pickupPoint && (
-                <Marker position={pickupPoint as [number, number]}>
-                  <Popup>
-                    <div className="p-1">
-                      <p className="font-bold text-slate-900">Pickup Location</p>
-                      <p className="text-xs text-slate-600">{donation?.pickupAddress || 'No exact address'}</p>
-                    </div>
-                  </Popup>
-                </Marker>
-              )}
-
-              {/* Destination NGO Marker */}
-              <Marker position={ngoPoint}>
+          <MapContainer
+            center={currentLoc ? [currentLoc.lat, currentLoc.lng] : pickupPoint}
+            zoom={13}
+            style={{ height: '100%', width: '100%' }}
+            zoomControl={false}
+          >
+            {currentLoc && <MapPanController center={[currentLoc.lat, currentLoc.lng]} />}
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            />
+            
+            {/* Pickup Marker */}
+            {pickupPoint && (
+              <Marker position={pickupPoint as [number, number]}>
                 <Popup>
                   <div className="p-1">
-                    <p className="font-bold text-slate-900">{donation?.ngo?.name}</p>
-                    <p className="text-xs text-slate-600">{donation?.ngo?.address}</p>
+                    <p className="font-bold text-slate-900">Pickup Location</p>
+                    <p className="text-xs text-slate-600">{donation?.pickupAddress || 'No exact address'}</p>
                   </div>
                 </Popup>
               </Marker>
+            )}
 
-              {/* OSRM Route Polyline (Planned route to NGO) */}
-              {osrmPath.length > 0 && (
-                <Polyline positions={osrmPath} color="#6366f1" weight={6} opacity={0.85} dashArray="8, 8" />
-              )}
+            {/* Destination NGO Marker */}
+            <Marker position={ngoPoint}>
+              <Popup>
+                <div className="p-1">
+                  <p className="font-bold text-slate-900">{donation?.ngo?.name}</p>
+                  <p className="text-xs text-slate-600">{donation?.ngo?.address}</p>
+                </div>
+              </Popup>
+            </Marker>
 
-              {/* Traveled GPS History Path Polyline */}
-              {path.length > 1 && (
-                <Polyline positions={path} color="#10b981" weight={4} opacity={0.9} />
-              )}
+            {/* OSRM Route Polyline (Planned route to NGO) */}
+            {osrmPath.length > 0 && (
+              <Polyline positions={osrmPath} color="#6366f1" weight={6} opacity={0.85} dashArray="8, 8" />
+            )}
 
-              {/* Driver Truck Marker */}
+            {/* Traveled GPS History Path Polyline */}
+            {path.length > 1 && (
+              <Polyline positions={path} color="#10b981" weight={4} opacity={0.9} />
+            )}
+
+            {/* Driver Truck Marker */}
+            {currentLoc && (
               <Marker position={[currentLoc.lat, currentLoc.lng]} icon={truckIcon}>
                 <Popup>Volunteer Current Location</Popup>
               </Marker>
-            </MapContainer>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full text-slate-500 space-y-4">
-              <Navigation className="w-12 h-12 animate-pulse text-indigo-300" />
-              <p className="font-semibold">Waiting for GPS signal from driver...</p>
+            )}
+          </MapContainer>
+
+          {!currentLoc && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] bg-slate-900/90 backdrop-blur-sm border border-slate-700 text-white px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow-lg">
+              <Navigation className="w-4 h-4 text-amber-400 animate-pulse" />
+              <span>
+                {delivery?.status === 'ASSIGNED'
+                  ? 'Pickup open — Waiting for a volunteer delivery partner to claim.'
+                  : delivery?.status === 'ACCEPTED_BY_VOLUNTEER'
+                  ? 'Delivery partner assigned — Waiting for trip to begin.'
+                  : donation?.status === 'DELIVERED'
+                  ? 'Delivery complete — Route saved.'
+                  : 'Waiting for live GPS coordinates from delivery partner...'}
+              </span>
             </div>
           )}
         </div>

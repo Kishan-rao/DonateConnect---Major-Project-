@@ -7,6 +7,7 @@ import { TrackDeliveryPage } from './TrackDeliveryPage';
 import * as donationApi from '../api/donationApi';
 import * as AuthContextModule from '../context/AuthContext';
 import { ToastProvider } from '../context/ToastContext';
+import { DeliveryTrackingProvider } from '../context/DeliveryTrackingContext';
 import '@testing-library/jest-dom/vitest';
 import { Client } from '@stomp/stompjs';
 
@@ -105,11 +106,13 @@ describe('TrackDeliveryPage', () => {
   const renderPage = () => {
     return render(
       <ToastProvider>
-        <MemoryRouter initialEntries={['/track/test-id']}>
-          <Routes>
-            <Route path="/track/:id" element={<TrackDeliveryPage />} />
-          </Routes>
-        </MemoryRouter>
+        <DeliveryTrackingProvider>
+          <MemoryRouter initialEntries={['/track/test-id']}>
+            <Routes>
+              <Route path="/track/:id" element={<TrackDeliveryPage />} />
+            </Routes>
+          </MemoryRouter>
+        </DeliveryTrackingProvider>
       </ToastProvider>
     );
   };
@@ -197,5 +200,79 @@ describe('TrackDeliveryPage', () => {
     await user.click(completeBtn);
     
     expect(donationApi.completeDelivery).toHaveBeenCalledWith('delivery-1', '111111', file);
+  });
+
+  it('renders correctly for Donor without volunteer controls and shows map', async () => {
+    vi.mocked(AuthContextModule.useAuth).mockReturnValue({
+      token: 'donor-token',
+      user: { role: 'DONOR', id: 'donor-1' },
+    } as any);
+
+    renderPage();
+
+    await waitFor(() => expect(screen.queryByText('Initializing live map tracker...')).not.toBeInTheDocument());
+
+    // Donor should see live tracking and map
+    expect(screen.getByText(/Live Delivery Tracking/i)).toBeInTheDocument();
+    expect(screen.getByTestId('map-container')).toBeInTheDocument();
+    // Verification Form must not be shown to donor
+    expect(screen.queryByText('Verification Form')).not.toBeInTheDocument();
+    // Live Location Tracker controls must not be shown to donor
+    expect(screen.queryByRole('button', { name: /start trip & share location/i })).not.toBeInTheDocument();
+  });
+
+  it('displays Awaiting Volunteer Assignment when delivery is newly accepted and unassigned', async () => {
+    vi.mocked(AuthContextModule.useAuth).mockReturnValue({
+      token: 'donor-token',
+      user: { role: 'DONOR', id: 'donor-1' },
+    } as any);
+
+    vi.mocked(donationApi.getDonationById).mockResolvedValue({
+      ...mockDonation,
+      status: 'ACCEPTED',
+    } as any);
+
+    vi.mocked(donationApi.getDeliveryByDonationId).mockResolvedValue({
+      id: 'delivery-assigned',
+      donationId: 'test-id',
+      status: 'ASSIGNED',
+      volunteerId: null as any,
+    } as any);
+
+    vi.mocked(donationApi.getLiveLocation).mockResolvedValue(null as any);
+
+    renderPage();
+
+    await waitFor(() => expect(screen.queryByText('Initializing live map tracker...')).not.toBeInTheDocument());
+
+    expect(screen.getByText(/Awaiting Volunteer Assignment/i)).toBeInTheDocument();
+    expect(screen.getByTestId('map-container')).toBeInTheDocument();
+  });
+
+  it('displays Delivery Completed when donation is marked DELIVERED', async () => {
+    vi.mocked(AuthContextModule.useAuth).mockReturnValue({
+      token: 'ngo-token',
+      user: { role: 'NGO', id: 'ngo-user-1' },
+    } as any);
+
+    vi.mocked(donationApi.getDonationById).mockResolvedValue({
+      ...mockDonation,
+      status: 'DELIVERED',
+    } as any);
+
+    vi.mocked(donationApi.getDeliveryByDonationId).mockResolvedValue({
+      id: 'delivery-done',
+      donationId: 'test-id',
+      status: 'DELIVERED',
+      lastLat: 28.15,
+      lastLng: 77.15,
+    } as any);
+
+    renderPage();
+
+    await waitFor(() => expect(screen.queryByText('Initializing live map tracker...')).not.toBeInTheDocument());
+
+    expect(screen.getAllByText(/Delivery Completed/i).length).toBeGreaterThan(0);
+    expect(screen.getByTestId('map-container')).toBeInTheDocument();
   });
 });

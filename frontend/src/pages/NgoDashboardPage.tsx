@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { getNgoAssignedDonations, updateDonationStatusByNgo, getDeliveryOtp, regenerateDeliveryOtp } from '../api/donationApi';
 import { Donation, DonationStatus } from '../types';
 import { formatDate } from '../utils/formatters';
-import { LiveDriverTrackerModal } from '../components/LiveDriverTrackerModal';
 import { getPhotoUrl } from '../utils/photoHelper';
 import {
   Building2,
@@ -34,7 +33,6 @@ export const NgoDashboardPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
-  const [activeTrackerDonation, setActiveTrackerDonation] = useState<Donation | null>(null);
   const [otpLoadingId, setOtpLoadingId] = useState<string | null>(null);
   const [otpData, setOtpData] = useState<Record<string, string>>({});
 
@@ -276,14 +274,15 @@ export const NgoDashboardPage: React.FC = () => {
                   )}
                 </div>
 
-                {/* Uber-Style Live GPS Driver Tracking Button */}
-                {donation.status === 'PICKED_UP' && (
+                {/* Live GPS Driver Tracking Button */}
+                {(donation.status === 'ACCEPTED' || donation.status === 'PICKED_UP' || donation.status === 'DELIVERED') && (
                   <button
+                    data-testid={`ngo-track-delivery-${donation.id}`}
                     onClick={() => navigate(`/donations/${donation.id}/track`)}
                     className="w-full py-2 px-3 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 text-xs font-bold border border-indigo-500/30 transition-all flex items-center justify-center gap-1.5"
                   >
                     <Navigation className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
-                    Track Driver Live GPS Location &rarr;
+                    {donation.status === 'DELIVERED' ? 'View Completed Delivery Route' : 'Track Delivery & Driver Live GPS'} &rarr;
                   </button>
                 )}
 
@@ -365,16 +364,6 @@ export const NgoDashboardPage: React.FC = () => {
             </div>
           ))}
         </div>
-      )}
-
-      {/* Uber-Style Live Driver Tracker Modal */}
-      {activeTrackerDonation && (
-        <LiveDriverTrackerModal
-          donationTitle={`${activeTrackerDonation.category} (Donor: ${activeTrackerDonation.donor?.fullName || 'Anonymous'})`}
-          driverName="Vikram Singh (Volunteer Logistics Coordinator)"
-          driverPhone="+91 98765 43210"
-          onClose={() => setActiveTrackerDonation(null)}
-        />
       )}
     </div>
   );

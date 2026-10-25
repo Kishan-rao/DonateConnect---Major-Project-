@@ -38,10 +38,25 @@ public class DeliveryController {
     }
 
     @GetMapping("/deliveries/donation/{donationId}")
-    @PreAuthorize("hasAnyRole('VOLUNTEER', 'NGO', 'ADMIN')")
-    public ResponseEntity<ApiResponse<DeliveryDto>> getDeliveryByDonationId(@PathVariable UUID donationId) {
+    @PreAuthorize("hasAnyRole('DONOR', 'VOLUNTEER', 'NGO', 'ADMIN')")
+    public ResponseEntity<ApiResponse<DeliveryDto>> getDeliveryByDonationId(
+            Authentication authentication,
+            @PathVariable UUID donationId
+    ) {
         com.donateconnect.entity.Delivery delivery = deliveryRepository.findByDonationId(donationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Delivery not found for this donation"));
+
+        UUID userId = getUserIdFromAuth(authentication);
+        String role = authentication.getAuthorities().iterator().next().getAuthority();
+        if (!role.equals("ROLE_ADMIN")) {
+            UUID donorId = delivery.getDonation().getDonor() != null ? delivery.getDonation().getDonor().getId() : null;
+            UUID ngoId = delivery.getDonation().getNgo() != null && delivery.getDonation().getNgo().getUser() != null ? delivery.getDonation().getNgo().getUser().getId() : null;
+            UUID volunteerId = delivery.getVolunteer() != null ? delivery.getVolunteer().getId() : null;
+            if (!userId.equals(donorId) && !userId.equals(ngoId) && !userId.equals(volunteerId)) {
+                return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN).build();
+            }
+        }
+
         DeliveryDto dto = DeliveryDto.builder()
                 .id(delivery.getId())
                 .donationId(delivery.getDonation().getId())

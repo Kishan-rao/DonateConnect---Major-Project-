@@ -5,7 +5,6 @@ import { Donation, DonationStatus, PageResponse } from '../types';
 import { formatDate } from '../utils/formatters';
 import { useAuth } from '../context/AuthContext';
 import { CommentThread } from '../components/CommentThread';
-import { LiveDriverTrackerModal } from '../components/LiveDriverTrackerModal';
 import { DonationDetailModal } from '../components/DonationDetailModal';
 import {
   PlusCircle,
@@ -45,7 +44,6 @@ export const MyDonationsPage: React.FC = () => {
 
   // Selected Donation for Modals
   const [activeChatDonation, setActiveChatDonation] = useState<Donation | null>(null);
-  const [activeTrackerDonation, setActiveTrackerDonation] = useState<Donation | null>(null);
   const [activeRatingDonation, setActiveRatingDonation] = useState<Donation | null>(null);
   const [activeCertDonation, setActiveCertDonation] = useState<Donation | null>(null);
   const [detailDonationId, setDetailDonationId] = useState<string | null>(null);
@@ -293,11 +291,12 @@ export const MyDonationsPage: React.FC = () => {
                         >
                           <Eye className="w-4 h-4 text-[#7567E8]" />
                         </button>
-                        {donation.status === 'PICKED_UP' && (
+                        {(donation.status === 'ACCEPTED' || donation.status === 'PICKED_UP' || donation.status === 'DELIVERED') && (
                           <button
+                            data-testid={`track-donation-${donation.id}`}
                             onClick={() => navigate(`/donations/${donation.id}/track`)}
                             className="p-2 rounded-lg transition-colors border bg-[#7567E8]/10 hover:bg-[#7567E8]/20 text-[#7567E8] border-[#7567E8]/20"
-                            title="Live Driver GPS"
+                            title="Track Donation Delivery"
                           >
                             <Navigation className="w-4 h-4 text-[#7567E8]" />
                           </button>
@@ -384,13 +383,14 @@ export const MyDonationsPage: React.FC = () => {
                     <Eye className="w-3.5 h-3.5 text-[#7567E8]" />
                     Inspect
                   </button>
-                  {donation.status === 'PICKED_UP' && (
+                  {(donation.status === 'ACCEPTED' || donation.status === 'PICKED_UP' || donation.status === 'DELIVERED') && (
                     <button
+                      data-testid={`track-donation-mobile-${donation.id}`}
                       onClick={() => navigate(`/donations/${donation.id}/track`)}
                       className="flex items-center justify-center gap-1 py-2 px-2 rounded-xl text-xs font-bold border bg-[#7567E8]/10 hover:bg-[#7567E8]/20 text-[#7567E8] border-[#7567E8]/20"
                     >
                       <Navigation className="w-3.5 h-3.5 text-[#7567E8]" />
-                      GPS
+                      Track
                     </button>
                   )}
                   <button
@@ -471,17 +471,7 @@ export const MyDonationsPage: React.FC = () => {
           donationId={detailDonationId}
           onClose={() => setDetailDonationId(null)}
           onOpenChat={(donation) => setActiveChatDonation(donation)}
-          onOpenTracker={(donation) => setActiveTrackerDonation(donation)}
-        />
-      )}
-
-      {/* Live Driver Tracker Modal */}
-      {activeTrackerDonation && (
-        <LiveDriverTrackerModal
-          donationTitle={`${activeTrackerDonation.category} (${activeTrackerDonation.ngo?.name || 'NGO'})`}
-          driverName="Vikram Singh (Volunteer Logistics)"
-          driverPhone="+91 98765 43210"
-          onClose={() => setActiveTrackerDonation(null)}
+          onOpenTracker={(donation) => navigate(`/donations/${donation.id}/track`)}
         />
       )}
 

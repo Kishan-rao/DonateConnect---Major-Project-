@@ -124,3 +124,40 @@ export const clearStoredAuth = async (): Promise<void> => {
   }
 };
 
+/**
+ * Generic persistent storage helpers across Capacitor Preferences and localStorage
+ */
+export const getStoredItem = async (key: string): Promise<string | null> => {
+  try {
+    if (isNative) {
+      const { value } = await Preferences.get({ key });
+      if (value) return value;
+    }
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
+export const setStoredItem = async (key: string, value: string): Promise<void> => {
+  try {
+    localStorage.setItem(key, value);
+    if (isNative) {
+      await Preferences.set({ key, value });
+    }
+  } catch (err) {
+    console.warn(`[authStorage] Failed storing ${key}:`, err);
+  }
+};
+
+export const removeStoredItem = async (key: string): Promise<void> => {
+  try {
+    localStorage.removeItem(key);
+    if (isNative) {
+      await Preferences.remove({ key });
+    }
+  } catch (err) {
+    console.warn(`[authStorage] Failed removing ${key}:`, err);
+  }
+};
+

@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
+import { DeliveryTrackingProvider } from './context/DeliveryTrackingContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { HomePage } from './pages/HomePage';
@@ -51,8 +52,9 @@ const AppShell: React.FC = () => {
   return (
     <AuthProvider>
       <ToastProvider>
-        <Router>
-          <div className="min-h-screen flex flex-col bg-[#FAF8F5] text-[#111827] selection:bg-[#7567E8] selection:text-white safe-pl safe-pr">
+        <DeliveryTrackingProvider>
+          <Router>
+            <div className="min-h-screen flex flex-col bg-[#FAF8F5] text-[#111827] selection:bg-[#7567E8] selection:text-white safe-pl safe-pr">
             {apiConfigError && (
               <div
                 role="alert"
@@ -131,8 +133,9 @@ const AppShell: React.FC = () => {
           <Footer />
         </div>
       </Router>
-    </ToastProvider>
-  </AuthProvider>
+    </DeliveryTrackingProvider>
+  </ToastProvider>
+</AuthProvider>
   );
 };
 

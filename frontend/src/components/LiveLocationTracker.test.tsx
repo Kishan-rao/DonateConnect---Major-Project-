@@ -5,17 +5,30 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { LiveLocationTracker } from './LiveLocationTracker';
 import * as volunteerApi from '../api/volunteerApi';
 import { ToastProvider } from '../context/ToastContext';
+import { DeliveryTrackingProvider } from '../context/DeliveryTrackingContext';
+import * as AuthContextModule from '../context/AuthContext';
 import '@testing-library/jest-dom/vitest';
 
 vi.mock('../api/volunteerApi', () => ({
   sendLocationUpdate: vi.fn().mockResolvedValue({ success: true }),
+  getMyVolunteerTasks: vi.fn().mockResolvedValue([]),
 }));
 
-describe('LiveLocationTracker Component', () => {
+vi.mock('../context/AuthContext', () => ({
+  useAuth: vi.fn(),
+}));
+
+describe('LiveLocationTracker Component & Persistent Tracking', () => {
   let mockGeolocation: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    (AuthContextModule.useAuth as any).mockReturnValue({
+      user: { id: 'volunteer-1', role: 'VOLUNTEER' },
+      isAuthenticated: true,
+      token: 'mock-token',
+    });
+
     mockGeolocation = {
       getCurrentPosition: vi.fn((success) => {
         success({
@@ -44,12 +57,18 @@ describe('LiveLocationTracker Component', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders start button and triggers immediate GPS fix and transmission', async () => {
-    render(
+  const renderWithProviders = (ui: React.ReactElement) => {
+    return render(
       <ToastProvider>
-        <LiveLocationTracker deliveryId="delivery-123" status="IN_TRANSIT" />
+        <DeliveryTrackingProvider>
+          {ui}
+        </DeliveryTrackingProvider>
       </ToastProvider>
     );
+  };
+
+  it('renders start button and triggers immediate GPS fix and transmission', async () => {
+    renderWithProviders(<LiveLocationTracker deliveryId="delivery-123" status="IN_TRANSIT" />);
 
     const startBtn = screen.getByRole('button', { name: /start trip & share location/i });
     expect(startBtn).toBeInTheDocument();
@@ -74,6 +93,41 @@ describe('LiveLocationTracker Component', () => {
     expect(screen.getByRole('button', { name: /end trip/i })).toBeInTheDocument();
   });
 
+  it('preserves active tracking session when component unmounts and remounts', async () => {
+    const TestHost = () => {
+      const [mounted, setMounted] = React.useState(true);
+      return (
+        <div>
+          <button onClick={() => setMounted((m) => !m)}>Toggle Mount</button>
+          {mounted && <LiveLocationTracker deliveryId="delivery-persistent" status="IN_TRANSIT" />}
+        </div>
+      );
+    };
+
+    renderWithProviders(<TestHost />);
+
+    const startBtn = screen.getByRole('button', { name: /start trip & share location/i });
+    const user = userEvent.setup();
+    await user.click(startBtn);
+
+    expect(screen.getByRole('button', { name: /end trip/i })).toBeInTheDocument();
+    expect(mockGeolocation.clearWatch).not.toHaveBeenCalled();
+
+    // Simulate navigation away: component unmounts
+    await user.click(screen.getByRole('button', { name: /toggle mount/i }));
+    expect(screen.queryByRole('button', { name: /end trip/i })).not.toBeInTheDocument();
+
+    // The GPS watcher must NOT be cancelled by page unmount
+    expect(mockGeolocation.clearWatch).not.toHaveBeenCalled();
+
+    // Simulate navigating back: component remounts in the same app session
+    await user.click(screen.getByRole('button', { name: /toggle mount/i }));
+
+    // Should immediately display active state without needing user to click start again
+    expect(screen.getByRole('button', { name: /end trip/i })).toBeInTheDocument();
+    expect(screen.getByText(/Sharing Active/i)).toBeInTheDocument();
+  });
+
   it('handles location permission denial gracefully', async () => {
     mockGeolocation.getCurrentPosition = vi.fn((_, error) => {
       error({ code: 1, PERMISSION_DENIED: 1, message: 'User denied geolocation' });
@@ -83,11 +137,7 @@ describe('LiveLocationTracker Component', () => {
       return 124;
     });
 
-    render(
-      <ToastProvider>
-        <LiveLocationTracker deliveryId="delivery-123" status="IN_TRANSIT" />
-      </ToastProvider>
-    );
+    renderWithProviders(<LiveLocationTracker deliveryId="delivery-123" status="IN_TRANSIT" />);
 
     const startBtn = screen.getByRole('button', { name: /start trip & share location/i });
     const user = userEvent.setup();
@@ -107,11 +157,7 @@ describe('LiveLocationTracker Component', () => {
       return 125;
     });
 
-    render(
-      <ToastProvider>
-        <LiveLocationTracker deliveryId="delivery-123" status="IN_TRANSIT" />
-      </ToastProvider>
-    );
+    renderWithProviders(<LiveLocationTracker deliveryId="delivery-123" status="IN_TRANSIT" />);
 
     const startBtn = screen.getByRole('button', { name: /start trip & share location/i });
     const user = userEvent.setup();
@@ -123,14 +169,9 @@ describe('LiveLocationTracker Component', () => {
   });
 
   it('disables start trip button when status is DELIVERED or COMPLETED', () => {
-    render(
-      <ToastProvider>
-        <LiveLocationTracker deliveryId="delivery-123" status="DELIVERED" />
-      </ToastProvider>
-    );
+    renderWithProviders(<LiveLocationTracker deliveryId="delivery-123" status="DELIVERED" />);
 
     const startBtn = screen.getByRole('button', { name: /start trip & share location/i });
     expect(startBtn).toBeDisabled();
   });
 });
-

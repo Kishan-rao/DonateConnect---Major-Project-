@@ -34,7 +34,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -237,6 +239,54 @@ class LocationPipelineTest {
                         .header("Authorization", "Bearer " + donorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(update)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void testDonorAndNgoCanFetchOwnDeliveryDetails() throws Exception {
+        // Donor can fetch own delivery
+        mockMvc.perform(get("/api/volunteer/deliveries/donation/" + donation.getId())
+                        .header("Authorization", "Bearer " + donorToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.donationId").value(donation.getId().toString()));
+
+        // Assigned NGO can fetch own delivery
+        mockMvc.perform(get("/api/volunteer/deliveries/donation/" + donation.getId())
+                        .header("Authorization", "Bearer " + ngoToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.donationId").value(donation.getId().toString()));
+    }
+
+    @Test
+    void testUnrelatedDonorAndNgoCannotFetchDeliveryDetails() throws Exception {
+        // Other donor is rejected with 403 Forbidden
+        User otherDonor = User.builder()
+                .email("otherdonor" + UUID.randomUUID() + "@test.com")
+                .passwordHash("hash")
+                .fullName("Other Donor")
+                .role(Role.DONOR)
+                .build();
+        userRepository.save(otherDonor);
+        String otherDonorToken = jwtUtils.generateToken(otherDonor);
+
+        mockMvc.perform(get("/api/volunteer/deliveries/donation/" + donation.getId())
+                        .header("Authorization", "Bearer " + otherDonorToken))
+                .andExpect(status().isForbidden());
+
+        // Other NGO is rejected with 403 Forbidden
+        User otherNgoUser = User.builder()
+                .email("otherngo" + UUID.randomUUID() + "@test.com")
+                .passwordHash("hash")
+                .fullName("Other NGO User")
+                .role(Role.NGO)
+                .build();
+        userRepository.save(otherNgoUser);
+        String otherNgoToken = jwtUtils.generateToken(otherNgoUser);
+
+        mockMvc.perform(get("/api/volunteer/deliveries/donation/" + donation.getId())
+                        .header("Authorization", "Bearer " + otherNgoToken))
                 .andExpect(status().isForbidden());
     }
 
