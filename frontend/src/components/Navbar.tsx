@@ -30,6 +30,7 @@ import { HealthBadge } from './HealthBadge';
 import { NotificationBell } from './NotificationBell';
 import { VoiceAssistantModal } from './VoiceAssistantModal';
 import { ProfileDropdown } from './ProfileDropdown';
+import { pushModalDismiss } from '../utils/useAndroidBackButton';
 
 export const Navbar: React.FC = () => {
   const location = useLocation();
@@ -67,6 +68,22 @@ export const Navbar: React.FC = () => {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [drawerOpen]);
+
+  // Android back button integration: dismiss drawer, modal, or profile dropdown on back gesture
+  useEffect(() => {
+    if (!drawerOpen) return undefined;
+    return pushModalDismiss(() => setDrawerOpen(false));
+  }, [drawerOpen]);
+
+  useEffect(() => {
+    if (!showVoiceModal) return undefined;
+    return pushModalDismiss(() => setShowVoiceModal(false));
+  }, [showVoiceModal]);
+
+  useEffect(() => {
+    if (!profileOpen) return undefined;
+    return pushModalDismiss(() => setProfileOpen(false));
+  }, [profileOpen]);
 
   const navLinkClass = (path: string) =>
     `flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all min-h-[36px] ${

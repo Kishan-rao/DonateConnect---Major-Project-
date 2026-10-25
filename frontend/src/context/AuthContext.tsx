@@ -125,6 +125,45 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, []);
 
+  // Revalidate session when app returns from background (Android app resume)
+  useEffect(() => {
+    let isMounted = true;
+    let lastCheckTime = Date.now();
+
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState !== 'visible') return;
+
+      const now = Date.now();
+      // Throttle foreground revalidation to once every 60 seconds
+      if (now - lastCheckTime < 60000) return;
+      lastCheckTime = now;
+
+      const savedToken = await getStoredToken();
+      if (!savedToken) return;
+
+      try {
+        const currentUser = await getCurrentUserApi();
+        const norm = normalizeUser(currentUser);
+        if (isMounted && norm) {
+          setUser(norm);
+          await setStoredAuth(savedToken, norm);
+        }
+      } catch (err: any) {
+        const status = err?.response?.status || err?.status;
+        if (status === 401) {
+          console.warn('[AuthContext] Session expired while in background. Logging out.');
+          handleLogout();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      isMounted = false;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
   const login = async (data: LoginRequest): Promise<AuthResponse> => {
     setLoading(true);
     try {

@@ -305,4 +305,24 @@ describe('LoginPage Component & Role-Specific Login', () => {
       expect(mockNavigate).toHaveBeenCalledWith('/driver-dashboard');
     });
   });
+
+  it('redirects already-authenticated users to their role portal automatically', async () => {
+    vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
+      login: mockLogin,
+      verifyOtp: mockVerifyOtp,
+      isAuthenticated: true,
+      user: { id: '10', fullName: 'Active NGO', email: 'ngo@hub.org', role: 'NGO' },
+      loading: false,
+    } as any);
+
+    render(
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/ngo-dashboard');
+    });
+  });
 });

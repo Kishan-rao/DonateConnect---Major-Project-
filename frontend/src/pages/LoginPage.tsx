@@ -8,12 +8,19 @@ import { resendOtpApi } from '../api/authApi';
 import { LogIn, Mail, Lock, HeartHandshake, ArrowRight } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
-  const { login, verifyOtp } = useAuth();
+  const { login, verifyOtp, isAuthenticated, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState<'DONOR' | 'NGO' | 'ADMIN' | 'VOLUNTEER'>('DONOR');
+  
+  // Forward already authenticated users to their active portal
+  useEffect(() => {
+    if (!authLoading && isAuthenticated && user) {
+      routeUser(user);
+    }
+  }, [authLoading, isAuthenticated, user]);
   
   // OTP State
   const [showOtp, setShowOtp] = useState(false);
@@ -156,11 +163,11 @@ export const LoginPage: React.FC = () => {
         {!showOtp ? (
           <>
             {/* Role Selector Tabs */}
-            <div className="flex p-1 bg-[#F9FAFB] rounded-xl mb-8 border border-[#E5E7EB]">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 p-1 bg-[#F9FAFB] rounded-xl mb-6 sm:mb-8 border border-[#E5E7EB]">
               <button
                 type="button"
                 onClick={() => handleRoleSelect('DONOR')}
-                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                className={`w-full py-2 px-2 text-xs font-bold rounded-lg transition-all min-h-[40px] flex items-center justify-center ${
                   selectedRole === 'DONOR'
                     ? 'bg-[#7567E8] text-white shadow-xs'
                     : 'text-[#4B5563] hover:text-[#111827] hover:bg-white'
@@ -171,7 +178,7 @@ export const LoginPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleRoleSelect('NGO')}
-                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                className={`w-full py-2 px-2 text-xs font-bold rounded-lg transition-all min-h-[40px] flex items-center justify-center ${
                   selectedRole === 'NGO'
                     ? 'bg-[#7567E8] text-white shadow-xs'
                     : 'text-[#4B5563] hover:text-[#111827] hover:bg-white'
@@ -182,7 +189,7 @@ export const LoginPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleRoleSelect('VOLUNTEER')}
-                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                className={`w-full py-2 px-2 text-xs font-bold rounded-lg transition-all min-h-[40px] flex items-center justify-center ${
                   selectedRole === 'VOLUNTEER'
                     ? 'bg-[#7567E8] text-white shadow-xs'
                     : 'text-[#4B5563] hover:text-[#111827] hover:bg-white'
@@ -193,7 +200,7 @@ export const LoginPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleRoleSelect('ADMIN')}
-                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                className={`w-full py-2 px-2 text-xs font-bold rounded-lg transition-all min-h-[40px] flex items-center justify-center ${
                   selectedRole === 'ADMIN'
                     ? 'bg-[#7567E8] text-white shadow-xs'
                     : 'text-[#4B5563] hover:text-[#111827] hover:bg-white'

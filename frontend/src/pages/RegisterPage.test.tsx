@@ -311,4 +311,24 @@ describe('RegisterPage Component & Role Routing', () => {
       expect(mockNavigate).not.toHaveBeenCalled();
     });
   });
+
+  it('redirects already-authenticated users to their role portal automatically', async () => {
+    vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
+      register: mockRegister,
+      verifyOtp: mockVerifyOtp,
+      isAuthenticated: true,
+      user: { id: '5', fullName: 'Donor Dan', email: 'dan@gmail.com', role: 'DONOR' },
+      loading: false,
+    } as any);
+
+    render(
+      <MemoryRouter>
+        <RegisterPage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/donations');
+    });
+  });
 });

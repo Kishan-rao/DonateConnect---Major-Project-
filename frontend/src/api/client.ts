@@ -79,15 +79,31 @@ export const apiClient = axios.create({
   timeout: 60000,
 });
 
-let inMemoryToken: string | null = localStorage.getItem('dc-token');
+const getSafeStoredToken = (): string | null => {
+  try {
+    return typeof window !== 'undefined' && typeof localStorage !== 'undefined'
+      ? localStorage.getItem('dc-token')
+      : null;
+  } catch {
+    return null;
+  }
+};
+
+let inMemoryToken: string | null = getSafeStoredToken();
 let logoutCallback: (() => void) | null = null;
 
 export const setAuthTokenInMemory = (token: string | null) => {
   inMemoryToken = token;
-  if (token) {
-    localStorage.setItem('dc-token', token);
-  } else {
-    localStorage.removeItem('dc-token');
+  try {
+    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+      if (token) {
+        localStorage.setItem('dc-token', token);
+      } else {
+        localStorage.removeItem('dc-token');
+      }
+    }
+  } catch (err) {
+    console.warn('[client] Failed to update localStorage token:', err);
   }
 };
 
@@ -107,7 +123,7 @@ apiClient.interceptors.request.use((config) => {
     requestUrl.includes('/auth/verify-otp') ||
     requestUrl.includes('/auth/resend-otp');
 
-  const activeToken = inMemoryToken || localStorage.getItem('dc-token');
+  const activeToken = inMemoryToken || getSafeStoredToken();
   if (activeToken && !isPublicAuthEndpoint) {
     config.headers.Authorization = `Bearer ${activeToken}`;
   }
@@ -131,7 +147,7 @@ apiClient.interceptors.response.use(
   (error) => {
     const requestUrl = error.config?.url || '';
     const isPublicEndpoint = requestUrl.includes('/health') || requestUrl.includes('/auth/');
-    const hasToken = inMemoryToken || localStorage.getItem('dc-token');
+    const hasToken = inMemoryToken || getSafeStoredToken();
 
     if (error.response?.status === 401 && !isPublicEndpoint && hasToken && logoutCallback) {
       logoutCallback();
