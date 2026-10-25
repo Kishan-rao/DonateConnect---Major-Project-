@@ -16,9 +16,16 @@ public interface VolunteerService {
     Page<DonationResponseDto> getAvailablePickups(Pageable pageable);
 
     /**
-     * Get all volunteer tasks for a specific volunteer.
+     * Get volunteer tasks for a specific volunteer (defaults to active tasks only).
      */
-    List<VolunteerTaskDto> getMyTasks(UUID volunteerId);
+    default List<VolunteerTaskDto> getMyTasks(UUID volunteerId) {
+        return getMyTasks(volunteerId, true);
+    }
+
+    /**
+     * Get volunteer tasks for a specific volunteer, optionally filtered to active tasks only.
+     */
+    List<VolunteerTaskDto> getMyTasks(UUID volunteerId, boolean activeOnly);
 
     /**
      * Claim an available pickup. Throws if already claimed or donation is not ACCEPTED.

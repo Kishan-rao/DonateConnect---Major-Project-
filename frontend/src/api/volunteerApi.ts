@@ -1,8 +1,10 @@
 import { apiClient } from './client';
 import { ApiResponse, Donation, PageResponse, VolunteerTask } from '../types';
 
-export const getMyVolunteerTasks = async (): Promise<VolunteerTask[]> => {
-  const response = await apiClient.get<ApiResponse<VolunteerTask[]>>('/volunteer/pickups');
+export const getMyVolunteerTasks = async (activeOnly = true): Promise<VolunteerTask[]> => {
+  const response = await apiClient.get<ApiResponse<VolunteerTask[]>>('/volunteer/pickups', {
+    params: { activeOnly }
+  });
   return response.data.data;
 };
 

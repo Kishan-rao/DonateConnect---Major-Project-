@@ -33,6 +33,9 @@ public class DeliveryServiceTest {
     private DonationRepository donationRepository;
 
     @Mock
+    private com.donateconnect.repository.VolunteerTaskRepository volunteerTaskRepository;
+
+    @Mock
     private StorageService storageService;
 
     @Mock

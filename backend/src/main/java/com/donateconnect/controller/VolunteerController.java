@@ -46,12 +46,15 @@ public class VolunteerController {
 
     /**
      * GET /api/volunteer/pickups
-     * Returns the authenticated volunteer's own task list.
+     * Returns the authenticated volunteer's task list (defaults to active tasks only).
      */
     @GetMapping("/pickups")
-    public ResponseEntity<ApiResponse<List<VolunteerTaskDto>>> getMyTasks(Authentication authentication) {
+    public ResponseEntity<ApiResponse<List<VolunteerTaskDto>>> getMyTasks(
+            Authentication authentication,
+            @RequestParam(required = false, defaultValue = "true") boolean activeOnly
+    ) {
         User user = getAuthUser(authentication);
-        List<VolunteerTaskDto> tasks = volunteerService.getMyTasks(user.getId());
+        List<VolunteerTaskDto> tasks = volunteerService.getMyTasks(user.getId(), activeOnly);
         return ResponseEntity.ok(ApiResponse.success("Fetched volunteer pickup tasks", tasks));
     }
 

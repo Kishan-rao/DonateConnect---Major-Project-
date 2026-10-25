@@ -5,15 +5,18 @@ import com.donateconnect.entity.Delivery;
 import com.donateconnect.entity.DeliveryStatus;
 import com.donateconnect.entity.Donation;
 import com.donateconnect.entity.DonationStatus;
+import com.donateconnect.entity.VolunteerTask;
 import com.donateconnect.exception.ResourceNotFoundException;
 import com.donateconnect.repository.DeliveryRepository;
 import com.donateconnect.repository.DonationRepository;
+import com.donateconnect.repository.VolunteerTaskRepository;
 import com.donateconnect.service.DeliveryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -22,6 +25,7 @@ public class DeliveryServiceImpl implements DeliveryService {
 
     private final DeliveryRepository deliveryRepository;
     private final DonationRepository donationRepository;
+    private final VolunteerTaskRepository volunteerTaskRepository;
     private final com.donateconnect.service.StorageService storageService;
     private final com.donateconnect.service.NotificationService notificationService;
 
@@ -57,12 +61,31 @@ public class DeliveryServiceImpl implements DeliveryService {
 
         // Sync with Donation status
         Donation donation = delivery.getDonation();
-        if (newStatus == DeliveryStatus.PICKED_UP) {
-            donation.setStatus(DonationStatus.PICKED_UP);
-            donationRepository.save(donation);
+        if (newStatus == DeliveryStatus.PICKED_UP || newStatus == DeliveryStatus.EN_ROUTE_TO_NGO) {
+            if (newStatus == DeliveryStatus.PICKED_UP) {
+                donation.setStatus(DonationStatus.PICKED_UP);
+                donationRepository.save(donation);
+            }
+            // Sync VolunteerTask to IN_TRANSIT if currently CLAIMED
+            volunteerTaskRepository.findByDonationIdAndStatusIn(
+                    donation.getId(),
+                    List.of(VolunteerTask.TaskStatus.CLAIMED)
+            ).forEach(task -> {
+                task.setStatus(VolunteerTask.TaskStatus.IN_TRANSIT);
+                volunteerTaskRepository.save(task);
+            });
         } else if (newStatus == DeliveryStatus.DELIVERED) {
             donation.setStatus(DonationStatus.DELIVERED);
             donationRepository.save(donation);
+
+            // Sync VolunteerTask to COMPLETED
+            volunteerTaskRepository.findByDonationIdAndStatusIn(
+                    donation.getId(),
+                    List.of(VolunteerTask.TaskStatus.CLAIMED, VolunteerTask.TaskStatus.IN_TRANSIT)
+            ).forEach(task -> {
+                task.setStatus(VolunteerTask.TaskStatus.COMPLETED);
+                volunteerTaskRepository.save(task);
+            });
         }
 
         // Send notifications
@@ -133,6 +156,16 @@ public class DeliveryServiceImpl implements DeliveryService {
         Donation donation = delivery.getDonation();
         donation.setStatus(DonationStatus.DELIVERED);
         donationRepository.save(donation);
+
+        // Sync with VolunteerTask status
+        List<VolunteerTask> activeTasks = volunteerTaskRepository.findByDonationIdAndStatusIn(
+                donation.getId(),
+                List.of(VolunteerTask.TaskStatus.CLAIMED, VolunteerTask.TaskStatus.IN_TRANSIT)
+        );
+        for (VolunteerTask task : activeTasks) {
+            task.setStatus(VolunteerTask.TaskStatus.COMPLETED);
+            volunteerTaskRepository.save(task);
+        }
 
         // Send notifications
         notifyStatusChange(delivery, DeliveryStatus.DELIVERED);

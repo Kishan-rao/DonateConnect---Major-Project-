@@ -37,11 +37,48 @@ public class VolunteerServiceImpl implements VolunteerService {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<VolunteerTaskDto> getMyTasks(UUID volunteerId) {
-        return volunteerTaskRepository.findByVolunteerIdOrderByClaimedAtDesc(volunteerId).stream()
+    @Transactional
+    public List<VolunteerTaskDto> getMyTasks(UUID volunteerId, boolean activeOnly) {
+        List<VolunteerTask> tasks = activeOnly
+                ? volunteerTaskRepository.findByVolunteerIdAndStatusInOrderByClaimedAtDesc(
+                        volunteerId,
+                        List.of(VolunteerTask.TaskStatus.CLAIMED, VolunteerTask.TaskStatus.IN_TRANSIT))
+                : volunteerTaskRepository.findByVolunteerIdOrderByClaimedAtDesc(volunteerId);
+
+        return tasks.stream()
+                .filter(task -> {
+                    Donation d = task.getDonation();
+                    Delivery delivery = deliveryRepository.findByDonationId(d.getId()).orElse(null);
+
+                    boolean isDelivered = d.getStatus() == DonationStatus.DELIVERED
+                            || (delivery != null && delivery.getStatus() == DeliveryStatus.DELIVERED);
+                    if (isDelivered && task.getStatus() != VolunteerTask.TaskStatus.COMPLETED) {
+                        task.setStatus(VolunteerTask.TaskStatus.COMPLETED);
+                        volunteerTaskRepository.save(task);
+                        if (activeOnly) {
+                            return false;
+                        }
+                    }
+
+                    boolean isCancelled = d.getStatus() == DonationStatus.REJECTED;
+                    if (isCancelled && task.getStatus() != VolunteerTask.TaskStatus.CANCELLED) {
+                        task.setStatus(VolunteerTask.TaskStatus.CANCELLED);
+                        volunteerTaskRepository.save(task);
+                        if (activeOnly) {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                })
                 .map(this::mapTaskToDto)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public List<VolunteerTaskDto> getMyTasks(UUID volunteerId) {
+        return getMyTasks(volunteerId, true);
     }
 
     @Override
@@ -231,6 +268,8 @@ public class VolunteerServiceImpl implements VolunteerService {
                 .createdAt(v.getCreatedAt())
                 .build();
 
+        Delivery delivery = deliveryRepository.findByDonationId(t.getDonation().getId()).orElse(null);
+
         return VolunteerTaskDto.builder()
                 .id(t.getId())
                 .donation(donationDto)
@@ -238,7 +277,8 @@ public class VolunteerServiceImpl implements VolunteerService {
                 .status(t.getStatus())
                 .routeNotes(t.getRouteNotes())
                 .claimedAt(t.getClaimedAt())
-                .deliveryId(deliveryRepository.findByDonationId(t.getDonation().getId()).map(Delivery::getId).orElse(null))
+                .deliveryId(delivery != null ? delivery.getId() : null)
+                .deliveryStatus(delivery != null ? delivery.getStatus() : null)
                 .build();
     }
 }

@@ -7,6 +7,13 @@ import { Truck, CheckCircle2, MapPin, Calendar, Clock, RefreshCw, PackageSearch,
 import { LiveLocationTracker } from '../components/LiveLocationTracker';
 type DashboardTab = 'my-tasks' | 'available';
 
+export const isTaskActive = (t: VolunteerTask): boolean => {
+  if (t.status === 'COMPLETED' || t.status === 'CANCELLED') return false;
+  if (t.deliveryStatus === 'DELIVERED' || t.deliveryStatus === 'CANCELLED') return false;
+  if (t.donation && (t.donation.status === 'DELIVERED' || t.donation.status === 'REJECTED')) return false;
+  return t.status === 'CLAIMED' || t.status === 'IN_TRANSIT';
+};
+
 export const DriverDashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -20,8 +27,8 @@ export const DriverDashboardPage: React.FC = () => {
 
   const fetchMyTasks = async () => {
     try {
-      const data = await getMyVolunteerTasks();
-      setTasks(data);
+      const data = await getMyVolunteerTasks(true);
+      setTasks(data.filter(isTaskActive));
     } catch {
       showError('Failed to load volunteer tasks');
     }
@@ -59,7 +66,11 @@ export const DriverDashboardPage: React.FC = () => {
   const handleStatusChange = async (taskId: string, status: VolunteerTask['status']) => {
     try {
       const updated = await updateVolunteerTaskStatus(taskId, status);
-      setTasks((prev) => prev.map((t) => (t.id === taskId ? updated : t)));
+      setTasks((prev) =>
+        prev
+          .map((t) => (t.id === taskId ? updated : t))
+          .filter(isTaskActive)
+      );
       showSuccess(`Task updated to ${status}`);
     } catch (err: any) {
       showError(err.message || 'Failed to update task status');
@@ -81,7 +92,7 @@ export const DriverDashboardPage: React.FC = () => {
   };
 
   const tabButtonClass = (tab: DashboardTab) =>
-    `px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+    `w-full sm:w-auto px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center ${
       activeTab === tab
         ? 'bg-[#7567E8] text-white shadow-sm'
         : 'bg-white text-[#4B5563] hover:text-[#111827] hover:bg-[#F4F2FA] border border-[#E5E7EB]'
@@ -115,14 +126,15 @@ export const DriverDashboardPage: React.FC = () => {
       </div>
 
       {/* Tab Switcher */}
-      <div className="flex gap-3">
+      <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3">
         <button onClick={() => handleTabChange('my-tasks')} className={tabButtonClass('my-tasks')}>
-          My Tasks {tasks.length > 0 && <span className="ml-1.5 text-xs bg-black/10 px-1.5 py-0.5 rounded">{tasks.length}</span>}
+          <span>My Tasks</span>
+          {tasks.length > 0 && <span className="ml-1.5 text-xs bg-black/10 px-1.5 py-0.5 rounded font-mono">{tasks.length}</span>}
         </button>
         <button onClick={() => handleTabChange('available')} className={tabButtonClass('available')}>
-          <PackageSearch className="w-4 h-4 inline mr-1.5" />
-          Available Pickups
-          {available && <span className="ml-1.5 text-xs bg-black/10 px-1.5 py-0.5 rounded">{available.totalElements}</span>}
+          <PackageSearch className="w-4 h-4 inline mr-1.5 shrink-0" />
+          <span>Available Pickups</span>
+          {available && <span className="ml-1.5 text-xs bg-black/10 px-1.5 py-0.5 rounded font-mono">{available.totalElements}</span>}
         </button>
       </div>
 
@@ -142,12 +154,12 @@ export const DriverDashboardPage: React.FC = () => {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               {tasks.map((task) => (
                 <div
                   key={task.id}
                   data-testid={`delivery-card-${task.donation.id}`}
-                  className="delivery-card bg-white border border-[#E5E7EB] rounded-2xl p-6 flex flex-col justify-between space-y-4 shadow-[0_10px_15px_-3px_rgba(17,24,39,0.04)]"
+                  className="delivery-card bg-white border border-[#E5E7EB] rounded-2xl p-4 sm:p-6 flex flex-col justify-between space-y-4 shadow-[0_10px_15px_-3px_rgba(17,24,39,0.04)]"
                 >
                   <div>
                     <div className="flex items-center justify-between mb-3">
@@ -185,30 +197,32 @@ export const DriverDashboardPage: React.FC = () => {
                       )}
                     </div>
 
-                    {(task.status === 'CLAIMED' || task.status === 'IN_TRANSIT') && task.deliveryId && (
+                    {isTaskActive(task) && task.deliveryId && (
                       <LiveLocationTracker deliveryId={task.deliveryId} status={task.status} donation={task.donation} />
                     )}
                   </div>
 
-                  <div className="border-t border-[#E5E7EB] pt-3 flex items-center gap-2">
-                    <button
-                      data-testid={`transit-button-${task.donation.id}`}
-                      onClick={() => handleStatusChange(task.id, 'IN_TRANSIT')}
-                      disabled={task.status !== 'CLAIMED'}
-                      className="flex-1 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 disabled:opacity-40 text-white text-xs font-bold transition-all shadow-xs"
-                    >
-                      🚚 Mark In-Transit
-                    </button>
-                    <button
-                      data-testid={`complete-button-${task.donation.id}`}
-                      onClick={() => navigate(`/donations/${task.donation.id}/track`)}
-                      disabled={task.status !== 'CLAIMED' && task.status !== 'IN_TRANSIT'}
-                      className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-bold transition-all flex items-center justify-center gap-1 shadow-xs"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      View Route & Complete
-                    </button>
-                  </div>
+                  {isTaskActive(task) && (
+                    <div className="border-t border-[#E5E7EB] pt-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
+                      <button
+                        data-testid={`transit-button-${task.donation.id}`}
+                        onClick={() => handleStatusChange(task.id, 'IN_TRANSIT')}
+                        disabled={task.status !== 'CLAIMED'}
+                        className="w-full sm:flex-1 min-h-[44px] py-2.5 px-3 rounded-xl bg-amber-600 hover:bg-amber-500 disabled:opacity-40 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs"
+                      >
+                        🚚 Mark In-Transit
+                      </button>
+                      <button
+                        data-testid={`complete-button-${task.donation.id}`}
+                        onClick={() => navigate(`/donations/${task.donation.id}/track`)}
+                        disabled={task.status !== 'CLAIMED' && task.status !== 'IN_TRANSIT'}
+                        className="w-full sm:flex-1 min-h-[44px] py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs"
+                      >
+                        <CheckCircle2 className="w-4 h-4 shrink-0" />
+                        <span>Complete via Tracking</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -272,7 +286,7 @@ export const DriverDashboardPage: React.FC = () => {
                       data-testid="claim-pickup-btn"
                       onClick={() => handleClaim(donation.id)}
                       disabled={claiming === donation.id}
-                      className="w-full py-2 rounded-xl bg-[#7567E8] hover:bg-[#7567E8]/90 disabled:opacity-50 text-white text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs"
+                      className="w-full min-h-[44px] py-2.5 px-4 rounded-xl bg-[#7567E8] hover:bg-[#7567E8]/90 disabled:opacity-50 text-white text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs"
                     >
                       {claiming === donation.id ? (
                         <>

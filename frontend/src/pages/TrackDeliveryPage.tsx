@@ -6,6 +6,8 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import { useDeliveryTracking } from '../context/DeliveryTrackingContext';
 import { ArrowLeft, Navigation, Clock, ShieldCheck, MapPin, AlertTriangle, RefreshCw, Compass, CheckCircle, Upload, KeyRound } from 'lucide-react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
@@ -42,6 +44,8 @@ export const TrackDeliveryPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { token, user } = useAuth();
+  const { showSuccess } = useToast();
+  const { stopTracking } = useDeliveryTracking();
   
   const [donation, setDonation] = useState<Donation | null>(null);
   const [delivery, setDelivery] = useState<DeliveryDto | null>(null);
@@ -266,10 +270,17 @@ export const TrackDeliveryPage: React.FC = () => {
       setSubmittingProof(true);
       setProofError(null);
       await completeDelivery(delivery.id, otp, proofImage);
+      // Immediately stop live GPS broadcast
+      stopTracking();
       // Refresh page data
       const updatedDonation = await getDonationById(id as string);
       setDonation(updatedDonation);
+      setDelivery((prev) => (prev ? { ...prev, status: 'DELIVERED' } : null));
       if (pollInterval.current) clearInterval(pollInterval.current);
+      showSuccess('Delivery completed and verified successfully! Returning to task list...');
+      setTimeout(() => {
+        navigate('/driver-dashboard?tab=my-tasks');
+      }, 1500);
     } catch (err: any) {
       setProofError(err.response?.data?.message || err.message || 'Failed to complete delivery');
     } finally {
@@ -278,7 +289,7 @@ export const TrackDeliveryPage: React.FC = () => {
   };
 
   const isVolunteer = user?.role === 'VOLUNTEER';
-  const showProofForm = isVolunteer && donation?.status === 'PICKED_UP';
+  const showProofForm = isVolunteer && (donation?.status === 'PICKED_UP' || delivery?.status === 'PICKED_UP' || delivery?.status === 'EN_ROUTE_TO_NGO') && donation?.status !== 'DELIVERED';
 
   return (
     <div className="py-6 space-y-6 max-w-5xl mx-auto px-4">
@@ -351,6 +362,27 @@ export const TrackDeliveryPage: React.FC = () => {
       {isVolunteer && delivery && donation?.status !== 'DELIVERED' && donation?.status !== 'REJECTED' && (
         <div className="bg-white rounded-3xl p-5 border border-[#E5E7EB] shadow-[0_10px_15px_-3px_rgba(17,24,39,0.04)]">
           <LiveLocationTracker deliveryId={delivery.id} status={delivery.status} donation={donation || undefined} />
+        </div>
+      )}
+
+      {/* Delivery Completed Banner */}
+      {(donation?.status === 'DELIVERED' || delivery?.status === 'DELIVERED') && (
+        <div className="bg-emerald-50 rounded-2xl p-5 border border-emerald-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <CheckCircle className="w-6 h-6 text-emerald-600 shrink-0" />
+            <div>
+              <h3 className="text-sm font-bold text-emerald-900">Delivery Completed & Verified</h3>
+              <p className="text-xs text-emerald-700">This donation pickup and dropoff has been finalized and verified by the recipient NGO.</p>
+            </div>
+          </div>
+          {isVolunteer && (
+            <button
+              onClick={() => navigate('/driver-dashboard?tab=my-tasks')}
+              className="w-full sm:w-auto px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs shrink-0"
+            >
+              Back to My Tasks
+            </button>
+          )}
         </div>
       )}
 

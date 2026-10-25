@@ -18,6 +18,7 @@ public class VolunteerTaskDto {
     private DonationResponseDto donation;
     private UserResponseDto volunteer;
     private UUID deliveryId;
+    private com.donateconnect.entity.DeliveryStatus deliveryStatus;
     private VolunteerTask.TaskStatus status;
     private String routeNotes;
     private LocalDateTime claimedAt;

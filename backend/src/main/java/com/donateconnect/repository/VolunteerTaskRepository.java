@@ -4,6 +4,7 @@ import com.donateconnect.entity.VolunteerTask;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -11,6 +12,7 @@ import java.util.UUID;
 @Repository
 public interface VolunteerTaskRepository extends JpaRepository<VolunteerTask, UUID> {
     List<VolunteerTask> findByVolunteerIdOrderByClaimedAtDesc(UUID volunteerId);
+    List<VolunteerTask> findByVolunteerIdAndStatusInOrderByClaimedAtDesc(UUID volunteerId, Collection<VolunteerTask.TaskStatus> statuses);
     List<VolunteerTask> findByStatus(VolunteerTask.TaskStatus status);
     boolean existsByVolunteerIdAndStatusIn(UUID volunteerId, List<VolunteerTask.TaskStatus> statuses);
 
@@ -19,6 +21,8 @@ public interface VolunteerTaskRepository extends JpaRepository<VolunteerTask, UU
      * Used to prevent double-claiming.
      */
     Optional<VolunteerTask> findByDonationIdAndStatusNot(UUID donationId, VolunteerTask.TaskStatus excludedStatus);
+    List<VolunteerTask> findByDonationIdAndStatusIn(UUID donationId, Collection<VolunteerTask.TaskStatus> statuses);
+    List<VolunteerTask> findByDonationId(UUID donationId);
     void deleteByVolunteerId(UUID volunteerId);
     void deleteByDonationId(UUID donationId);
 }
