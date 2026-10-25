@@ -185,7 +185,7 @@ export const DriverDashboardPage: React.FC = () => {
                       )}
                     </div>
 
-                    {task.status === 'IN_TRANSIT' && task.deliveryId && (
+                    {(task.status === 'CLAIMED' || task.status === 'IN_TRANSIT') && task.deliveryId && (
                       <LiveLocationTracker deliveryId={task.deliveryId} status={task.status} donation={task.donation} />
                     )}
                   </div>
@@ -202,11 +202,11 @@ export const DriverDashboardPage: React.FC = () => {
                     <button
                       data-testid={`complete-button-${task.donation.id}`}
                       onClick={() => navigate(`/donations/${task.donation.id}/track`)}
-                      disabled={task.status !== 'IN_TRANSIT'}
+                      disabled={task.status !== 'CLAIMED' && task.status !== 'IN_TRANSIT'}
                       className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-bold transition-all flex items-center justify-center gap-1"
                     >
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      Complete via Tracking
+                      View Route & Complete
                     </button>
                   </div>
                 </div>

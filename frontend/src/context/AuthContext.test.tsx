@@ -12,6 +12,7 @@ vi.mock('../api/authApi', () => ({
   registerDonorApi: vi.fn(),
   getCurrentUserApi: vi.fn(),
   verifyOtpApi: vi.fn(),
+  renewTokenApi: vi.fn().mockResolvedValue({ token: 'mock-token', user: null }),
 }));
 
 vi.mock('../api/client', () => ({
@@ -175,5 +176,28 @@ describe('AuthContext', () => {
     expect(screen.getByTestId('token')).toHaveTextContent('null');
     expect(localStorage.getItem('dc-token')).toBeNull();
     expect(client.setAuthTokenInMemory).toHaveBeenCalledWith(null);
+  });
+
+  it('retains stored session when startup getCurrentUserApi fails due to network error', async () => {
+    localStorage.setItem('dc-token', 'valid-offline-token');
+    localStorage.setItem('dc-user', JSON.stringify(mockUser));
+    const networkErr = new Error('Network Error');
+    (networkErr as any).code = 'ERR_NETWORK';
+    vi.mocked(authApi.getCurrentUserApi).mockRejectedValueOnce(networkErr);
+
+    render(
+      <AuthProvider>
+        <TestComponent />
+      </AuthProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('loading')).toHaveTextContent('false');
+    });
+
+    expect(screen.getByTestId('authenticated')).toHaveTextContent('true');
+    expect(screen.getByTestId('token')).toHaveTextContent('valid-offline-token');
+    expect(screen.getByTestId('user-name')).toHaveTextContent('Test User');
+    expect(localStorage.getItem('dc-token')).toBe('valid-offline-token');
   });
 });

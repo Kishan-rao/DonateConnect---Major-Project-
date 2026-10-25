@@ -26,6 +26,11 @@ export const getCurrentUserApi = async (): Promise<User> => {
   return response.data.data;
 };
 
+export const renewTokenApi = async (): Promise<AuthResponse> => {
+  const response = await apiClient.post<ApiResponse<AuthResponse>>('/auth/renew');
+  return response.data.data;
+};
+
 export const resendOtpApi = async (email: string): Promise<void> => {
   await apiClient.post(`/auth/resend-otp?email=${encodeURIComponent(email)}`);
 };

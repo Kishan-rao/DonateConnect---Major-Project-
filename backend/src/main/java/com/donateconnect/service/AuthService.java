@@ -13,4 +13,5 @@ public interface AuthService {
     AuthResponse verifyOtp(VerifyOtpRequest request);
     void resendOtp(String email, String clientIp);
     UserResponseDto getCurrentUser(String email);
+    AuthResponse renewToken(String email);
 }

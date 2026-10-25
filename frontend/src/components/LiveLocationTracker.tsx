@@ -42,10 +42,17 @@ export const LiveLocationTracker: React.FC<Props> = ({ deliveryId, status, donat
 
     const transmitLocation = (pos: GeolocationPosition) => {
         const ageMs = Date.now() - pos.timestamp;
-        if (ageMs > 30000) {
+        if (ageMs > 120000) {
             console.warn(`[GPS] Skipping stale coordinate (${Math.round(ageMs / 1000)}s old)`);
             return;
         }
+
+        const now = new Date();
+        // Client-side rate throttle: avoid bursting within 2 seconds
+        if (lastSharedRef.current && now.getTime() - lastSharedRef.current.getTime() < 2000) {
+            return;
+        }
+        lastSharedRef.current = now;
 
         const { latitude, longitude, speed, heading } = pos.coords;
         sendLocationUpdate(deliveryId, {
@@ -54,11 +61,9 @@ export const LiveLocationTracker: React.FC<Props> = ({ deliveryId, status, donat
             lng: longitude,
             speed: speed || 0,
             heading: heading || 0,
-            timestamp: new Date().toISOString()
+            timestamp: now.toISOString()
         }).then(() => {
-            const now = new Date();
             setLastShared(now);
-            lastSharedRef.current = now;
             setPermissionError('');
         }).catch((e) => {
             if (e.response?.status === 400) {
@@ -87,13 +92,29 @@ export const LiveLocationTracker: React.FC<Props> = ({ deliveryId, status, donat
         setPermissionError('');
         setIsSharing(true);
 
+        // Immediate position acquisition on mobile devices to trigger runtime permission prompt and instant fix
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                latestPosRef.current = pos;
+                transmitLocation(pos);
+            },
+            (err) => {
+                if (err.code === err.PERMISSION_DENIED) {
+                    setPermissionError('Location permission denied. Please enable location access in App Settings.');
+                    stopTracking();
+                } else if (err.code === err.POSITION_UNAVAILABLE) {
+                    setPermissionError('GPS signal unavailable. Please ensure device location (GPS) is turned on.');
+                } else {
+                    console.warn('[GPS] Initial getCurrentPosition acquisition deferred to watchPosition:', err.message);
+                }
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 10000 }
+        );
+
         watchIdRef.current = navigator.geolocation.watchPosition(
             (pos) => {
                 latestPosRef.current = pos;
-                // Transmit first position immediately once acquired
-                if (!lastSharedRef.current) {
-                    transmitLocation(pos);
-                }
+                transmitLocation(pos);
             },
             (err) => {
                 if (err.code === err.PERMISSION_DENIED) {

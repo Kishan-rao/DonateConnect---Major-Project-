@@ -46,9 +46,10 @@ public class LocationRestController {
     ) {
         UUID volunteerId = getUserIdFromAuth(authentication);
         Delivery delivery = deliveryRepository.findById(id)
+                .or(() -> deliveryRepository.findByDonationId(id))
                 .orElseThrow(() -> new ResourceNotFoundException("Delivery not found"));
         
-        if (!delivery.getVolunteer().getId().equals(volunteerId)) {
+        if (delivery.getVolunteer() == null || !delivery.getVolunteer().getId().equals(volunteerId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
@@ -63,12 +64,13 @@ public class LocationRestController {
         // Rate Limiting Check: Max 1 ping per 1 seconds (1000 ms)
         if (delivery.getLastLocationAt() != null) {
             long diffMs = java.time.Duration.between(delivery.getLastLocationAt(), java.time.LocalDateTime.now()).toMillis();
-            if (diffMs < 1000) {
+            if (diffMs >= 0 && diffMs < 1000) {
                 return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                         .body(ApiResponse.error("Rate limit exceeded: Location updates are limited to once every 1 second"));
             }
         }
 
+        location.setDeliveryId(delivery.getId());
         deliveryRepository.updateLocation(delivery.getId(), location.getLat(), location.getLng(), java.time.LocalDateTime.now());
 
         messagingTemplate.convertAndSend("/topic/donation/" + delivery.getDonation().getId(), location);

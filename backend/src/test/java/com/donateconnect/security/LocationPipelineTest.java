@@ -151,6 +151,20 @@ class LocationPipelineTest {
     }
 
     @Test
+    void testPublishLocationUsingDonationIdResolvesDeliverySuccessfully() throws Exception {
+        LocationUpdateDto update = new LocationUpdateDto();
+        update.setLat(12.97);
+        update.setLng(77.59);
+
+        // Publishing with donation UUID instead of delivery UUID resolves cleanly
+        mockMvc.perform(post("/api/deliveries/" + donation.getId() + "/location")
+                        .header("Authorization", "Bearer " + volunteerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(update)))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void testRateLimitingOnLocationUpdates() throws Exception {
         LocationUpdateDto update = new LocationUpdateDto();
         update.setLat(10.0);

@@ -1,7 +1,16 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { AuthResponse, LoginRequest, RegisterRequest, User, VerifyOtpRequest } from '../types';
-import { loginApi, registerApi, getCurrentUserApi, verifyOtpApi } from '../api/authApi';
+import { loginApi, registerApi, getCurrentUserApi, verifyOtpApi, renewTokenApi } from '../api/authApi';
 import { setAuthTokenInMemory, registerLogoutCallback } from '../api/client';
+import {
+  getStoredToken,
+  getStoredUser,
+  setStoredAuth,
+  clearStoredAuth,
+  getSyncStoredToken,
+  getSyncStoredUser,
+  normalizeUser,
+} from '../utils/authStorage';
 
 interface AuthContextType {
   user: User | null;
@@ -19,77 +28,117 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const normalizeUser = (user: User | null): User | null => {
-  if (!user) return null;
-  return {
-    ...user,
-    role: (user.role ? (user.role as string).replace(/^ROLE_/, '') : 'DONOR') as any,
-  };
-};
-
-const getInitialUser = (): User | null => {
-  try {
-    const saved = localStorage.getItem('dc-user');
-    return saved ? normalizeUser(JSON.parse(saved)) : null;
-  } catch {
-    return null;
-  }
-};
-
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem('dc-token'));
-  const [user, setUser] = useState<User | null>(() => getInitialUser());
+  const [token, setToken] = useState<string | null>(() => getSyncStoredToken());
+  const [user, setUser] = useState<User | null>(() => getSyncStoredUser());
   const [loading, setLoading] = useState<boolean>(true);
 
   const handleLogout = () => {
     setToken(null);
     setUser(null);
-    localStorage.removeItem('dc-token');
-    localStorage.removeItem('dc-user');
     setAuthTokenInMemory(null);
+    clearStoredAuth().catch((err) => {
+      console.warn('[AuthContext] Failed to clear stored auth during logout:', err);
+    });
   };
 
   useEffect(() => {
     registerLogoutCallback(handleLogout);
   }, []);
 
-  // Revalidate session on app startup
+  // Revalidate session on app startup and silently renew token if valid
   useEffect(() => {
-    const savedToken = localStorage.getItem('dc-token');
-    if (savedToken) {
-      setAuthTokenInMemory(savedToken);
-      getCurrentUserApi()
-        .then((currentUser) => {
+    let isMounted = true;
+
+    const restoreSession = async () => {
+      try {
+        const savedToken = await getStoredToken();
+        const savedUser = await getStoredUser();
+
+        if (!savedToken) {
+          if (isMounted) setLoading(false);
+          return;
+        }
+
+        if (isMounted) {
+          setToken(savedToken);
+          if (savedUser) setUser(savedUser);
+        }
+        setAuthTokenInMemory(savedToken);
+
+        try {
+          // Revalidate current user profile against backend
+          const currentUser = await getCurrentUserApi();
           const norm = normalizeUser(currentUser);
-          setUser(norm);
-          localStorage.setItem('dc-user', JSON.stringify(norm));
-        })
-        .catch(() => {
-          // If token expired or invalid, clear session
-          handleLogout();
-        })
-        .finally(() => {
+          if (isMounted && norm) {
+            setUser(norm);
+            await setStoredAuth(savedToken, norm);
+          }
+
+          // Optional silent token renewal to extend 30-day session window
+          try {
+            if (typeof renewTokenApi === 'function') {
+              const renewed = await renewTokenApi();
+              if (renewed?.token && isMounted) {
+                const renewedUser = normalizeUser(renewed.user) || norm;
+                setToken(renewed.token);
+                setAuthTokenInMemory(renewed.token);
+                if (renewedUser) {
+                  setUser(renewedUser);
+                  await setStoredAuth(renewed.token, renewedUser);
+                }
+              }
+            }
+          } catch (renewErr) {
+            // Renewal is best-effort; current token remains valid
+            console.debug('[AuthContext] Silent token renewal skipped/deferred:', renewErr);
+          }
+        } catch (err: any) {
+          const status = err?.response?.status || err?.status;
+          const isAuthError =
+            status === 401 ||
+            (err?.message && /expired|unauthorized|401/i.test(err.message));
+
+          if (isAuthError) {
+            console.warn('[AuthContext] Session expired or invalid (401). Clearing stored auth.');
+            handleLogout();
+          } else {
+            // Network error, backend cold start, DNS issue, or timeout:
+            // KEEP the existing stored credentials and cached user profile.
+            console.warn(
+              '[AuthContext] Startup session check encountered network/server error; retaining offline session:',
+              err?.message || err
+            );
+          }
+        }
+      } finally {
+        if (isMounted) {
           setLoading(false);
-        });
-    } else {
-      setLoading(false);
-    }
+        }
+      }
+    };
+
+    restoreSession();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const login = async (data: LoginRequest): Promise<AuthResponse> => {
     setLoading(true);
     try {
       // Clear any stale session state to prevent role contamination
-      // from a previously logged-in account.
       handleLogout();
       const res: AuthResponse = await loginApi(data);
       if (!res.requiresOtp && res.token) {
         const norm = normalizeUser(res.user);
         setToken(res.token);
         setUser(norm);
-        localStorage.setItem('dc-token', res.token);
-        localStorage.setItem('dc-user', JSON.stringify(norm));
         setAuthTokenInMemory(res.token);
+        if (norm) {
+          await setStoredAuth(res.token, norm);
+        }
       }
       return res;
     } catch (error) {
@@ -108,9 +157,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (res.token) {
         setToken(res.token);
         setUser(norm);
-        localStorage.setItem('dc-token', res.token);
-        localStorage.setItem('dc-user', JSON.stringify(norm));
         setAuthTokenInMemory(res.token);
+        if (norm) {
+          await setStoredAuth(res.token, norm);
+        }
       }
       return norm as User;
     } finally {
@@ -122,16 +172,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setLoading(true);
     try {
       // Clear any stale session state to prevent role contamination
-      // from a previously logged-in account.
       handleLogout();
       const res: AuthResponse = await registerApi(data);
       if (!res.requiresOtp && res.token) {
         const norm = normalizeUser(res.user);
         setToken(res.token);
         setUser(norm);
-        localStorage.setItem('dc-token', res.token);
-        localStorage.setItem('dc-user', JSON.stringify(norm));
         setAuthTokenInMemory(res.token);
+        if (norm) {
+          await setStoredAuth(res.token, norm);
+        }
       }
       return res;
     } finally {
@@ -140,15 +190,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const refetchUser = async () => {
-    const savedToken = token || localStorage.getItem('dc-token');
+    const savedToken = token || (await getStoredToken());
     if (!savedToken) return;
     try {
       const currentUser = await getCurrentUserApi();
       const norm = normalizeUser(currentUser);
-      setUser(norm);
-      localStorage.setItem('dc-user', JSON.stringify(norm));
-    } catch {
-      handleLogout();
+      if (norm) {
+        setUser(norm);
+        await setStoredAuth(savedToken, norm);
+      }
+    } catch (err: any) {
+      const status = err?.response?.status || err?.status;
+      const isAuthError =
+        status === 401 ||
+        (err?.message && /expired|unauthorized|401/i.test(err.message));
+      if (isAuthError) {
+        handleLogout();
+      }
     }
   };
 

@@ -1,5 +1,9 @@
 [
 	{
+		"pkg": "@capacitor/preferences",
+		"classpath": "com.capacitorjs.plugins.preferences.PreferencesPlugin"
+	},
+	{
 		"pkg": "@capawesome/capacitor-live-update",
 		"classpath": "io.capawesome.capacitorjs.plugins.liveupdate.LiveUpdatePlugin"
 	}

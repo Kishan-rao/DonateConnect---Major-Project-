@@ -64,4 +64,14 @@ public class AuthController {
         UserResponseDto userDto = authService.getCurrentUser(authentication.getName());
         return ResponseEntity.ok(ApiResponse.success("User profile fetched successfully", userDto));
     }
+
+    @PostMapping("/renew")
+    public ResponseEntity<ApiResponse<AuthResponse>> renewToken(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("Unauthenticated request"));
+        }
+        AuthResponse authResponse = authService.renewToken(authentication.getName());
+        return ResponseEntity.ok(ApiResponse.success("Token renewed successfully", authResponse));
+    }
 }

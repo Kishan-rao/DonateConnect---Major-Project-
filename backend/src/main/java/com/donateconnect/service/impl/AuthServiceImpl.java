@@ -389,6 +389,27 @@ public class AuthServiceImpl implements AuthService {
         return mapToDto(user);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public AuthResponse renewToken(String email) {
+        User user = userRepository.findByEmail(normalizeEmail(email))
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("User profile not found")
+                );
+
+        if (!user.isApproved() && user.getRole() != Role.DONOR && user.getRole() != Role.ADMIN) {
+            throw new BadCredentialsException("Account pending admin approval or approval revoked.");
+        }
+
+        String token = jwtUtils.generateToken(user);
+
+        return AuthResponse.builder()
+                .token(token)
+                .user(mapToDto(user))
+                .requiresOtp(false)
+                .build();
+    }
+
     private UserResponseDto mapToDto(User user) {
         return UserResponseDto.builder()
                 .id(user.getId())

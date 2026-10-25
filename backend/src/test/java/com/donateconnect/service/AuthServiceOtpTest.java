@@ -8,6 +8,7 @@ import com.donateconnect.entity.NGOProfile;
 import com.donateconnect.entity.Role;
 import com.donateconnect.entity.User;
 import com.donateconnect.exception.EmailDeliveryException;
+import com.donateconnect.exception.ResourceNotFoundException;
 import com.donateconnect.repository.NGOProfileRepository;
 import com.donateconnect.repository.UserRepository;
 import com.donateconnect.service.impl.AuthServiceImpl;
@@ -337,5 +338,43 @@ class AuthServiceOtpTest {
         authService.resendOtp("test@test.com", "127.0.0.1");
 
         verify(emailService, never()).sendOtpEmail(anyString(), anyString());
+    }
+
+    @Test
+    void testRenewTokenSuccess() {
+        testUser.setApproved(true);
+        testUser.setRole(Role.DONOR);
+        when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(testUser));
+        when(jwtUtils.generateToken(testUser)).thenReturn("renewed-jwt-token");
+
+        AuthResponse response = authService.renewToken("test@test.com");
+
+        assertNotNull(response);
+        assertEquals("renewed-jwt-token", response.getToken());
+        assertFalse(response.isRequiresOtp());
+        assertEquals(testUser.getEmail(), response.getUser().getEmail());
+    }
+
+    @Test
+    void testRenewTokenUnapprovedNgoThrowsException() {
+        testUser.setApproved(false);
+        testUser.setRole(Role.NGO);
+        when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(testUser));
+
+        assertThrows(
+                BadCredentialsException.class,
+                () -> authService.renewToken("test@test.com")
+        );
+        verify(jwtUtils, never()).generateToken(any());
+    }
+
+    @Test
+    void testRenewTokenUserNotFoundThrowsException() {
+        when(userRepository.findByEmail("notfound@test.com")).thenReturn(Optional.empty());
+
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> authService.renewToken("notfound@test.com")
+        );
     }
 }

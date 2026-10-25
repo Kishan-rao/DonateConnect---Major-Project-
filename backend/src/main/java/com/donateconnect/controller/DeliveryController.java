@@ -45,7 +45,7 @@ public class DeliveryController {
         DeliveryDto dto = DeliveryDto.builder()
                 .id(delivery.getId())
                 .donationId(delivery.getDonation().getId())
-                .volunteerId(delivery.getVolunteer().getId())
+                .volunteerId(delivery.getVolunteer() != null ? delivery.getVolunteer().getId() : null)
                 .status(delivery.getStatus())
                 .assignedAt(delivery.getAssignedAt())
                 .pickedUpAt(delivery.getPickedUpAt())
