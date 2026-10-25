@@ -340,27 +340,27 @@ export const CreateDonationPage: React.FC = () => {
     <div className="max-w-2xl mx-auto py-8">
       <button
         onClick={() => navigate(-1)}
-        className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white mb-6 transition-colors"
+        className="inline-flex items-center gap-2 text-xs font-semibold text-[#6B7280] hover:text-[#111827] mb-6 transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         Back
       </button>
 
-      <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 sm:p-10 shadow-2xl space-y-6">
+      <div className="bg-white border border-[#E5E7EB] rounded-3xl p-6 sm:p-10 shadow-sm space-y-6">
         <div className="flex items-center gap-3">
-          <div className="p-3 rounded-2xl bg-indigo-600/10 text-indigo-400 border border-indigo-500/20">
+          <div className="p-3 rounded-2xl bg-[#7567E8]/10 text-[#7567E8] border border-[#7567E8]/20">
             <HeartHandshake className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">Create Donation Request</h1>
-            <p className="text-slate-400 text-xs mt-0.5">
+            <h1 className="text-2xl font-bold text-[#111827]">Create Donation Request</h1>
+            <p className="text-[#4B5563] text-xs mt-0.5">
               Select a verified NGO partner and specify the items you wish to donate
             </p>
           </div>
         </div>
 
         {serverError && (
-          <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm">
+          <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm">
             {serverError}
           </div>
         )}
@@ -368,15 +368,15 @@ export const CreateDonationPage: React.FC = () => {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           {/* NGO Select */}
           <div>
-            <label htmlFor="ngo-select" className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+            <label htmlFor="ngo-select" className="block text-xs font-semibold text-[#374151] uppercase tracking-wider mb-2">
               Select NGO Partner *
             </label>
             {loadingNgos ? (
-              <div className="text-xs text-slate-500 p-3 bg-slate-950 rounded-xl border border-slate-800">
+              <div className="text-xs text-[#6B7280] p-3 bg-[#F9FAFB] rounded-xl border border-[#E5E7EB]">
                 Loading verified NGOs...
               </div>
             ) : ngos.length === 0 ? (
-              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center gap-2">
+              <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center gap-2">
                 <Building2 className="w-4 h-4 shrink-0" />
                 <span>No verified NGOs available yet. Please check back soon or contact Admin.</span>
               </div>
@@ -384,7 +384,7 @@ export const CreateDonationPage: React.FC = () => {
               <select
                 id="ngo-select"
                 {...register('ngoId', { required: 'Please select an NGO' })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 transition-colors"
+                className="w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-4 py-2.5 text-sm text-[#111827] focus:outline-none focus:border-[#7567E8] transition-colors"
               >
                 <option value="">-- Choose Verified NGO --</option>
                 {ngos.map((n) => (
@@ -395,20 +395,20 @@ export const CreateDonationPage: React.FC = () => {
               </select>
             )}
             {errors.ngoId && (
-              <p className="text-rose-400 text-xs mt-1">{errors.ngoId.message}</p>
+              <p className="text-rose-600 text-xs mt-1">{errors.ngoId.message}</p>
             )}
           </div>
 
           {/* Category & Pickup Date */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="category-select" className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+              <label htmlFor="category-select" className="block text-xs font-semibold text-[#374151] uppercase tracking-wider mb-2">
                 Category *
               </label>
               <select
                 id="category-select"
                 {...register('category', { required: 'Category is required' })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 transition-colors"
+                className="w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-4 py-2.5 text-sm text-[#111827] focus:outline-none focus:border-[#7567E8] transition-colors"
               >
                 <option value="CLOTHES">CLOTHES</option>
                 <option value="FOOD">FOOD</option>
@@ -420,7 +420,7 @@ export const CreateDonationPage: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="pickup-date" className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+              <label htmlFor="pickup-date" className="block text-xs font-semibold text-[#374151] uppercase tracking-wider mb-2">
                 Preferred Pickup Date
               </label>
               <input
@@ -432,21 +432,21 @@ export const CreateDonationPage: React.FC = () => {
                   validate: (value) =>
                     !value || value >= todayInputValue || 'Pickup date cannot be in the past',
                 })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 transition-colors"
+                className="w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-4 py-2.5 text-sm text-[#111827] focus:outline-none focus:border-[#7567E8] transition-colors"
               />
               {errors.pickupDate && (
-                <p className="text-rose-400 text-xs mt-1">{errors.pickupDate.message}</p>
+                <p className="text-rose-600 text-xs mt-1">{errors.pickupDate.message}</p>
               )}
             </div>
 
             <div>
-              <label htmlFor="time-slot" className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+              <label htmlFor="time-slot" className="block text-xs font-semibold text-[#374151] uppercase tracking-wider mb-2">
                 Preferred Time Slot
               </label>
               <select
                 id="time-slot"
                 {...register('pickupTimeSlot', { required: 'Time slot is required' })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 transition-colors"
+                className="w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-4 py-2.5 text-sm text-[#111827] focus:outline-none focus:border-[#7567E8] transition-colors"
               >
                 <option value="">-- Choose Time Slot --</option>
                 <option value="MORNING_9_12">Morning (9 AM - 12 PM)</option>
@@ -454,7 +454,7 @@ export const CreateDonationPage: React.FC = () => {
                 <option value="EVENING_4_8">Evening (4 PM - 8 PM)</option>
               </select>
               {errors.pickupTimeSlot && (
-                <p className="text-rose-400 text-xs mt-1">{errors.pickupTimeSlot.message}</p>
+                <p className="text-rose-600 text-xs mt-1">{errors.pickupTimeSlot.message}</p>
               )}
             </div>
           </div>
@@ -462,7 +462,7 @@ export const CreateDonationPage: React.FC = () => {
           {/* Pickup Address & Location */}
           <div className="space-y-4">
             <div>
-              <label htmlFor="pickup-address" className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+              <label htmlFor="pickup-address" className="block text-xs font-semibold text-[#374151] uppercase tracking-wider mb-2">
                 Pickup Address *
               </label>
               <div className="flex gap-3 relative">
@@ -492,21 +492,21 @@ export const CreateDonationPage: React.FC = () => {
                         }
                       };
                     })()}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition-colors"
+                    className="w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-4 py-2.5 text-sm text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#7567E8] transition-colors"
                   />
                   
                   {/* Location Prompt Popup */}
                   {showLocationPrompt && (
-                    <div className="absolute bottom-full mb-3 left-0 right-0 bg-slate-900 border border-indigo-500/50 p-4 rounded-xl shadow-2xl z-[1200] flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2">
-                      <p className="text-sm text-slate-200 font-medium flex items-start gap-2">
-                        <Navigation className="w-4 h-4 text-indigo-400 mt-0.5 shrink-0" />
+                    <div className="absolute bottom-full mb-3 left-0 right-0 bg-white border border-[#7567E8]/40 p-4 rounded-xl shadow-2xl z-[1200] flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2">
+                      <p className="text-sm text-[#111827] font-medium flex items-start gap-2">
+                        <Navigation className="w-4 h-4 text-[#7567E8] mt-0.5 shrink-0" />
                         Would you like to use your current GPS location for the pickup address?
                       </p>
                       <div className="flex gap-2 justify-end">
                         <button 
                           type="button" 
                           onClick={() => setShowLocationPrompt(false)} 
-                          className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-semibold text-white transition-colors"
+                          className="px-4 py-2 bg-[#F3F4F6] hover:bg-[#E5E7EB] rounded-lg text-xs font-semibold text-[#374151] transition-colors"
                         >
                           No, I'll type it
                         </button>
@@ -516,7 +516,7 @@ export const CreateDonationPage: React.FC = () => {
                             setShowLocationPrompt(false); 
                             handleUseCurrentLocation(); 
                           }} 
-                          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-xs font-semibold text-white transition-colors"
+                          className="px-4 py-2 bg-[#7567E8] hover:bg-[#6355d8] rounded-lg text-xs font-semibold text-white transition-colors"
                         >
                           Yes, use GPS
                         </button>
@@ -525,7 +525,7 @@ export const CreateDonationPage: React.FC = () => {
                   )}
 
                   {showSuggestions && suggestions.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-[1100] max-h-60 overflow-y-auto">
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-[#E5E7EB] rounded-xl shadow-2xl z-[1100] max-h-60 overflow-y-auto">
                       {suggestions.map((s, idx) => (
                         <div
                           key={idx}
@@ -533,18 +533,18 @@ export const CreateDonationPage: React.FC = () => {
                             e.preventDefault(); // Prevent input blur before click registers
                             handleSuggestionClick(s);
                           }}
-                          className="px-4 py-3 hover:bg-[#7567E8] group cursor-pointer border-b border-slate-800/50 last:border-0 transition-colors"
+                          className="px-4 py-3 hover:bg-[#7567E8] group cursor-pointer border-b border-[#E5E7EB] last:border-0 transition-colors"
                         >
                           <div className="flex items-start gap-3">
-                            <MapPin className="w-4 h-4 mt-0.5 text-indigo-400 group-hover:text-white shrink-0 transition-colors" />
-                            <span className="text-sm text-slate-200 group-hover:text-white transition-colors">{s.display_name}</span>
+                            <MapPin className="w-4 h-4 mt-0.5 text-[#7567E8] group-hover:text-white shrink-0 transition-colors" />
+                            <span className="text-sm text-[#111827] group-hover:text-white transition-colors">{s.display_name}</span>
                           </div>
                         </div>
                       ))}
                     </div>
                   )}
                   {errors.pickupAddress && (
-                    <p className="text-rose-400 text-xs mt-1">{errors.pickupAddress.message}</p>
+                    <p className="text-rose-600 text-xs mt-1">{errors.pickupAddress.message}</p>
                   )}
                 </div>
                 <div className="flex gap-2 shrink-0">
@@ -553,7 +553,7 @@ export const CreateDonationPage: React.FC = () => {
                     onClick={handleUseCurrentLocation}
                     disabled={geocoding}
                     title="Use Current Location"
-                    className="p-2.5 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 rounded-xl transition-colors disabled:opacity-50"
+                    className="p-2.5 bg-[#7567E8]/10 hover:bg-[#7567E8]/20 text-[#7567E8] rounded-xl transition-colors disabled:opacity-50"
                   >
                     {geocoding ? <Loader2 className="w-5 h-5 animate-spin" /> : <Navigation className="w-5 h-5" />}
                   </button>
@@ -562,7 +562,7 @@ export const CreateDonationPage: React.FC = () => {
                     onClick={handleFindOnMap}
                     disabled={geocoding}
                     title="Find Typed Address on Map"
-                    className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl transition-colors disabled:opacity-50"
+                    className="p-2.5 bg-[#F3F4F6] hover:bg-[#E5E7EB] text-[#374151] rounded-xl transition-colors disabled:opacity-50"
                   >
                     {geocoding ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
                   </button>
@@ -571,11 +571,11 @@ export const CreateDonationPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-indigo-400" />
+              <label className="block text-xs font-semibold text-[#374151] uppercase tracking-wider mb-2 flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-[#7567E8]" />
                 Pin Location on Map *
               </label>
-              <div className="h-[250px] w-full rounded-2xl overflow-hidden border border-slate-800 relative z-0">
+              <div className="h-[250px] w-full rounded-2xl overflow-hidden border border-[#E5E7EB] relative z-0">
                 <MapContainer
                   center={mapCenter}
                   zoom={12}
@@ -589,8 +589,8 @@ export const CreateDonationPage: React.FC = () => {
                   <LocationPicker position={mapPosition} onLocationSelect={handleMapClick} />
                 </MapContainer>
                 {!mapPosition && (
-                  <div className="absolute inset-0 bg-slate-900/50 flex items-center justify-center pointer-events-none z-[1000]">
-                    <span className="bg-slate-900 text-white px-4 py-2 rounded-xl text-sm font-semibold border border-slate-700 shadow-xl">
+                  <div className="absolute inset-0 bg-black/25 flex items-center justify-center pointer-events-none z-[1000]">
+                    <span className="bg-white text-[#111827] px-4 py-2 rounded-xl text-sm font-semibold border border-[#E5E7EB] shadow-xl">
                       Tap map to pin exact location
                     </span>
                   </div>
@@ -601,7 +601,7 @@ export const CreateDonationPage: React.FC = () => {
 
           {/* Description */}
           <div>
-            <label htmlFor="description" className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+            <label htmlFor="description" className="block text-xs font-semibold text-[#374151] uppercase tracking-wider mb-2">
               Item Description & Condition *
             </label>
             <textarea
@@ -621,19 +621,19 @@ export const CreateDonationPage: React.FC = () => {
                   return true;
                 },
               })}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition-colors"
+              className="w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-4 py-2.5 text-sm text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#7567E8] transition-colors"
             />
             {errors.description && (
-              <p className="text-rose-400 text-xs mt-1">{errors.description.message}</p>
+              <p className="text-rose-600 text-xs mt-1">{errors.description.message}</p>
             )}
           </div>
 
           {/* Photo Upload Section */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-semibold text-[#374151] uppercase tracking-wider mb-2">
               Item Photos *
             </label>
-            <div className="border-2 border-dashed border-slate-800 hover:border-indigo-500/50 rounded-2xl p-6 text-center transition-colors bg-slate-950/40">
+            <div className="border-2 border-dashed border-[#E5E7EB] hover:border-[#7567E8] rounded-2xl p-6 text-center transition-colors bg-[#F9FAFB]">
               <input
                 type="file"
                 id="photo-upload"
@@ -644,16 +644,16 @@ export const CreateDonationPage: React.FC = () => {
                 className="hidden"
               />
               <label htmlFor="photo-upload" className="cursor-pointer flex flex-col items-center justify-center gap-2">
-                <UploadCloud className="w-8 h-8 text-indigo-400" />
-                <span className="text-xs text-slate-300 font-medium">Click to upload photo attachments</span>
-                <span className="text-[10px] text-slate-500">PNG, JPG, WEBP only. Up to {MAX_PHOTOS} photos, 10 MB each.</span>
+                <UploadCloud className="w-8 h-8 text-[#7567E8]" />
+                <span className="text-xs text-[#374151] font-medium">Click to upload photo attachments</span>
+                <span className="text-[10px] text-[#6B7280]">PNG, JPG, WEBP only. Up to {MAX_PHOTOS} photos, 10 MB each.</span>
               </label>
             </div>
-            {photoError && <p className="text-rose-400 text-xs mt-1">{photoError}</p>}
+            {photoError && <p className="text-rose-600 text-xs mt-1">{photoError}</p>}
 
             {/* Upload Progress Indicator */}
             {uploadingPhotos && (
-              <div className="flex items-center gap-2 text-xs text-indigo-300 mt-2">
+              <div className="flex items-center gap-2 text-xs text-[#7567E8] mt-2 font-medium">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 Uploading photo to server...
               </div>
@@ -663,12 +663,12 @@ export const CreateDonationPage: React.FC = () => {
             {photos.length > 0 && (
               <div className="flex flex-wrap gap-3 mt-4">
                 {photos.map((photo, idx) => (
-                  <div key={idx} className="relative group w-20 h-20 rounded-xl overflow-hidden border border-slate-700">
+                  <div key={idx} className="relative group w-20 h-20 rounded-xl overflow-hidden border border-[#E5E7EB] shadow-sm">
                     <img src={photo.previewUrl} alt="Upload preview" className="w-full h-full object-cover" />
                     <button
                       type="button"
                       onClick={() => removePhoto(idx)}
-                      className="absolute top-1 right-1 p-1 rounded-full bg-slate-950/80 text-rose-400 hover:text-white transition-colors"
+                      className="absolute top-1 right-1 p-1 rounded-full bg-white/90 text-rose-600 hover:text-rose-700 shadow transition-colors"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -682,7 +682,7 @@ export const CreateDonationPage: React.FC = () => {
             <button
               type="submit"
               disabled={submitting || uploadingPhotos || ngos.length === 0}
-              className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-indigo-600 to-rose-600 text-white font-bold text-sm shadow-lg shadow-indigo-600/30 hover:shadow-indigo-600/50 hover:scale-[1.01] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-3.5 px-6 rounded-xl bg-[#7567E8] hover:bg-[#6355d8] text-white font-bold text-sm shadow-md shadow-[#7567E8]/25 hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {submitting ? (
                 <>

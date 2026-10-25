@@ -110,21 +110,21 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({ onClos
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-6 text-center space-y-6 relative shadow-2xl">
+    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white border border-[#E5E7EB] rounded-3xl max-w-md w-full p-6 text-center space-y-6 relative shadow-2xl text-[#111827]">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition-colors"
+          className="absolute top-4 right-4 p-1.5 rounded-lg bg-[#F3F4F6] text-[#4B5563] hover:text-[#111827] transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
 
         <div className="space-y-2">
-          <div className="w-14 h-14 rounded-2xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center mx-auto">
-            <Mic className={`w-7 h-7 ${listening ? 'animate-pulse text-rose-400' : ''}`} />
+          <div className="w-14 h-14 rounded-2xl bg-[#7567E8]/10 text-[#7567E8] border border-[#7567E8]/20 flex items-center justify-center mx-auto">
+            <Mic className={`w-7 h-7 ${listening ? 'animate-pulse text-rose-500' : ''}`} />
           </div>
-          <h3 className="text-xl font-extrabold text-white">Live AI Voice Assistant</h3>
-          <p className="text-xs text-slate-400 leading-relaxed">
+          <h3 className="text-xl font-extrabold text-[#111827]">Live AI Voice Assistant</h3>
+          <p className="text-xs text-[#4B5563] leading-relaxed">
             Speak into your microphone in real-time or type your request below.
           </p>
         </div>
@@ -139,7 +139,7 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({ onClos
               className={`w-full py-3.5 rounded-xl font-bold text-xs shadow-lg transition-all flex items-center justify-center gap-2 ${
                 listening
                   ? 'bg-rose-600 text-white animate-pulse'
-                  : 'bg-gradient-to-r from-indigo-600 to-rose-600 hover:scale-[1.02] text-white shadow-indigo-600/30'
+                  : 'bg-gradient-to-r from-[#7567E8] to-rose-600 hover:scale-[1.02] text-white shadow-[#7567E8]/30'
               }`}
             >
               {listening ? (
@@ -153,7 +153,7 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({ onClos
               )}
             </button>
           ) : (
-            <div className="p-3 bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs rounded-xl">
+            <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-xl">
               Microphone Web Speech API is not supported in this browser window. You can type your voice request below!
             </div>
           )}
@@ -165,11 +165,11 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({ onClos
               value={manualInput}
               onChange={(e) => setManualInput(e.target.value)}
               placeholder="Or type what you want to donate..."
-              className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              className="flex-1 bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-3 py-2 text-xs text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#7567E8]"
             />
             <button
               type="submit"
-              className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-3 py-2 rounded-xl border border-slate-700 transition-colors"
+              className="bg-[#F3F4F6] hover:bg-[#E5E7EB] text-[#374151] text-xs font-semibold px-3 py-2 rounded-xl border border-[#E5E7EB] transition-colors"
             >
               Parse
             </button>
@@ -178,18 +178,18 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({ onClos
 
         {/* Real Live Spoken Output */}
         {(transcript || parsedAnalysis) && (
-          <div className="space-y-3 bg-slate-950 p-4 rounded-2xl border border-indigo-500/20 text-left text-xs">
+          <div className="space-y-3 bg-[#F9FAFB] p-4 rounded-2xl border border-[#E5E7EB] text-left text-xs">
             {transcript && (
               <div>
-                <div className="text-[10px] uppercase font-bold text-slate-500 mb-1">Your Captured Speech:</div>
-                <div className="text-white font-semibold italic bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                <div className="text-[10px] uppercase font-bold text-[#6B7280] mb-1">Your Captured Speech:</div>
+                <div className="text-[#111827] font-semibold italic bg-white p-2.5 rounded-lg border border-[#E5E7EB]">
                   "{transcript}"
                 </div>
               </div>
             )}
 
             {parsedAnalysis && (
-              <div className="text-emerald-400 font-bold flex items-center gap-1.5 pt-1">
+              <div className="text-emerald-700 font-bold flex items-center gap-1.5 pt-1">
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
                 <span>{parsedAnalysis}</span>
               </div>
@@ -199,7 +199,7 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({ onClos
               <button
                 type="button"
                 onClick={handleApplyDonation}
-                className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-lg shadow-emerald-600/20 mt-2"
+                className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-lg shadow-emerald-600/20 mt-2"
               >
                 Apply & Create Donation ({parsedCategory}) <ArrowRight className="w-4 h-4" />
               </button>

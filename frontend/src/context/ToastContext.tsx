@@ -46,29 +46,29 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`pointer-events-auto p-4 rounded-2xl border shadow-2xl flex items-start gap-3 transition-all duration-300 animate-slide-up ${
+            className={`pointer-events-auto p-4 rounded-2xl border shadow-xl flex items-start gap-3 transition-all duration-300 animate-slide-up bg-white ${
               toast.type === 'success'
-                ? 'bg-slate-900/95 border-emerald-500/30 text-emerald-300'
+                ? 'border-emerald-200 text-emerald-900'
                 : toast.type === 'error'
-                ? 'bg-slate-900/95 border-rose-500/30 text-rose-300'
-                : 'bg-slate-900/95 border-indigo-500/30 text-indigo-300'
+                ? 'border-rose-200 text-rose-900'
+                : 'border-[#7567E8]/30 text-[#111827]'
             }`}
           >
             {toast.type === 'success' ? (
-              <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
             ) : toast.type === 'error' ? (
-              <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+              <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
             ) : (
-              <AlertCircle className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
+              <AlertCircle className="w-5 h-5 text-[#7567E8] shrink-0 mt-0.5" />
             )}
 
-            <div className="flex-1 text-xs font-semibold leading-relaxed text-slate-100">
+            <div className="flex-1 text-xs font-semibold leading-relaxed text-[#111827]">
               {toast.message}
             </div>
 
             <button
               onClick={() => removeToast(toast.id)}
-              className="text-slate-400 hover:text-white transition-colors p-0.5"
+              className="text-[#9CA3AF] hover:text-[#111827] transition-colors p-0.5"
             >
               <X className="w-4 h-4" />
             </button>

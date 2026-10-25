@@ -29,13 +29,13 @@ export const UnauthorizedPage: React.FC = () => {
 
   return (
     <div className="max-w-md mx-auto py-16 text-center space-y-6">
-      <div className="w-16 h-16 rounded-3xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
+      <div className="w-16 h-16 rounded-3xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto">
         <ShieldAlert className="w-10 h-10" />
       </div>
 
-      <h1 className="text-3xl font-extrabold text-white">403 - Access Denied</h1>
+      <h1 className="text-3xl font-extrabold text-[#111827]">403 - Access Denied</h1>
 
-      <p className="text-slate-400 text-sm leading-relaxed">
+      <p className="text-[#4B5563] text-sm leading-relaxed">
         You do not have the required role or permissions to access this page. Please use your designated role portal or sign in with an authorized account.
       </p>
 
@@ -51,14 +51,14 @@ export const UnauthorizedPage: React.FC = () => {
         )}
         <Link
           to="/"
-          className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs transition-colors flex items-center gap-2"
+          className="px-5 py-2.5 rounded-xl bg-white hover:bg-[#F4F2FA] text-[#374151] border border-[#E5E7EB] font-semibold text-xs transition-colors flex items-center gap-2 shadow-xs"
         >
           <Home className="w-4 h-4" />
           Home
         </Link>
         <Link
           to="/login"
-          className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs border border-slate-700 transition-colors flex items-center gap-2"
+          className="px-5 py-2.5 rounded-xl bg-white hover:bg-[#F4F2FA] text-[#374151] font-semibold text-xs border border-[#E5E7EB] transition-colors flex items-center gap-2 shadow-xs"
         >
           <ArrowLeft className="w-4 h-4" />
           Switch Account

@@ -43,18 +43,18 @@ export const AiPhotoAnalyzer: React.FC<AiPhotoAnalyzerProps> = ({ onCategorySugg
   };
 
   return (
-    <div className="bg-slate-900/90 border border-indigo-500/30 rounded-2xl p-5 space-y-4">
+    <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5 space-y-4 shadow-sm">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-indigo-400 animate-pulse" />
-          <h4 className="text-sm font-bold text-white">AI Item Photo Quality & Category Detector</h4>
+          <Sparkles className="w-5 h-5 text-[#7567E8] animate-pulse" />
+          <h4 className="text-sm font-bold text-[#111827]">AI Item Photo Quality & Category Detector</h4>
         </div>
-        <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded border border-indigo-500/30 font-mono">
+        <span className="text-[10px] bg-[#7567E8]/10 text-[#7567E8] px-2 py-0.5 rounded border border-[#7567E8]/20 font-mono font-semibold">
           AI Vision v2.4
         </span>
       </div>
 
-      <p className="text-xs text-slate-400 leading-relaxed">
+      <p className="text-xs text-[#4B5563] leading-relaxed">
         Upload a photo of your donation items. Our AI scanner automatically assesses image clarity and suggests the optimal category.
       </p>
 
@@ -68,25 +68,25 @@ export const AiPhotoAnalyzer: React.FC<AiPhotoAnalyzerProps> = ({ onCategorySugg
         />
         <label
           htmlFor="ai-image-input"
-          className="cursor-pointer px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-all inline-flex items-center gap-2 shadow-md shadow-indigo-600/20"
+          className="cursor-pointer px-4 py-2.5 rounded-xl bg-[#7567E8] hover:bg-[#6355d8] text-white font-semibold text-xs transition-all inline-flex items-center gap-2 shadow-md shadow-[#7567E8]/20"
         >
           <Sparkles className="w-4 h-4" />
           Upload Image for AI Scan
         </label>
         {analyzing && (
-          <span className="text-xs text-indigo-400 font-semibold animate-pulse">
+          <span className="text-xs text-[#7567E8] font-semibold animate-pulse">
             Analyzing pixels & light contrast...
           </span>
         )}
       </div>
 
       {result && (
-        <div className="bg-slate-950 p-4 rounded-xl border border-indigo-500/20 space-y-2 text-xs">
-          <div className="flex items-center justify-between text-emerald-400 font-bold">
+        <div className="bg-[#F9FAFB] p-4 rounded-xl border border-[#E5E7EB] space-y-2 text-xs">
+          <div className="flex items-center justify-between text-emerald-700 font-bold">
             <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4" /> Quality Rating: {result.qualityScore}%</span>
-            <span className="text-indigo-400">Category: {result.suggestedCategory}</span>
+            <span className="text-[#7567E8]">Category: {result.suggestedCategory}</span>
           </div>
-          <p className="text-slate-300 italic">{result.notes}</p>
+          <p className="text-[#4B5563] italic">{result.notes}</p>
         </div>
       )}
     </div>

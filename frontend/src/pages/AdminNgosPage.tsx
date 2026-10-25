@@ -100,11 +100,11 @@ export const AdminNgosPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
-            <Building2 className="w-8 h-8 text-indigo-400" />
+          <h1 className="text-3xl font-extrabold text-[#111827] tracking-tight flex items-center gap-3">
+            <Building2 className="w-8 h-8 text-[#7567E8]" />
             Manage NGO Partners
           </h1>
-          <p className="text-slate-400 text-sm mt-1">
+          <p className="text-[#4B5563] text-sm mt-1">
             Create NGO credentials, verify organizations, and manage active partner accounts
           </p>
         </div>
@@ -113,14 +113,14 @@ export const AdminNgosPage: React.FC = () => {
           <button
             onClick={fetchNgos}
             disabled={loading}
-            className="p-2.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition-colors border border-slate-700"
+            className="p-2.5 rounded-xl bg-white text-[#4B5563] hover:text-[#111827] hover:bg-[#F4F2FA] transition-colors border border-[#E5E7EB] shadow-xs"
             title="Refresh NGO list"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all flex items-center gap-2 shadow-lg shadow-indigo-600/20"
+            className="px-4 py-2.5 rounded-xl bg-[#7567E8] hover:bg-[#7567E8]/90 text-white font-semibold text-sm transition-all flex items-center gap-2 shadow-xs"
           >
             <Plus className="w-4 h-4" />
             Add NGO Partner
@@ -130,38 +130,38 @@ export const AdminNgosPage: React.FC = () => {
 
       {/* Content Table */}
       {loading ? (
-        <div className="text-center py-16 bg-slate-900/30 rounded-2xl border border-slate-800">
-          <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-slate-400 text-sm">Loading all NGO profiles...</p>
+        <div className="text-center py-16 bg-white rounded-2xl border border-[#E5E7EB] shadow-xs">
+          <div className="w-8 h-8 border-2 border-[#7567E8] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-[#4B5563] text-sm">Loading all NGO profiles...</p>
         </div>
       ) : error ? (
-        <div className="p-6 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-center text-rose-400 space-y-3">
+        <div className="p-6 rounded-2xl bg-rose-50 border border-rose-200 text-center text-rose-700 space-y-3">
           <p className="font-semibold">{error}</p>
           <button
             onClick={fetchNgos}
-            className="px-4 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-semibold transition-colors inline-flex items-center gap-1.5 mx-auto"
+            className="px-4 py-1.5 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-800 text-xs font-semibold transition-colors inline-flex items-center gap-1.5 mx-auto"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             Retry Loading
           </button>
         </div>
       ) : safeNgos.length === 0 ? (
-        <div className="text-center py-16 bg-slate-900/30 rounded-2xl border border-slate-800 space-y-3">
-          <Building2 className="w-12 h-12 text-slate-600 mx-auto" />
-          <h3 className="text-slate-300 font-semibold text-lg">No NGO profiles created yet</h3>
+        <div className="text-center py-16 bg-white rounded-2xl border border-[#E5E7EB] space-y-3 shadow-xs">
+          <Building2 className="w-12 h-12 text-[#9CA3AF] mx-auto" />
+          <h3 className="text-[#111827] font-semibold text-lg">No NGO profiles created yet</h3>
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#7567E8] hover:bg-[#7567E8]/90 text-white font-medium text-xs transition-colors shadow-xs"
           >
             <Plus className="w-4 h-4" />
             Add First NGO
           </button>
         </div>
       ) : (
-        <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+        <div className="bg-white border border-[#E5E7EB] rounded-2xl overflow-hidden shadow-xs">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-300">
-              <thead className="bg-slate-950/80 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-800">
+            <table className="w-full text-left text-sm text-[#374151]">
+              <thead className="bg-[#F9FAFB] text-xs font-bold text-[#4B5563] uppercase tracking-wider border-b border-[#E5E7EB]">
                 <tr>
                   <th className="px-6 py-4">NGO Name</th>
                   <th className="px-6 py-4">Account Email</th>
@@ -170,29 +170,29 @@ export const AdminNgosPage: React.FC = () => {
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
+              <tbody className="divide-y divide-[#E5E7EB]">
                 {safeNgos.map((ngo) => {
                   const isVerified = isNgoVerified(ngo);
                   return (
-                    <tr key={ngo.id} className="hover:bg-slate-800/30 transition-colors">
-                      <td className="px-6 py-4 font-semibold text-white">
+                    <tr key={ngo.id} className="hover:bg-[#F4F2FA] transition-colors">
+                      <td className="px-6 py-4 font-semibold text-[#111827]">
                         <div className="flex items-center gap-2">
-                          <Building2 className="w-4 h-4 text-indigo-400" />
+                          <Building2 className="w-4 h-4 text-[#7567E8]" />
                           <span>{ngo.name}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-slate-400 font-mono text-xs">{ngo.user?.email || 'N/A'}</td>
-                      <td className="px-6 py-4 text-xs text-slate-400">
+                      <td className="px-6 py-4 text-[#6B7280] font-mono text-xs">{ngo.user?.email || 'N/A'}</td>
+                      <td className="px-6 py-4 text-xs text-[#4B5563]">
                         <div>{ngo.address}</div>
-                        <div className="text-[11px] text-slate-500">{ngo.phone}</div>
+                        <div className="text-[11px] text-[#6B7280]">{ngo.phone}</div>
                       </td>
                       <td className="px-6 py-4">
                         {isVerified ? (
-                          <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                             <ShieldCheck className="w-3.5 h-3.5" /> Verified
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
                             <ShieldAlert className="w-3.5 h-3.5" /> Unverified
                           </span>
                         )}
@@ -203,8 +203,8 @@ export const AdminNgosPage: React.FC = () => {
                             onClick={() => handleVerifyToggle(ngo.id, isVerified)}
                             className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors border flex items-center gap-1 ${
                               isVerified
-                                ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
-                                : 'bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border-emerald-500/30'
+                                ? 'bg-white hover:bg-[#F4F2FA] text-[#374151] border-[#E5E7EB]'
+                                : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200'
                             }`}
                           >
                             <Check className="w-3.5 h-3.5" />
@@ -212,7 +212,7 @@ export const AdminNgosPage: React.FC = () => {
                           </button>
                           <button
                             onClick={() => setDeleteTarget(ngo)}
-                            className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-colors"
+                            className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition-colors"
                             title="Remove NGO"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -230,52 +230,52 @@ export const AdminNgosPage: React.FC = () => {
 
       {/* ADD NGO MODAL */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-6">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-[#E5E7EB] rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <Building2 className="w-5 h-5 text-indigo-400" />
+              <h2 className="text-xl font-bold text-[#111827] flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-[#7567E8]" />
                 Register New NGO Partner
               </h2>
               <button
                 onClick={() => setIsAddModalOpen(false)}
-                className="p-1 text-slate-400 hover:text-white transition-colors"
+                className="p-1 text-[#6B7280] hover:text-[#111827] transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {createError && (
-              <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs">
+              <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
                 {createError}
               </div>
             )}
 
             <form onSubmit={handleSubmit(handleCreateNgo)} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">NGO Name *</label>
+                <label className="block text-xs font-semibold text-[#4B5563] uppercase mb-1">NGO Name *</label>
                 <input
                   type="text"
                   placeholder="e.g. Hope Foundation"
                   {...register('name', { required: 'NGO name is required' })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-3.5 py-2 text-sm text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#7567E8]"
                 />
-                {errors.name && <p className="text-rose-400 text-xs mt-1">{errors.name.message}</p>}
+                {errors.name && <p className="text-rose-600 text-xs mt-1">{errors.name.message}</p>}
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">Account Email *</label>
+                <label className="block text-xs font-semibold text-[#4B5563] uppercase mb-1">Account Email *</label>
                 <input
                   type="email"
                   placeholder="contact@ngo.org"
                   {...register('email', { required: 'Email is required' })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-3.5 py-2 text-sm text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#7567E8]"
                 />
-                {errors.email && <p className="text-rose-400 text-xs mt-1">{errors.email.message}</p>}
+                {errors.email && <p className="text-rose-600 text-xs mt-1">{errors.email.message}</p>}
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">Initial Password *</label>
+                <label className="block text-xs font-semibold text-[#4B5563] uppercase mb-1">Initial Password *</label>
                 <input
                   type="password"
                   placeholder="Minimum 6 characters"
@@ -283,45 +283,45 @@ export const AdminNgosPage: React.FC = () => {
                     required: 'Password is required',
                     minLength: { value: 6, message: 'Password must be at least 6 characters' },
                   })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-3.5 py-2 text-sm text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#7567E8]"
                 />
-                {errors.password && <p className="text-rose-400 text-xs mt-1">{errors.password.message}</p>}
+                {errors.password && <p className="text-rose-600 text-xs mt-1">{errors.password.message}</p>}
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">Address *</label>
+                <label className="block text-xs font-semibold text-[#4B5563] uppercase mb-1">Address *</label>
                 <input
                   type="text"
                   placeholder="123 Community St, City"
                   {...register('address', { required: 'Address is required' })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-3.5 py-2 text-sm text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#7567E8]"
                 />
-                {errors.address && <p className="text-rose-400 text-xs mt-1">{errors.address.message}</p>}
+                {errors.address && <p className="text-rose-600 text-xs mt-1">{errors.address.message}</p>}
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">Phone Number *</label>
+                <label className="block text-xs font-semibold text-[#4B5563] uppercase mb-1">Phone Number *</label>
                 <input
                   type="text"
                   placeholder="+1 (555) 000-0000"
                   {...register('phone', { required: 'Phone is required' })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-3.5 py-2 text-sm text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#7567E8]"
                 />
-                {errors.phone && <p className="text-rose-400 text-xs mt-1">{errors.phone.message}</p>}
+                {errors.phone && <p className="text-rose-600 text-xs mt-1">{errors.phone.message}</p>}
               </div>
 
               <div className="pt-2 flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700 transition-colors"
+                  className="px-4 py-2 rounded-xl bg-white border border-[#E5E7EB] text-[#4B5563] text-xs font-semibold hover:bg-[#F4F2FA] transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={createLoading}
-                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-colors shadow-lg shadow-indigo-600/20 disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-[#7567E8] hover:bg-[#7567E8]/90 text-white font-semibold text-xs transition-colors shadow-xs disabled:opacity-50"
                 >
                   {createLoading ? 'Creating NGO...' : 'Create NGO User'}
                 </button>
@@ -333,27 +333,27 @@ export const AdminNgosPage: React.FC = () => {
 
       {/* CONFIRMATION DIALOG FOR DELETE */}
       {deleteTarget && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-rose-500/30 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 text-center">
-            <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-rose-200 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto">
               <AlertTriangle className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-bold text-white">Confirm Removal</h3>
-            <p className="text-slate-300 text-xs leading-relaxed">
+            <h3 className="text-lg font-bold text-[#111827]">Confirm Removal</h3>
+            <p className="text-[#4B5563] text-xs leading-relaxed">
               Are you sure you want to permanently delete <strong>{deleteTarget.name}</strong>? This action will remove the NGO profile and user account.
             </p>
             <div className="pt-2 flex items-center justify-center gap-3">
               <button
                 onClick={() => setDeleteTarget(null)}
                 disabled={deleteLoading}
-                className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700 transition-colors"
+                className="px-4 py-2 rounded-xl bg-white border border-[#E5E7EB] text-[#4B5563] text-xs font-semibold hover:bg-[#F4F2FA] transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteConfirm}
                 disabled={deleteLoading}
-                className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs transition-colors shadow-lg shadow-rose-600/20 disabled:opacity-50"
+                className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs transition-colors shadow-xs disabled:opacity-50"
               >
                 {deleteLoading ? 'Removing...' : 'Confirm Remove'}
               </button>

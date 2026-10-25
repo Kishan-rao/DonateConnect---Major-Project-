@@ -349,32 +349,30 @@ export const TrackDeliveryPage: React.FC = () => {
 
       {/* Volunteer Live Tracking Controller */}
       {isVolunteer && delivery && donation?.status !== 'DELIVERED' && donation?.status !== 'REJECTED' && (
-        <div className="bg-slate-900 rounded-3xl p-5 border border-slate-800 shadow-xl">
+        <div className="bg-white rounded-3xl p-5 border border-[#E5E7EB] shadow-[0_10px_15px_-3px_rgba(17,24,39,0.04)]">
           <LiveLocationTracker deliveryId={delivery.id} status={delivery.status} donation={donation || undefined} />
         </div>
       )}
 
       {/* Proof of Delivery Panel */}
       {showProofForm && (
-        <div className="bg-indigo-900 rounded-3xl p-6 text-white shadow-lg border border-indigo-800">
+        <div className="bg-white rounded-3xl p-6 text-[#111827] shadow-[0_10px_15px_-3px_rgba(17,24,39,0.04)] border border-[#E5E7EB]">
           <div className="flex flex-col md:flex-row gap-8 items-start md:items-center justify-between">
             <div className="space-y-2 flex-1">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <CheckCircle className="text-emerald-400 w-6 h-6" />
+              <h2 className="text-xl font-bold flex items-center gap-2 text-[#111827]">
+                <CheckCircle className="text-emerald-600 w-6 h-6" />
                 Complete Delivery
               </h2>
-              <p className="text-indigo-200 text-sm">
+              <p className="text-[#4B5563] text-sm">
                 You have reached the NGO! To finalize this delivery, ask the NGO receiver to enter the OTP shown below, and upload a photo of the handed-over items.
               </p>
-              
-
             </div>
 
-            <div className="bg-white rounded-2xl p-5 shadow-xl w-full md:w-[400px] text-slate-800">
-              <h3 className="font-bold mb-4 text-slate-900 border-b pb-2">Verification Form</h3>
+            <div className="bg-[#F9FAFB] rounded-2xl p-5 border border-[#E5E7EB] shadow-sm w-full md:w-[400px] text-[#111827]">
+              <h3 className="font-bold mb-4 text-[#111827] border-b border-[#E5E7EB] pb-2">Verification Form</h3>
               
               {proofError && (
-                <div className="mb-4 p-3 bg-rose-50 text-rose-600 text-sm rounded-xl border border-rose-100 flex items-start gap-2">
+                <div className="mb-4 p-3 bg-rose-50 text-rose-700 text-sm rounded-xl border border-rose-200 flex items-start gap-2">
                   <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
                   <span>{proofError}</span>
                 </div>
@@ -382,17 +380,17 @@ export const TrackDeliveryPage: React.FC = () => {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Enter NGO OTP</label>
-                  <div className="flex justify-center bg-slate-900 rounded-xl p-3 border border-slate-800 shadow-inner">
+                  <label className="block text-xs font-bold text-[#4B5563] uppercase tracking-wider mb-2">Enter NGO OTP</label>
+                  <div className="flex justify-center bg-white rounded-xl p-3 border border-[#E5E7EB] shadow-xs">
                     <OtpInput value={otp} onChange={setOtp} length={6} />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Delivery Photo</label>
-                  <label className="flex items-center justify-center w-full h-24 border-2 border-slate-200 border-dashed rounded-xl cursor-pointer hover:bg-slate-50 hover:border-indigo-300 transition-colors bg-slate-50/50">
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6 text-slate-500">
-                      <Upload className="w-6 h-6 mb-2 text-indigo-400" />
+                  <label className="block text-xs font-bold text-[#4B5563] uppercase tracking-wider mb-1">Delivery Photo</label>
+                  <label className="flex items-center justify-center w-full h-24 border-2 border-[#E5E7EB] border-dashed rounded-xl cursor-pointer hover:bg-[#F4F2FA] hover:border-[#7567E8] transition-colors bg-white">
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6 text-[#6B7280]">
+                      <Upload className="w-6 h-6 mb-2 text-[#7567E8]" />
                       <p className="text-sm font-semibold">{proofImage ? proofImage.name : 'Tap to upload photo'}</p>
                     </div>
                     <input
@@ -407,7 +405,7 @@ export const TrackDeliveryPage: React.FC = () => {
                 <button
                   onClick={handleCompleteDelivery}
                   disabled={submittingProof || !otp || !proofImage || otp.length !== 6}
-                  className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white rounded-xl font-bold shadow-md shadow-indigo-200 disabled:shadow-none transition-all flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-[#7567E8] hover:bg-[#7567E8]/90 disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-xl font-bold shadow-sm transition-all flex items-center justify-center gap-2"
                 >
                   {submittingProof ? (
                     <RefreshCw className="w-5 h-5 animate-spin" />
@@ -425,43 +423,43 @@ export const TrackDeliveryPage: React.FC = () => {
       {/* Map Card */}
       <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden flex flex-col">
         {/* Status Bar */}
-        <div className="bg-slate-900 p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="bg-white border-b border-[#E5E7EB] p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center border border-indigo-100">
               <img src="https://cdn-icons-png.flaticon.com/512/3233/3233967.png" alt="truck" className="w-8 h-8" />
             </div>
             <div>
-              <h3 className="font-bold text-white flex items-center gap-2">
+              <h3 className="font-bold text-[#111827] flex items-center gap-2">
                 {donation?.status === 'DELIVERED' ? (
-                  <span className="text-emerald-400">Delivery Completed</span>
+                  <span className="text-emerald-700">Delivery Completed</span>
                 ) : donation?.status === 'REJECTED' ? (
-                  <span className="text-rose-400">Delivery Cancelled</span>
+                  <span className="text-rose-700">Delivery Cancelled</span>
                 ) : delivery?.status === 'ASSIGNED' ? (
-                  <span className="text-amber-400">Awaiting Volunteer Assignment</span>
+                  <span className="text-amber-700">Awaiting Volunteer Assignment</span>
                 ) : delivery?.status === 'ACCEPTED_BY_VOLUNTEER' ? (
-                  <span className="text-indigo-400">Volunteer Assigned (Pre-Trip)</span>
+                  <span className="text-indigo-700">Volunteer Assigned (Pre-Trip)</span>
                 ) : (
                   'Volunteer En Route'
                 )}
                 {donation?.status === 'DELIVERED' ? (
-                  <span className="text-[10px] font-bold bg-emerald-500 text-slate-900 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
                     <ShieldCheck className="w-3 h-3" /> Delivered
                   </span>
                 ) : isOffline ? (
-                  <span className="text-[10px] font-bold bg-amber-500 text-slate-900 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <span className="text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1">
                     <AlertTriangle className="w-3 h-3" /> Offline (Signal Inactive)
                   </span>
                 ) : currentLoc ? (
-                  <span className="text-[10px] font-bold bg-emerald-500 text-slate-900 px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-900 animate-pulse" /> Live GPS
+                  <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" /> Live GPS
                   </span>
                 ) : (
-                  <span className="text-[10px] font-bold bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <span className="text-[10px] font-bold bg-gray-100 text-gray-700 border border-gray-200 px-2 py-0.5 rounded-full flex items-center gap-1">
                     <Clock className="w-3 h-3" /> Pending Signal
                   </span>
                 )}
               </h3>
-              <p className="text-xs text-slate-400 font-mono mt-1">
+              <p className="text-xs text-[#6B7280] font-mono mt-1">
                 {donation?.status === 'DELIVERED'
                   ? 'Delivery completed and verified.'
                   : currentLoc && lastUpdated
@@ -473,9 +471,9 @@ export const TrackDeliveryPage: React.FC = () => {
             </div>
           </div>
           
-          <div className="flex flex-col items-end gap-1 text-xs font-semibold text-slate-400">
-            <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-rose-400" /> Pickup Location</span>
-            <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-400" /> {donation?.ngo?.name || 'NGO Hub'}</span>
+          <div className="flex flex-col items-end gap-1 text-xs font-semibold text-[#4B5563]">
+            <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-rose-500" /> Pickup Location</span>
+            <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-600" /> {donation?.ngo?.name || 'NGO Hub'}</span>
           </div>
         </div>
 
@@ -534,8 +532,8 @@ export const TrackDeliveryPage: React.FC = () => {
           </MapContainer>
 
           {!currentLoc && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] bg-slate-900/90 backdrop-blur-sm border border-slate-700 text-white px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow-lg">
-              <Navigation className="w-4 h-4 text-amber-400 animate-pulse" />
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] bg-white/95 backdrop-blur-sm border border-[#E5E7EB] text-[#111827] px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow-lg">
+              <Navigation className="w-4 h-4 text-amber-500 animate-pulse" />
               <span>
                 {delivery?.status === 'ASSIGNED'
                   ? 'Pickup open — Waiting for a volunteer delivery partner to claim.'

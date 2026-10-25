@@ -12,21 +12,21 @@ export const AdminProfilePage: React.FC = () => {
 
   return (
     <div className="max-w-3xl mx-auto py-8 space-y-6">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-10 shadow-xl space-y-8 relative overflow-hidden">
+      <div className="bg-white border border-[#E5E7EB] rounded-3xl p-6 sm:p-10 shadow-sm space-y-8 relative overflow-hidden">
         
         {/* Decorative Background */}
         <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
-          <Shield className="w-64 h-64 text-indigo-500" />
+          <Shield className="w-64 h-64 text-[#7567E8]" />
         </div>
 
         {/* Profile Header */}
-        <div className="relative flex flex-col sm:flex-row items-center sm:items-start gap-6 pb-8 border-b border-slate-800">
-          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-4xl shadow-lg shadow-indigo-500/20 shrink-0 border-4 border-slate-900">
+        <div className="relative flex flex-col sm:flex-row items-center sm:items-start gap-6 pb-8 border-b border-[#E5E7EB]">
+          <div className="w-24 h-24 rounded-full bg-[#7567E8] flex items-center justify-center text-white font-bold text-4xl shadow-md shrink-0 border-4 border-white">
             {initial}
           </div>
           <div className="text-center sm:text-left pt-2">
-            <h1 className="text-3xl font-extrabold text-white mb-2">{user.fullName || 'System Administrator'}</h1>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 font-bold text-xs uppercase tracking-wider border border-indigo-500/30">
+            <h1 className="text-3xl font-extrabold text-[#111827] mb-2">{user.fullName || 'System Administrator'}</h1>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#7567E8]/10 text-[#7567E8] font-bold text-xs uppercase tracking-wider border border-[#7567E8]/20">
               <Shield className="w-3.5 h-3.5" />
               {user.role}
             </span>
@@ -35,30 +35,30 @@ export const AdminProfilePage: React.FC = () => {
 
         {/* Profile Details */}
         <div className="relative grid sm:grid-cols-2 gap-6">
-          <div className="bg-slate-950/50 p-5 rounded-2xl border border-slate-800 backdrop-blur-sm">
-            <div className="flex items-center gap-3 text-slate-400 mb-1">
-              <User className="w-5 h-5 text-indigo-400" />
+          <div className="bg-[#F9FAFB] p-5 rounded-2xl border border-[#E5E7EB]">
+            <div className="flex items-center gap-3 text-[#4B5563] mb-1">
+              <User className="w-5 h-5 text-[#7567E8]" />
               <span className="text-sm font-semibold uppercase tracking-wider">Full Name</span>
             </div>
-            <p className="text-lg font-bold text-slate-100 pl-8">{user.fullName || 'Not provided'}</p>
+            <p className="text-lg font-bold text-[#111827] pl-8">{user.fullName || 'Not provided'}</p>
           </div>
 
-          <div className="bg-slate-950/50 p-5 rounded-2xl border border-slate-800 backdrop-blur-sm">
-            <div className="flex items-center gap-3 text-slate-400 mb-1">
-              <Mail className="w-5 h-5 text-indigo-400" />
+          <div className="bg-[#F9FAFB] p-5 rounded-2xl border border-[#E5E7EB]">
+            <div className="flex items-center gap-3 text-[#4B5563] mb-1">
+              <Mail className="w-5 h-5 text-[#7567E8]" />
               <span className="text-sm font-semibold uppercase tracking-wider">Email Address</span>
             </div>
-            <p className="text-lg font-bold text-slate-100 pl-8">{user.email}</p>
+            <p className="text-lg font-bold text-[#111827] pl-8">{user.email}</p>
           </div>
         </div>
 
         {/* Quick Links / Actions */}
-        <div className="relative pt-6 border-t border-slate-800">
-          <h2 className="text-lg font-bold text-slate-200 mb-4">Administration Links</h2>
+        <div className="relative pt-6 border-t border-[#E5E7EB]">
+          <h2 className="text-lg font-bold text-[#111827] mb-4">Administration Links</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Link 
               to="/admin" 
-              className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 font-bold rounded-xl transition-colors border border-indigo-500/20"
+              className="flex items-center justify-center gap-2 px-4 py-3 bg-[#F4F2FA] hover:bg-[#EAE6F5] text-[#7567E8] font-bold rounded-xl transition-colors border border-[#7567E8]/20 shadow-xs"
             >
               <LayoutDashboard className="w-4 h-4" />
               Dashboard
@@ -66,7 +66,7 @@ export const AdminProfilePage: React.FC = () => {
             
             <Link 
               to="/admin/ngos" 
-              className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 font-bold rounded-xl transition-colors border border-indigo-500/20"
+              className="flex items-center justify-center gap-2 px-4 py-3 bg-[#F4F2FA] hover:bg-[#EAE6F5] text-[#7567E8] font-bold rounded-xl transition-colors border border-[#7567E8]/20 shadow-xs"
             >
               <Users className="w-4 h-4" />
               Manage NGOs
@@ -74,7 +74,7 @@ export const AdminProfilePage: React.FC = () => {
             
             <Link 
               to="/admin/donations" 
-              className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 font-bold rounded-xl transition-colors border border-indigo-500/20"
+              className="flex items-center justify-center gap-2 px-4 py-3 bg-[#F4F2FA] hover:bg-[#EAE6F5] text-[#7567E8] font-bold rounded-xl transition-colors border border-[#7567E8]/20 shadow-xs"
             >
               <Database className="w-4 h-4" />
               All Donations
@@ -84,7 +84,7 @@ export const AdminProfilePage: React.FC = () => {
           <div className="mt-6 flex justify-end">
             <button 
               onClick={() => logout()}
-              className="flex items-center justify-center gap-2 px-6 py-3 bg-slate-950 hover:bg-rose-500/10 text-rose-400 font-bold rounded-xl transition-colors border border-rose-500/20 shadow-sm w-full sm:w-auto"
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-white hover:bg-rose-50 text-rose-600 font-bold rounded-xl transition-colors border border-rose-200 shadow-xs w-full sm:w-auto"
             >
               <LogOut className="w-4 h-4" />
               Sign Out

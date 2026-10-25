@@ -64,26 +64,26 @@ export const NgoListPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
-            <Building2 className="w-8 h-8 text-indigo-400" />
+          <h1 className="text-3xl font-extrabold text-[#111827] tracking-tight flex items-center gap-3">
+            <Building2 className="w-8 h-8 text-[#7567E8]" />
             Verified NGO Partners
           </h1>
-          <p className="text-slate-400 text-sm mt-1">
+          <p className="text-[#4B5563] text-sm mt-1">
             Browse verified non-profit organizations accepting community donations
           </p>
         </div>
       </div>
 
       {/* Search & Filters */}
-      <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-2xl flex flex-col md:flex-row gap-4 items-center">
+      <div className="bg-white border border-[#E5E7EB] p-5 rounded-2xl flex flex-col md:flex-row gap-4 items-center shadow-sm">
         <div className="relative flex-1 w-full">
-          <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-[#9CA3AF] absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Search by NGO name or description..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors shadow-inner"
+            className="w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl pl-10 pr-4 py-2.5 text-sm text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#7567E8] transition-colors"
           />
         </div>
         
@@ -91,7 +91,7 @@ export const NgoListPage: React.FC = () => {
           <select 
             value={categoryFilter} 
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="bg-slate-950 border border-slate-800 text-slate-300 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 min-w-[140px]"
+            className="bg-[#F9FAFB] border border-[#E5E7EB] text-[#111827] text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#7567E8] min-w-[140px]"
           >
             <option value="">Any Category</option>
             {CATEGORIES.map(c => (
@@ -104,22 +104,22 @@ export const NgoListPage: React.FC = () => {
             placeholder="City filter..."
             value={cityFilter}
             onChange={(e) => setCityFilter(e.target.value)}
-            className="w-32 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            className="w-32 bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-3 py-2.5 text-sm text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#7567E8]"
           />
 
-          <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+          <label className="flex items-center gap-2 text-sm text-[#374151] cursor-pointer">
             <input 
               type="checkbox" 
               checked={needsRightNowFilter}
               onChange={(e) => setNeedsRightNowFilter(e.target.checked)}
-              className="rounded bg-slate-950 border-slate-800 text-indigo-500 focus:ring-indigo-500/20"
+              className="rounded bg-[#F9FAFB] border-[#E5E7EB] text-[#7567E8] focus:ring-[#7567E8]/20"
             />
             Needs Right Now
           </label>
 
           <button 
             onClick={requestLocation}
-            className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${userLoc ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
+            className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${userLoc ? 'bg-[#7567E8] text-white shadow-sm' : 'bg-[#F3F4F6] text-[#374151] hover:bg-[#E5E7EB]'}`}
           >
             <Navigation className="w-4 h-4" />
             {userLoc ? 'Sorted by Distance' : 'Sort by Distance'}
@@ -129,25 +129,25 @@ export const NgoListPage: React.FC = () => {
 
       {/* NGO Grid */}
       {loading ? (
-        <div className="text-center py-16 bg-slate-900/30 rounded-2xl border border-slate-800">
-          <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-slate-400 text-sm">Fetching verified NGO profiles...</p>
+        <div className="text-center py-16 bg-[#F9FAFB] rounded-2xl border border-[#E5E7EB]">
+          <div className="w-8 h-8 border-2 border-[#7567E8] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-[#6B7280] text-sm">Fetching verified NGO profiles...</p>
         </div>
       ) : error ? (
-        <div className="p-6 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-center text-rose-400 space-y-3">
+        <div className="p-6 rounded-2xl bg-rose-50 border border-rose-200 text-center text-rose-700 space-y-3">
           <p className="font-semibold">{error}</p>
           <button
             onClick={fetchNgos}
-            className="px-4 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-semibold transition-colors"
+            className="px-4 py-1.5 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-800 text-xs font-semibold transition-colors"
           >
             Retry Loading
           </button>
         </div>
       ) : filteredNgos.length === 0 ? (
-        <div className="text-center py-16 bg-slate-900/30 rounded-2xl border border-slate-800 space-y-3">
-          <Building2 className="w-12 h-12 text-slate-600 mx-auto" />
-          <h3 className="text-slate-300 font-semibold text-lg">No verified NGOs found</h3>
-          <p className="text-slate-500 text-sm max-w-sm mx-auto">
+        <div className="text-center py-16 bg-[#F9FAFB] rounded-2xl border border-[#E5E7EB] space-y-3">
+          <Building2 className="w-12 h-12 text-[#9CA3AF] mx-auto" />
+          <h3 className="text-[#111827] font-semibold text-lg">No verified NGOs found</h3>
+          <p className="text-[#6B7280] text-sm max-w-sm mx-auto">
             {ngos.length === 0
               ? 'No verified NGO profiles are registered in the system yet.'
               : 'Try clearing or modifying your search filter.'}
@@ -159,44 +159,44 @@ export const NgoListPage: React.FC = () => {
             <div
               key={ngo.id}
               onClick={() => navigate(`/ngos/${ngo.id}`)}
-              className="group cursor-pointer bg-slate-900/60 border border-slate-800 hover:border-indigo-500/50 rounded-2xl p-6 transition-all duration-300 hover:shadow-xl hover:shadow-indigo-500/5 flex flex-col justify-between"
+              className="group cursor-pointer bg-white border border-[#E5E7EB] hover:border-[#7567E8]/50 rounded-2xl p-6 transition-all duration-300 hover:shadow-md flex flex-col justify-between shadow-sm"
             >
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
                     <ShieldCheck className="w-3.5 h-3.5" />
                     Verified NGO
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-xl font-bold text-white group-hover:text-indigo-400 transition-colors">
+                  <h2 className="text-xl font-bold text-[#111827] group-hover:text-[#7567E8] transition-colors">
                     {ngo.name}
                   </h2>
                   {(ngo.averageRating ?? 0) > 0 && (
-                    <div className="flex items-center gap-1 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-lg">
+                    <div className="flex items-center gap-1 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-lg">
                       <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                      <span className="text-amber-500 font-bold text-xs">{ngo.averageRating?.toFixed(1)}</span>
-                      <span className="text-amber-500/60 text-[10px]">({ngo.ratingCount})</span>
+                      <span className="text-amber-700 font-bold text-xs">{ngo.averageRating?.toFixed(1)}</span>
+                      <span className="text-amber-600 text-[10px]">({ngo.ratingCount})</span>
                     </div>
                   )}
                 </div>
 
-                <p className="text-slate-400 text-sm mb-4 line-clamp-2 leading-relaxed">
+                <p className="text-[#4B5563] text-sm mb-4 line-clamp-2 leading-relaxed">
                   {ngo.description || 'Verified non-profit partner committed to community support.'}
                 </p>
 
                 {ngo.urgentNeeds && ngo.urgentNeeds.length > 0 && (
                   <div className="mb-4 space-y-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-rose-400">Urgent Needs:</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600">Urgent Needs:</span>
                     <div className="flex flex-wrap gap-2">
                       {ngo.urgentNeeds.slice(0, 3).map(need => (
-                        <span key={need.id} className="text-xs bg-rose-500/10 text-rose-300 border border-rose-500/20 px-2 py-1 rounded-md flex items-center gap-1.5">
-                          {need.title} <span className="text-[10px] bg-rose-500/20 px-1 rounded">{need.quantity || 'Any'}</span>
+                        <span key={need.id} className="text-xs bg-rose-50 text-rose-700 border border-rose-200 px-2 py-1 rounded-md flex items-center gap-1.5">
+                          {need.title} <span className="text-[10px] bg-rose-100 text-rose-800 px-1 rounded font-semibold">{need.quantity || 'Any'}</span>
                         </span>
                       ))}
                       {ngo.urgentNeeds.length > 3 && (
-                        <span className="text-xs bg-slate-800 text-slate-400 border border-slate-700 px-2 py-1 rounded-md">
+                        <span className="text-xs bg-[#F3F4F6] text-[#4B5563] border border-[#E5E7EB] px-2 py-1 rounded-md">
                           +{ngo.urgentNeeds.length - 3} more
                         </span>
                       )}
@@ -205,18 +205,18 @@ export const NgoListPage: React.FC = () => {
                 )}
               </div>
 
-              <div className="border-t border-slate-800/80 pt-4 mt-2 space-y-3">
-                <div className="space-y-1.5 text-xs text-slate-400">
+              <div className="border-t border-[#E5E7EB] pt-4 mt-2 space-y-3">
+                <div className="space-y-1.5 text-xs text-[#6B7280]">
                   <div className="flex items-center gap-2">
-                    <MapPin className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                    <MapPin className="w-3.5 h-3.5 text-[#7567E8] shrink-0" />
                     <span className="truncate">{ngo.address} {ngo.city ? `(${ngo.city})` : ''}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Phone className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                    <Phone className="w-3.5 h-3.5 text-[#7567E8] shrink-0" />
                     <span>{ngo.phone}</span>
                   </div>
                   {ngo.distanceKm !== undefined && (
-                    <div className="flex items-center gap-2 text-indigo-300">
+                    <div className="flex items-center gap-2 text-[#7567E8] font-medium">
                       <Compass className="w-3.5 h-3.5 shrink-0" />
                       <span>{ngo.distanceKm.toFixed(1)} km away</span>
                     </div>
@@ -224,13 +224,13 @@ export const NgoListPage: React.FC = () => {
                 </div>
 
                 <div className="flex items-center justify-between pt-2">
-                  <span className="text-xs font-semibold text-indigo-400 group-hover:underline flex items-center gap-1">
+                  <span className="text-xs font-semibold text-[#7567E8] group-hover:underline flex items-center gap-1">
                     View Profile & Donate <ArrowRight className="w-3.5 h-3.5" />
                   </span>
                   <Link
                     to={`/donate/new?ngoId=${ngo.id}`}
                     onClick={(e) => e.stopPropagation()}
-                    className="px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white font-semibold text-xs transition-colors border border-indigo-500/30 flex items-center gap-1"
+                    className="px-3 py-1.5 rounded-lg bg-[#7567E8]/10 hover:bg-[#7567E8] text-[#7567E8] hover:text-white font-semibold text-xs transition-colors border border-[#7567E8]/20 flex items-center gap-1"
                   >
                     <HeartHandshake className="w-3.5 h-3.5" />
                     Donate

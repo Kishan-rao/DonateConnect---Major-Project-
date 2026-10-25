@@ -134,21 +134,21 @@ export const LoginPage: React.FC = () => {
 
   return (
     <div className="max-w-md mx-auto py-12">
-      <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-8 shadow-2xl backdrop-blur-md">
+      <div className="bg-white border border-[#E5E7EB] rounded-3xl p-8 shadow-sm">
         <div className="text-center mb-8">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto mb-3">
-            <HeartHandshake className="w-7 h-7 text-indigo-400" />
+          <div className="w-12 h-12 rounded-2xl bg-[#7567E8]/10 border border-[#7567E8]/20 text-[#7567E8] flex items-center justify-center mx-auto mb-3">
+            <HeartHandshake className="w-7 h-7 text-[#7567E8]" />
           </div>
-          <h1 className="text-2xl font-bold text-white">
+          <h1 className="text-2xl font-bold text-[#111827]">
             {showOtp ? 'Verify OTP' : selectedRole === 'ADMIN' ? 'Admin Portal' : selectedRole === 'NGO' ? 'NGO Portal' : 'Welcome Back'}
           </h1>
-          <p className="text-slate-400 text-xs mt-1">
+          <p className="text-[#4B5563] text-xs mt-1">
             {showOtp ? `Enter the 6-digit code sent to ${loginEmail}` : 'Sign in to your DonateConnect account'}
           </p>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium text-center">
+          <div className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium text-center">
             {error}
           </div>
         )}
@@ -156,14 +156,14 @@ export const LoginPage: React.FC = () => {
         {!showOtp ? (
           <>
             {/* Role Selector Tabs */}
-            <div className="flex p-1 bg-slate-950/50 rounded-xl mb-8 border border-slate-800/50">
+            <div className="flex p-1 bg-[#F9FAFB] rounded-xl mb-8 border border-[#E5E7EB]">
               <button
                 type="button"
                 onClick={() => handleRoleSelect('DONOR')}
                 className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
                   selectedRole === 'DONOR'
-                    ? 'bg-indigo-600 text-white shadow-md'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                    ? 'bg-[#7567E8] text-white shadow-xs'
+                    : 'text-[#4B5563] hover:text-[#111827] hover:bg-white'
                 }`}
               >
                 Donor
@@ -173,8 +173,8 @@ export const LoginPage: React.FC = () => {
                 onClick={() => handleRoleSelect('NGO')}
                 className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
                   selectedRole === 'NGO'
-                    ? 'bg-indigo-600 text-white shadow-md'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                    ? 'bg-[#7567E8] text-white shadow-xs'
+                    : 'text-[#4B5563] hover:text-[#111827] hover:bg-white'
                 }`}
               >
                 NGO
@@ -184,8 +184,8 @@ export const LoginPage: React.FC = () => {
                 onClick={() => handleRoleSelect('VOLUNTEER')}
                 className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
                   selectedRole === 'VOLUNTEER'
-                    ? 'bg-indigo-600 text-white shadow-md'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                    ? 'bg-[#7567E8] text-white shadow-xs'
+                    : 'text-[#4B5563] hover:text-[#111827] hover:bg-white'
                 }`}
               >
                 Delivery Partner
@@ -195,8 +195,8 @@ export const LoginPage: React.FC = () => {
                 onClick={() => handleRoleSelect('ADMIN')}
                 className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
                   selectedRole === 'ADMIN'
-                    ? 'bg-indigo-600 text-white shadow-md'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                    ? 'bg-[#7567E8] text-white shadow-xs'
+                    : 'text-[#4B5563] hover:text-[#111827] hover:bg-white'
                 }`}
               >
                 Admin
@@ -205,45 +205,45 @@ export const LoginPage: React.FC = () => {
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-[#4B5563] uppercase tracking-wider mb-1.5">
                   Email Address
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <Mail className="w-4 h-4 text-[#9CA3AF] absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="email"
                     placeholder="name@example.com"
                     {...register('email', { required: 'Email is required' })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition-colors"
+                    className="w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl pl-10 pr-4 py-2.5 text-sm text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#7567E8] transition-colors"
                   />
                 </div>
                 {errors.email && (
-                  <p className="text-rose-400 text-xs mt-1">{errors.email.message}</p>
+                  <p className="text-rose-600 text-xs mt-1">{errors.email.message}</p>
                 )}
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-[#4B5563] uppercase tracking-wider mb-1.5">
                   Password
                 </label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <Lock className="w-4 h-4 text-[#9CA3AF] absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="password"
                     placeholder="••••••••"
                     {...register('password', { required: 'Password is required' })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition-colors"
+                    className="w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl pl-10 pr-4 py-2.5 text-sm text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#7567E8] transition-colors"
                   />
                 </div>
                 {errors.password && (
-                  <p className="text-rose-400 text-xs mt-1">{errors.password.message}</p>
+                  <p className="text-rose-600 text-xs mt-1">{errors.password.message}</p>
                 )}
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-rose-600 text-white font-bold text-sm shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 hover:scale-[1.01] transition-all flex items-center justify-center gap-2 disabled:opacity-50 mt-2"
+                className="w-full py-3 px-4 rounded-xl bg-[#7567E8] hover:bg-[#7567E8]/90 text-white font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 mt-2"
               >
                 {loading ? (
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -256,12 +256,12 @@ export const LoginPage: React.FC = () => {
               </button>
             </form>
 
-            <div className="text-center mt-6 pt-6 border-t border-slate-800/80">
-              <p className="text-xs text-slate-400">
+            <div className="text-center mt-6 pt-6 border-t border-[#E5E7EB]">
+              <p className="text-xs text-[#4B5563]">
                 Don't have an account?{' '}
                 <Link
                   to={selectedRole === 'NGO' ? '/register?role=ngo' : selectedRole === 'VOLUNTEER' ? '/register?role=volunteer' : '/register?role=donor'}
-                  className="text-indigo-400 font-semibold hover:underline inline-flex items-center gap-0.5"
+                  className="text-[#7567E8] font-semibold hover:underline inline-flex items-center gap-0.5"
                 >
                   {selectedRole === 'NGO' ? 'Register as NGO' : selectedRole === 'VOLUNTEER' ? 'Register as Delivery Partner' : 'Register as Donor'}{' '}
                   <ArrowRight className="w-3 h-3 ml-0.5" />
@@ -272,7 +272,7 @@ export const LoginPage: React.FC = () => {
         ) : (
           <form onSubmit={handleVerifyOtp} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-[#4B5563] uppercase tracking-wider mb-1.5">
                 6-Digit OTP Code
               </label>
               <div className="relative pt-2">
@@ -281,25 +281,25 @@ export const LoginPage: React.FC = () => {
             </div>
 
             <div className="flex items-center justify-between text-xs pt-1">
-              <span className="text-slate-400">Didn't receive the code?</span>
+              <span className="text-[#4B5563]">Didn't receive the code?</span>
               <button
                 type="button"
                 onClick={handleResendOtp}
                 disabled={resending || resendCountdown > 0}
-                className="text-indigo-400 hover:text-indigo-300 font-semibold disabled:opacity-50 transition-colors"
+                className="text-[#7567E8] hover:text-[#7567E8]/80 font-semibold disabled:opacity-50 transition-colors"
               >
                 {resendCountdown > 0 ? `Resend in ${resendCountdown}s` : resending ? 'Sending...' : 'Resend Code'}
               </button>
             </div>
 
             {resendMessage && (
-              <p className="text-emerald-400 text-xs text-center font-medium">{resendMessage}</p>
+              <p className="text-emerald-700 text-xs text-center font-medium">{resendMessage}</p>
             )}
 
             <button
               type="submit"
               disabled={loading || otpCode.length !== 6}
-              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-rose-600 text-white font-bold text-sm shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 hover:scale-[1.01] transition-all flex items-center justify-center gap-2 disabled:opacity-50 mt-2"
+              className="w-full py-3 px-4 rounded-xl bg-[#7567E8] hover:bg-[#7567E8]/90 text-white font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 mt-2"
             >
               {loading ? (
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -310,7 +310,7 @@ export const LoginPage: React.FC = () => {
             <button
               type="button"
               onClick={() => { setShowOtp(false); setError(null); }}
-              className="w-full py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm transition-all flex items-center justify-center mt-2"
+              className="w-full py-3 px-4 rounded-xl bg-white hover:bg-[#F4F2FA] text-[#4B5563] border border-[#E5E7EB] font-bold text-sm transition-all flex items-center justify-center mt-2 shadow-xs"
             >
               Cancel & Go Back
             </button>

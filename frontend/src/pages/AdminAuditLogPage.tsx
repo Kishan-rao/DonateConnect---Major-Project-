@@ -27,18 +27,18 @@ export const AdminAuditLogPage: React.FC = () => {
     <div className="space-y-8 py-6 max-w-7xl mx-auto px-4">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
-          <Shield className="w-8 h-8 text-rose-500" />
+        <h1 className="text-3xl font-extrabold text-[#111827] tracking-tight flex items-center gap-3">
+          <Shield className="w-8 h-8 text-rose-600" />
           System Audit & Security Logs
         </h1>
-        <p className="text-slate-400 text-sm mt-1">
+        <p className="text-[#4B5563] text-sm mt-1">
           Monitor sensitive actions including NGO verification, role changes, and delivery updates.
         </p>
       </div>
 
       {/* Filters */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row gap-4 items-center">
-        <div className="flex items-center gap-2 text-slate-400">
+      <div className="bg-white border border-[#E5E7EB] rounded-2xl p-4 flex flex-col md:flex-row gap-4 items-center shadow-xs">
+        <div className="flex items-center gap-2 text-[#4B5563]">
           <Filter className="w-5 h-5" />
           <span className="text-sm font-semibold">Filter by:</span>
         </div>
@@ -46,7 +46,7 @@ export const AdminAuditLogPage: React.FC = () => {
         <select
           value={actionFilter}
           onChange={(e) => setActionFilter(e.target.value)}
-          className="bg-slate-950 border border-slate-700 text-slate-300 text-sm rounded-xl px-4 py-2 focus:outline-none focus:border-rose-500 w-full md:w-auto"
+          className="bg-[#F9FAFB] border border-[#E5E7EB] text-[#111827] text-sm rounded-xl px-4 py-2 focus:outline-none focus:border-[#7567E8] w-full md:w-auto"
         >
           <option value="">All Actions</option>
           <option value="VERIFY_NGO">VERIFY_NGO</option>
@@ -60,7 +60,7 @@ export const AdminAuditLogPage: React.FC = () => {
         <select
           value={entityTypeFilter}
           onChange={(e) => setEntityTypeFilter(e.target.value)}
-          className="bg-slate-950 border border-slate-700 text-slate-300 text-sm rounded-xl px-4 py-2 focus:outline-none focus:border-rose-500 w-full md:w-auto"
+          className="bg-[#F9FAFB] border border-[#E5E7EB] text-[#111827] text-sm rounded-xl px-4 py-2 focus:outline-none focus:border-[#7567E8] w-full md:w-auto"
         >
           <option value="">All Entity Types</option>
           <option value="NGO">NGO</option>
@@ -71,11 +71,11 @@ export const AdminAuditLogPage: React.FC = () => {
       </div>
 
       {/* Logs Table */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
+      <div className="bg-white border border-[#E5E7EB] rounded-3xl overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-950/50 border-b border-slate-800 text-slate-400 text-[10px] uppercase tracking-wider">
+              <tr className="bg-[#F9FAFB] border-b border-[#E5E7EB] text-[#4B5563] text-[10px] uppercase tracking-wider">
                 <th className="p-4 font-semibold">Timestamp</th>
                 <th className="p-4 font-semibold">Actor</th>
                 <th className="p-4 font-semibold">Action</th>
@@ -83,46 +83,46 @@ export const AdminAuditLogPage: React.FC = () => {
                 <th className="p-4 font-semibold">Details</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/50">
+            <tbody className="divide-y divide-[#E5E7EB]">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-slate-400">
-                    <Activity className="w-6 h-6 animate-spin mx-auto mb-2" />
+                  <td colSpan={5} className="p-8 text-center text-[#6B7280]">
+                    <Activity className="w-6 h-6 animate-spin mx-auto mb-2 text-[#7567E8]" />
                     Fetching audit trails...
                   </td>
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-slate-400">
-                    <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <td colSpan={5} className="p-8 text-center text-[#6B7280]">
+                    <FileText className="w-8 h-8 mx-auto mb-2 opacity-40" />
                     No audit logs match the current filters.
                   </td>
                 </tr>
               ) : (
                 logs.map((log) => (
-                  <tr key={log.id} className="hover:bg-slate-800/20 transition-colors">
-                    <td className="p-4 text-xs text-slate-400 whitespace-nowrap">
+                  <tr key={log.id} className="hover:bg-[#F4F2FA] transition-colors">
+                    <td className="p-4 text-xs text-[#6B7280] whitespace-nowrap">
                       <div className="flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-slate-500" />
+                        <Clock className="w-3.5 h-3.5 text-[#9CA3AF]" />
                         {new Date(log.createdAt).toLocaleString()}
                       </div>
                     </td>
-                    <td className="p-4 text-sm text-slate-200">
+                    <td className="p-4 text-sm text-[#111827]">
                       <div>
                         <span className="font-semibold">{log.actorName}</span>
-                        <div className="text-xs text-slate-500">{log.actorEmail}</div>
+                        <div className="text-xs text-[#6B7280]">{log.actorEmail}</div>
                       </div>
                     </td>
                     <td className="p-4">
-                      <span className="px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                      <span className="px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider bg-rose-50 text-rose-700 border border-rose-200">
                         {log.action}
                       </span>
                     </td>
-                    <td className="p-4 text-sm text-slate-300">
+                    <td className="p-4 text-sm text-[#374151]">
                       <span className="font-mono text-xs">{log.entityType}</span>
-                      <div className="text-[10px] text-slate-500 truncate max-w-[120px]">{log.entityId}</div>
+                      <div className="text-[10px] text-[#6B7280] truncate max-w-[120px]">{log.entityId}</div>
                     </td>
-                    <td className="p-4 text-sm text-slate-300 max-w-xs">
+                    <td className="p-4 text-sm text-[#4B5563] max-w-xs">
                       {log.details}
                     </td>
                   </tr>
