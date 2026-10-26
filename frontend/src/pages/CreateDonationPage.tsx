@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { createDonation, uploadDonationPhoto } from '../api/donationApi';
@@ -75,6 +75,13 @@ export const CreateDonationPage: React.FC = () => {
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const suggestionsCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (suggestionsCloseTimer.current !== null) {
+      clearTimeout(suggestionsCloseTimer.current);
+    }
+  }, []);
 
   const {
     register,
@@ -487,7 +494,13 @@ export const CreateDonationPage: React.FC = () => {
                           }
                         },
                         onBlur: (e: any) => {
-                          setTimeout(() => setShowSuggestions(false), 200);
+                          if (suggestionsCloseTimer.current !== null) {
+                            clearTimeout(suggestionsCloseTimer.current);
+                          }
+                          suggestionsCloseTimer.current = setTimeout(() => {
+                            suggestionsCloseTimer.current = null;
+                            setShowSuggestions(false);
+                          }, 200);
                           onBlur(e);
                         }
                       };
