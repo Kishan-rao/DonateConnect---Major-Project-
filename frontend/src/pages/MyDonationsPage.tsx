@@ -496,29 +496,12 @@ export const MyDonationsPage: React.FC = () => {
 
       {/* Direct Chat Modal */}
       {activeChatDonation && (
-        <div className="fixed inset-0 z-50 bg-[#111827]/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="border border-[#E5E7EB] rounded-2xl max-w-xl w-full p-6 relative flex flex-col space-y-4 bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-3">
-              <div>
-                <h3 className="text-base font-extrabold flex items-center gap-2 text-[#111827]">
-                  <Building2 className="w-4 h-4 text-[#7567E8]" />
-                  Chat with {activeChatDonation.ngo?.name}
-                </h3>
-                <p className="text-xs text-[#4B5563]">
-                  Donation #{activeChatDonation.id.slice(0, 8)} ({activeChatDonation.category})
-                </p>
-              </div>
-              <button
-                onClick={() => setActiveChatDonation(null)}
-                className="p-1.5 rounded-lg transition-colors bg-[#F9FAFB] text-[#4B5563] hover:text-[#111827]"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <CommentThread donationId={activeChatDonation.id} currentUserId={user?.id} />
-          </div>
-        </div>
+        <CommentThread
+          donationId={activeChatDonation.id}
+          donation={activeChatDonation}
+          currentUserId={user?.id}
+          onClose={() => setActiveChatDonation(null)}
+        />
       )}
     </div>
   );
