@@ -11,6 +11,7 @@ import com.donateconnect.service.RoutingService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.security.access.AccessDeniedException;
@@ -40,6 +41,7 @@ public class RoutingServiceImpl implements RoutingService {
     // Synchronization locks to prevent duplicate simultaneous calls
     private final Map<String, Object> keyLocks = new ConcurrentHashMap<>();
 
+    @Autowired
     public RoutingServiceImpl(DeliveryRepository deliveryRepository, ObjectMapper objectMapper) {
         this.deliveryRepository = deliveryRepository;
         this.objectMapper = objectMapper != null ? objectMapper : new ObjectMapper();
