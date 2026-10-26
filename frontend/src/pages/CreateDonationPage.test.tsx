@@ -82,6 +82,27 @@ describe('CreateDonationPage Form Validation', () => {
     });
   });
 
+  it('clears the pending suggestion timeout when unmounted', () => {
+    const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout');
+    const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout');
+
+    try {
+      const { unmount } = renderPage();
+      fireEvent.blur(screen.getByPlaceholderText(/Enter complete pickup address/i));
+
+      const timeoutIndex = setTimeoutSpy.mock.calls.findIndex(([, delay]) => delay === 200);
+      expect(timeoutIndex).toBeGreaterThanOrEqual(0);
+      const timeoutHandle = setTimeoutSpy.mock.results[timeoutIndex].value;
+
+      unmount();
+
+      expect(clearTimeoutSpy).toHaveBeenCalledWith(timeoutHandle);
+    } finally {
+      setTimeoutSpy.mockRestore();
+      clearTimeoutSpy.mockRestore();
+    }
+  });
+
   it('validates description length (too short)', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByRole('button', { name: /Submit Donation Request/i })).not.toBeDisabled());
