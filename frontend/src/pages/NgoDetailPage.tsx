@@ -75,10 +75,10 @@ export const NgoDetailPage: React.FC = () => {
                 Registered Partner &bull; Member since {formatDate(ngo.createdAt)}
               </p>
               <div className="flex items-center gap-2 mt-2">
-                {(ngo.averageRating ?? 0) > 0 ? (
+                {typeof ngo.averageRating === 'number' && !isNaN(ngo.averageRating) && (ngo.ratingCount ?? 0) > 0 ? (
                   <div className="flex items-center gap-1 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-lg">
                     <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                    <span className="text-amber-700 font-bold text-sm">{ngo.averageRating?.toFixed(1)}</span>
+                    <span className="text-amber-700 font-bold text-sm">{ngo.averageRating.toFixed(1)}</span>
                     <span className="text-amber-600 text-xs">({ngo.ratingCount} reviews)</span>
                   </div>
                 ) : (

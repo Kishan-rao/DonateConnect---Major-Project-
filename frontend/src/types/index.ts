@@ -77,16 +77,16 @@ export interface NGOProfile {
   id: string;
   user: User;
   name: string;
-  description?: string;
+  description?: string | null;
   address: string;
-  city?: string;
+  city?: string | null;
   phone: string;
-  latitude?: number;
-  longitude?: number;
-  distanceKm?: number;
+  latitude?: number | null;
+  longitude?: number | null;
+  distanceKm?: number | null;
   verified: boolean;
-  averageRating?: number;
-  ratingCount?: number;
+  averageRating?: number | null;
+  ratingCount?: number | null;
   urgentNeeds?: NgoUrgentNeed[];
   createdAt: string;
 }

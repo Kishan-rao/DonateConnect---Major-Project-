@@ -44,9 +44,19 @@ export const NgoListPage: React.FC = () => {
   }, [categoryFilter, cityFilter, needsRightNowFilter, userLoc]);
 
   const requestLocation = () => {
+    if (userLoc) {
+      setUserLoc(null);
+      return;
+    }
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => setUserLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          if (typeof lat === 'number' && !isNaN(lat) && typeof lng === 'number' && !isNaN(lng)) {
+            setUserLoc({ lat, lng });
+          }
+        },
         (err) => console.error("Geolocation error:", err)
       );
     }
@@ -54,9 +64,9 @@ export const NgoListPage: React.FC = () => {
 
   const filteredNgos = (ngos || []).filter(
     (ngo) =>
-      ngo.name.toLowerCase().includes(search.toLowerCase()) ||
+      (ngo.name && ngo.name.toLowerCase().includes(search.toLowerCase())) ||
       (ngo.description && ngo.description.toLowerCase().includes(search.toLowerCase())) ||
-      ngo.address.toLowerCase().includes(search.toLowerCase())
+      (ngo.address && ngo.address.toLowerCase().includes(search.toLowerCase()))
   );
 
   return (
@@ -173,12 +183,14 @@ export const NgoListPage: React.FC = () => {
                   <h2 className="text-xl font-bold text-[#111827] group-hover:text-[#7567E8] transition-colors">
                     {ngo.name}
                   </h2>
-                  {(ngo.averageRating ?? 0) > 0 && (
+                  {typeof ngo.averageRating === 'number' && !isNaN(ngo.averageRating) && (ngo.ratingCount ?? 0) > 0 ? (
                     <div className="flex items-center gap-1 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-lg">
                       <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                      <span className="text-amber-700 font-bold text-xs">{ngo.averageRating?.toFixed(1)}</span>
+                      <span className="text-amber-700 font-bold text-xs">{ngo.averageRating.toFixed(1)}</span>
                       <span className="text-amber-600 text-[10px]">({ngo.ratingCount})</span>
                     </div>
+                  ) : (
+                    <span className="text-xs text-[#9CA3AF]">No ratings yet</span>
                   )}
                 </div>
 
@@ -209,18 +221,30 @@ export const NgoListPage: React.FC = () => {
                 <div className="space-y-1.5 text-xs text-[#6B7280]">
                   <div className="flex items-center gap-2">
                     <MapPin className="w-3.5 h-3.5 text-[#7567E8] shrink-0" />
-                    <span className="truncate">{ngo.address} {ngo.city ? `(${ngo.city})` : ''}</span>
+                    <span className="truncate">{ngo.address || 'Address not provided'} {ngo.city ? `(${ngo.city})` : ''}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Phone className="w-3.5 h-3.5 text-[#7567E8] shrink-0" />
-                    <span>{ngo.phone}</span>
+                    <span>{ngo.phone || 'Phone not provided'}</span>
                   </div>
-                  {ngo.distanceKm !== undefined && (
+                  {userLoc ? (
+                    typeof ngo.distanceKm === 'number' && !isNaN(ngo.distanceKm) ? (
+                      <div className="flex items-center gap-2 text-[#7567E8] font-medium">
+                        <Compass className="w-3.5 h-3.5 shrink-0" />
+                        <span>{ngo.distanceKm.toFixed(1)} km away</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-[#9CA3AF]">
+                        <Compass className="w-3.5 h-3.5 shrink-0" />
+                        <span>Distance unavailable</span>
+                      </div>
+                    )
+                  ) : typeof ngo.distanceKm === 'number' && !isNaN(ngo.distanceKm) ? (
                     <div className="flex items-center gap-2 text-[#7567E8] font-medium">
                       <Compass className="w-3.5 h-3.5 shrink-0" />
                       <span>{ngo.distanceKm.toFixed(1)} km away</span>
                     </div>
-                  )}
+                  ) : null}
                 </div>
 
                 <div className="flex items-center justify-between pt-2">

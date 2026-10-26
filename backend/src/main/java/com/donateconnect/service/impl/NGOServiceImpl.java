@@ -70,11 +70,13 @@ public class NGOServiceImpl implements NGOService {
     public List<NGOProfileDto> getAllVerifiedNgos(String category, String city, Boolean needsRightNow, Double donorLat, Double donorLng) {
         List<NGOProfile> profiles = ngoProfileRepository.findByVerifiedTrue();
 
+        final boolean hasValidDonorCoords = isValidCoordinate(donorLat, donorLng);
+
         // Convert to DTOs and calculate distance
         List<NGOProfileDto> dtos = profiles.stream()
                 .map(ngo -> {
                     NGOProfileDto dto = mapToDto(ngo);
-                    if (donorLat != null && donorLng != null && dto.getLatitude() != null && dto.getLongitude() != null) {
+                    if (hasValidDonorCoords && isValidCoordinate(dto.getLatitude(), dto.getLongitude())) {
                         dto.setDistanceKm(calculateDistance(donorLat, donorLng, dto.getLatitude(), dto.getLongitude()));
                     }
                     return dto;
@@ -103,7 +105,7 @@ public class NGOServiceImpl implements NGOService {
         }
 
         // Sort by distance if location provided
-        if (donorLat != null && donorLng != null) {
+        if (hasValidDonorCoords) {
             dtos.sort((a, b) -> {
                 if (a.getDistanceKm() == null && b.getDistanceKm() == null) return 0;
                 if (a.getDistanceKm() == null) return 1;
@@ -113,6 +115,14 @@ public class NGOServiceImpl implements NGOService {
         }
 
         return dtos;
+    }
+
+    private boolean isValidCoordinate(Double lat, Double lon) {
+        return lat != null && lon != null
+                && !lat.isNaN() && !lat.isInfinite()
+                && !lon.isNaN() && !lon.isInfinite()
+                && lat >= -90.0 && lat <= 90.0
+                && lon >= -180.0 && lon <= 180.0;
     }
 
     private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
