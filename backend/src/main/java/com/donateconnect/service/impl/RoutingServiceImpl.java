@@ -176,7 +176,7 @@ public class RoutingServiceImpl implements RoutingService {
 
             if (isTtlValid && isStageMatching && isPositionClose) {
                 // Return fresh copy with current driver lastLocationAt and updated staleGps flag
-                return copyWithFreshMetadata(cached.dto, delivery.getLastLocationAt(), staleGps);
+                return copyWithFreshMetadata(cached.dto, originLat, originLng, delivery.getLastLocationAt(), staleGps);
             }
         }
 
@@ -190,7 +190,7 @@ public class RoutingServiceImpl implements RoutingService {
                 boolean isStageMatching = delivery.getStatus().name().equals(cached.deliveryStatus);
                 double driftMeters = calculateHaversineDistanceMeters(originLat, originLng, cached.originLat, cached.originLng);
                 if (isTtlValid && isStageMatching && driftMeters < MAX_CACHE_DRIFT_METERS) {
-                    return copyWithFreshMetadata(cached.dto, delivery.getLastLocationAt(), staleGps);
+                    return copyWithFreshMetadata(cached.dto, originLat, originLng, delivery.getLastLocationAt(), staleGps);
                 }
             }
 
@@ -375,15 +375,15 @@ public class RoutingServiceImpl implements RoutingService {
                 .build();
     }
 
-    private RouteEtaDto copyWithFreshMetadata(RouteEtaDto source, LocalDateTime driverLastLocationAt, boolean staleGps) {
+    private RouteEtaDto copyWithFreshMetadata(RouteEtaDto source, Double currentOriginLat, Double currentOriginLng, LocalDateTime driverLastLocationAt, boolean staleGps) {
         return RouteEtaDto.builder()
                 .deliveryId(source.getDeliveryId())
                 .donationId(source.getDonationId())
                 .deliveryStatus(source.getDeliveryStatus())
                 .destinationType(source.getDestinationType())
                 .destinationAddress(source.getDestinationAddress())
-                .originLat(source.getOriginLat())
-                .originLng(source.getOriginLng())
+                .originLat(currentOriginLat != null ? currentOriginLat : source.getOriginLat())
+                .originLng(currentOriginLng != null ? currentOriginLng : source.getOriginLng())
                 .driverLastLocationAt(driverLastLocationAt)
                 .staleGps(staleGps)
                 .destinationLat(source.getDestinationLat())

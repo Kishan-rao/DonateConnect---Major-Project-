@@ -296,4 +296,63 @@ describe('TrackDeliveryPage', () => {
     expect(screen.getAllByText(/Delivery Completed/i).length).toBeGreaterThan(0);
     expect(screen.getByTestId('map-container')).toBeInTheDocument();
   });
+  it('8. displays dash for ETA when driver is offline without fabricating a countdown or fake minutes', async () => {
+    vi.mocked(donationApi.getDeliveryRouteEta).mockResolvedValue({
+      ...mockRouteEta,
+      routingStatus: 'DRIVER_OFFLINE',
+      durationMinutes: null,
+      roadDistanceKm: null,
+      routeCoordinates: [],
+    });
+
+    renderPage();
+
+    await waitFor(() => expect(screen.queryByText('Initializing live map tracker...')).not.toBeInTheDocument());
+
+    await waitFor(() => {
+      expect(screen.getByText('Waiting for driver GPS location...')).toBeInTheDocument();
+    });
+
+    // ETA stat displays dash, never a hardcoded fake countdown
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0);
+  });
+
+  it('9. prevents older asynchronous ETA response from overwriting newer response', async () => {
+    let resolveFirst: (val: any) => void;
+    const firstPromise = new Promise((resolve) => {
+      resolveFirst = resolve;
+    });
+
+    const secondResponse = {
+      ...mockRouteEta,
+      durationMinutes: 12,
+      roadDistanceKm: 3.5,
+    };
+
+    // First call hangs, second call resolves immediately with 12 min
+    vi.mocked(donationApi.getDeliveryRouteEta)
+      .mockReturnValueOnce(firstPromise as any)
+      .mockResolvedValueOnce(secondResponse);
+
+    renderPage();
+
+    await waitFor(() => expect(screen.queryByText('Initializing live map tracker...')).not.toBeInTheDocument());
+
+    // Second call resolves
+    await waitFor(() => {
+      expect(screen.getByText('12 min')).toBeInTheDocument();
+    });
+
+    // Now first (older) call resolves with 28 min
+    resolveFirst!({
+      ...mockRouteEta,
+      durationMinutes: 28,
+      roadDistanceKm: 7.6,
+    });
+
+    // Wait a tick and verify 12 min is preserved, not overwritten by older 28 min response
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.getByText('12 min')).toBeInTheDocument();
+    expect(screen.queryByText('28 min')).not.toBeInTheDocument();
+  });
 });

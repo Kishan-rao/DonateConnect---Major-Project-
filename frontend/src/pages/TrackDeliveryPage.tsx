@@ -60,6 +60,8 @@ export const TrackDeliveryPage: React.FC = () => {
   const [etaLoading, setEtaLoading] = useState(false);
   const [etaError, setEtaError] = useState<string | null>(null);
   const lastEtaFetchTime = useRef<number>(0);
+  const lastEtaOrigin = useRef<{ lat: number; lng: number } | null>(null);
+  const latestEtaRequestId = useRef<number>(0);
 
   // Proof of delivery state
   const [otp, setOtp] = useState('');
@@ -134,10 +136,8 @@ export const TrackDeliveryPage: React.FC = () => {
               });
               setLastUpdated(new Date());
               setIsOffline(false);
-              // Trigger route ETA refresh if at least 15s have passed since last fetch
-              if (Date.now() - lastEtaFetchTime.current > 15000) {
-                fetchRouteEta();
-              }
+              // Recalculate ETA if driver moved meaningfully or recovered from offline
+              triggerLocationBasedEtaRefresh(loc);
             }
           } catch (e) {
             console.error('Failed to parse incoming location update', e);
@@ -168,9 +168,7 @@ export const TrackDeliveryPage: React.FC = () => {
               return [...prev, [loc.lat, loc.lng]];
             });
             setLastUpdated(new Date());
-            if (Date.now() - lastEtaFetchTime.current > 15000) {
-              fetchRouteEta();
-            }
+            triggerLocationBasedEtaRefresh(loc);
           }
         } catch (e: any) {
           if (e.response?.status === 400) {
@@ -203,24 +201,81 @@ export const TrackDeliveryPage: React.FC = () => {
     return () => clearInterval(checkOffline);
   }, []);
 
-  // Backend Authoritative Route ETA fetch
+  // Calculate haversine distance in meters to detect meaningful driver movement
+  const getDriftDistanceMeters = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371e3;
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const rad = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * rad;
+  };
+
+  // Backend Authoritative Route ETA fetch with out-of-order response guard
   const fetchRouteEta = useCallback(async () => {
     if (!id) return;
     if (donation?.status === 'DELIVERED' || donation?.status === 'REJECTED') return;
 
+    const reqId = ++latestEtaRequestId.current;
     try {
       setEtaLoading(true);
       setEtaError(null);
       const data = await getDeliveryRouteEta(id);
-      setRouteEta(data);
-      lastEtaFetchTime.current = Date.now();
+      // Discard older asynchronous responses if a newer request was dispatched
+      if (reqId === latestEtaRequestId.current) {
+        setRouteEta(data);
+        lastEtaFetchTime.current = Date.now();
+        if (data.originLat && data.originLng) {
+          lastEtaOrigin.current = { lat: data.originLat, lng: data.originLng };
+        }
+      }
     } catch (err: any) {
-      console.warn('Failed to fetch authoritative route ETA:', err?.message);
-      setEtaError(err.message || 'Route ETA unavailable');
+      if (reqId === latestEtaRequestId.current) {
+        console.warn('Failed to fetch authoritative route ETA:', err?.message);
+        setEtaError(err.message || 'Route ETA unavailable');
+      }
     } finally {
-      setEtaLoading(false);
+      if (reqId === latestEtaRequestId.current) {
+        setEtaLoading(false);
+      }
     }
   }, [id, donation?.status]);
+
+  const fetchRouteEtaRef = useRef(fetchRouteEta);
+  useEffect(() => {
+    fetchRouteEtaRef.current = fetchRouteEta;
+  }, [fetchRouteEta]);
+
+  // Recalculate ETA when fresh location arrives and driver has moved meaningfully
+  const triggerLocationBasedEtaRefresh = useCallback((loc: { lat: number; lng: number }) => {
+    const now = Date.now();
+    const timeSinceLastFetch = now - lastEtaFetchTime.current;
+
+    // 1. Initial fix or recovery from offline/missing coordinates: refresh immediately (min 2s throttle)
+    const isOfflineOrMissing = !routeEta || routeEta.routingStatus === 'DRIVER_OFFLINE' || routeEta.routingStatus === 'MISSING_COORDINATES';
+    if (isOfflineOrMissing && timeSinceLastFetch > 2000) {
+      fetchRouteEtaRef.current();
+      return;
+    }
+
+    // 2. Driver moved meaningfully (>= 30 meters drift): recalculate ETA (min 5s throttle)
+    const movedSignificantly = lastEtaOrigin.current
+      ? getDriftDistanceMeters(loc.lat, loc.lng, lastEtaOrigin.current.lat, lastEtaOrigin.current.lng) >= 30
+      : true;
+
+    if (movedSignificantly && timeSinceLastFetch > 5000) {
+      fetchRouteEtaRef.current();
+      return;
+    }
+
+    // 3. Fallback periodic refresh if 30s elapsed
+    if (timeSinceLastFetch > 30000) {
+      fetchRouteEtaRef.current();
+    }
+  }, [routeEta]);
 
   useEffect(() => {
     if (!id) return;
@@ -338,7 +393,11 @@ export const TrackDeliveryPage: React.FC = () => {
           <div>
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Estimated arrival</p>
             <p className="text-xl font-black text-slate-900">
-              {routeEta?.durationMinutes !== undefined && routeEta?.durationMinutes !== null
+              {donation?.status === 'DELIVERED' || delivery?.status === 'DELIVERED' || routeEta?.routingStatus === 'DELIVERY_COMPLETED'
+                ? 'Delivered'
+                : routeEta?.routingStatus === 'DRIVER_OFFLINE'
+                ? '—'
+                : routeEta?.durationMinutes !== undefined && routeEta?.durationMinutes !== null
                 ? `${routeEta.durationMinutes} min`
                 : etaLoading ? 'Calculating...' : '—'}
             </p>

@@ -376,5 +376,53 @@ class RoutingServiceTest {
             routingService.calculateDeliveryRouteEta(unknownDonationId, donorUserId, "ROLE_DONOR");
         });
     }
-}
+    @Test
+    @DisplayName("13. Meaningful driver location change (> 30m) invalidates cache and triggers route recalculation")
+    void testMeaningfulLocationChangeRecalculatesEta() {
+        when(deliveryRepository.findByDonationId(donationId)).thenReturn(Optional.of(delivery));
 
+        String osrmPos1 = """
+            {
+              "code": "Ok",
+              "routes": [{
+                "distance": 5000.0,
+                "duration": 600.0,
+                "geometry": { "coordinates": [[77.6271, 12.9279], [77.6245, 12.9352]] }
+              }]
+            }
+            """;
+        String osrmPos2 = """
+            {
+              "code": "Ok",
+              "routes": [{
+                "distance": 4200.0,
+                "duration": 500.0,
+                "geometry": { "coordinates": [[77.6250, 12.9320], [77.6245, 12.9352]] }
+              }]
+            }
+            """;
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
+                .thenReturn(new ResponseEntity<>(osrmPos1, HttpStatus.OK))
+                .thenReturn(new ResponseEntity<>(osrmPos2, HttpStatus.OK));
+
+        // Call 1: Driver at initial position (12.9279, 77.6271)
+        RouteEtaDto initial = routingService.calculateDeliveryRouteEta(donationId, donorUserId, "ROLE_DONOR");
+        assertEquals(5.0, initial.getRoadDistanceKm());
+        assertEquals(10, initial.getDurationMinutes());
+
+        // Driver moves ~500m to (12.9320, 77.6250)
+        delivery.setLastLat(12.9320);
+        delivery.setLastLng(77.6250);
+        delivery.setLastLocationAt(LocalDateTime.now());
+
+        // Call 2: Driver moved > 30m -> cache invalidated -> recalculation occurs
+        RouteEtaDto moved = routingService.calculateDeliveryRouteEta(donationId, donorUserId, "ROLE_DONOR");
+        assertEquals(4.2, moved.getRoadDistanceKm());
+        assertEquals(8, moved.getDurationMinutes());
+        assertEquals(12.9320, moved.getOriginLat());
+        assertEquals(77.6250, moved.getOriginLng());
+
+        // Verify OSRM was invoked TWICE due to meaningful movement (> 30m)
+        verify(restTemplate, times(2)).exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class));
+    }
+}
