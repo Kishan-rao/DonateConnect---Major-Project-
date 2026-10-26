@@ -91,8 +91,8 @@ public class LocationRestController {
         String role = authentication.getAuthorities().iterator().next().getAuthority();
         
         if (!role.equals("ROLE_ADMIN")) {
-            UUID donorId = delivery.getDonation().getDonor().getId();
-            UUID ngoId = delivery.getDonation().getNgo().getUser().getId();
+            UUID donorId = delivery.getDonation().getDonor() != null ? delivery.getDonation().getDonor().getId() : null;
+            UUID ngoId = delivery.getDonation().getNgo() != null && delivery.getDonation().getNgo().getUser() != null ? delivery.getDonation().getNgo().getUser().getId() : null;
             UUID volunteerId = delivery.getVolunteer() != null ? delivery.getVolunteer().getId() : null;
             if (!userId.equals(donorId) && !userId.equals(ngoId) && !userId.equals(volunteerId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).build();

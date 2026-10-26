@@ -157,6 +157,20 @@ public class DonationServiceImpl implements DonationService {
             throw new AccessDeniedException("Forbidden: You are not authorized to update status for another NGO's donation");
         }
 
+        if (newStatus != DonationStatus.ACCEPTED && newStatus != DonationStatus.REJECTED) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "NGOs can only update donation status to ACCEPTED or REJECTED"
+            );
+        }
+
+        if (donation.getStatus() == DonationStatus.DELIVERED || donation.getStatus() == DonationStatus.PICKED_UP) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.CONFLICT,
+                    "Cannot modify status of a donation that has already been picked up or delivered"
+            );
+        }
+
         if (newStatus == DonationStatus.REJECTED && deliveryRepository != null) {
             boolean hasActiveDelivery = deliveryRepository.existsByDonationIdAndStatusIn(donationId, 
                 List.of(DeliveryStatus.ACCEPTED_BY_VOLUNTEER, DeliveryStatus.EN_ROUTE_TO_PICKUP, DeliveryStatus.PICKED_UP, DeliveryStatus.EN_ROUTE_TO_NGO));

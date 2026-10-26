@@ -28,6 +28,8 @@ public class VolunteerServiceImpl implements VolunteerService {
     private final UserRepository userRepository;
     private final DeliveryRepository deliveryRepository;
     private final com.donateconnect.service.GeocodingService geocodingService;
+    private final StatusHistoryRepository statusHistoryRepository;
+    private final com.donateconnect.service.NotificationService notificationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -165,15 +167,53 @@ public class VolunteerServiceImpl implements VolunteerService {
             Delivery delivery = deliveryRepository.findByDonationId(task.getDonation().getId()).orElse(null);
             if (delivery != null) {
                 delivery.setStatus(DeliveryStatus.PICKED_UP);
+                delivery.setPickedUpAt(java.time.LocalDateTime.now());
+                if (delivery.getDeliveryOtp() == null) {
+                    delivery.setDeliveryOtp(String.format("%06d", new java.security.SecureRandom().nextInt(1000000)));
+                    delivery.setDeliveryOtpExpiry(java.time.LocalDateTime.now().plusHours(24));
+                    delivery.setDeliveryOtpAttempts(0);
+                }
                 deliveryRepository.save(delivery);
             }
             Donation donation = task.getDonation();
             donation.setStatus(DonationStatus.PICKED_UP);
             donationRepository.save(donation);
+
+            if (statusHistoryRepository != null) {
+                statusHistoryRepository.save(StatusHistory.builder()
+                        .donation(donation)
+                        .status(DonationStatus.PICKED_UP)
+                        .build());
+            }
+
+            if (notificationService != null) {
+                UUID donationId = donation.getId();
+                notificationService.notifyUser(donation.getDonor(), "Your donation has been picked up and is en route!", donationId, true);
+                if (donation.getNgo() != null && donation.getNgo().getUser() != null) {
+                    notificationService.notifyUser(donation.getNgo().getUser(), "A donation is on its way to your hub.", donationId, true);
+                }
+            }
         } else if (newStatus == VolunteerTask.TaskStatus.CANCELLED) {
             Delivery delivery = deliveryRepository.findByDonationId(task.getDonation().getId()).orElse(null);
             if (delivery != null) {
-                deliveryRepository.delete(delivery);
+                delivery.setVolunteer(null);
+                delivery.setStatus(DeliveryStatus.ASSIGNED);
+                delivery.setPickedUpAt(null);
+                deliveryRepository.save(delivery);
+            }
+            Donation donation = task.getDonation();
+            donation.setStatus(DonationStatus.ACCEPTED);
+            donationRepository.save(donation);
+
+            if (statusHistoryRepository != null) {
+                statusHistoryRepository.save(StatusHistory.builder()
+                        .donation(donation)
+                        .status(DonationStatus.ACCEPTED)
+                        .build());
+            }
+
+            if (notificationService != null && donation.getNgo() != null && donation.getNgo().getUser() != null) {
+                notificationService.notifyUser(donation.getNgo().getUser(), "A delivery claim was cancelled by the volunteer and returned to the pickup pool.", donation.getId(), false);
             }
         }
 
@@ -216,16 +256,16 @@ public class VolunteerServiceImpl implements VolunteerService {
             }
         }
 
-        User ngoUser = ngo.getUser();
-        UserResponseDto ngoUserDto = UserResponseDto.builder()
+        User ngoUser = ngo != null ? ngo.getUser() : null;
+        UserResponseDto ngoUserDto = ngoUser != null ? UserResponseDto.builder()
                 .id(ngoUser.getId())
                 .email(ngoUser.getEmail())
                 .fullName(ngoUser.getFullName())
                 .role(ngoUser.getRole())
                 .createdAt(ngoUser.getCreatedAt())
-                .build();
+                .build() : null;
 
-        NGOProfileDto ngoDto = NGOProfileDto.builder()
+        NGOProfileDto ngoDto = ngo != null ? NGOProfileDto.builder()
                 .id(ngo.getId())
                 .user(ngoUserDto)
                 .name(ngo.getName())
@@ -236,7 +276,7 @@ public class VolunteerServiceImpl implements VolunteerService {
                 .longitude(ngo.getLongitude())
                 .verified(ngo.isVerified())
                 .createdAt(ngo.getCreatedAt())
-                .build();
+                .build() : null;
 
         return DonationResponseDto.builder()
                 .id(d.getId())

@@ -5,10 +5,12 @@ import com.donateconnect.entity.Delivery;
 import com.donateconnect.entity.DeliveryStatus;
 import com.donateconnect.entity.Donation;
 import com.donateconnect.entity.DonationStatus;
+import com.donateconnect.entity.StatusHistory;
 import com.donateconnect.entity.VolunteerTask;
 import com.donateconnect.exception.ResourceNotFoundException;
 import com.donateconnect.repository.DeliveryRepository;
 import com.donateconnect.repository.DonationRepository;
+import com.donateconnect.repository.StatusHistoryRepository;
 import com.donateconnect.repository.VolunteerTaskRepository;
 import com.donateconnect.service.DeliveryService;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +30,7 @@ public class DeliveryServiceImpl implements DeliveryService {
     private final VolunteerTaskRepository volunteerTaskRepository;
     private final com.donateconnect.service.StorageService storageService;
     private final com.donateconnect.service.NotificationService notificationService;
+    private final StatusHistoryRepository statusHistoryRepository;
 
     @Override
     @Transactional
@@ -35,7 +38,7 @@ public class DeliveryServiceImpl implements DeliveryService {
         Delivery delivery = deliveryRepository.findById(deliveryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Delivery not found"));
 
-        if (!delivery.getVolunteer().getId().equals(volunteerId)) {
+        if (delivery.getVolunteer() == null || !delivery.getVolunteer().getId().equals(volunteerId)) {
             throw new IllegalArgumentException("You are not assigned to this delivery");
         }
 
@@ -65,6 +68,13 @@ public class DeliveryServiceImpl implements DeliveryService {
             if (newStatus == DeliveryStatus.PICKED_UP) {
                 donation.setStatus(DonationStatus.PICKED_UP);
                 donationRepository.save(donation);
+
+                if (statusHistoryRepository != null) {
+                    statusHistoryRepository.save(StatusHistory.builder()
+                            .donation(donation)
+                            .status(DonationStatus.PICKED_UP)
+                            .build());
+                }
             }
             // Sync VolunteerTask to IN_TRANSIT if currently CLAIMED
             volunteerTaskRepository.findByDonationIdAndStatusIn(
@@ -77,6 +87,13 @@ public class DeliveryServiceImpl implements DeliveryService {
         } else if (newStatus == DeliveryStatus.DELIVERED) {
             donation.setStatus(DonationStatus.DELIVERED);
             donationRepository.save(donation);
+
+            if (statusHistoryRepository != null) {
+                statusHistoryRepository.save(StatusHistory.builder()
+                        .donation(donation)
+                        .status(DonationStatus.DELIVERED)
+                        .build());
+            }
 
             // Sync VolunteerTask to COMPLETED
             volunteerTaskRepository.findByDonationIdAndStatusIn(
@@ -112,7 +129,7 @@ public class DeliveryServiceImpl implements DeliveryService {
         Delivery delivery = deliveryRepository.findById(deliveryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Delivery not found"));
 
-        if (!delivery.getVolunteer().getId().equals(volunteerId)) {
+        if (delivery.getVolunteer() == null || !delivery.getVolunteer().getId().equals(volunteerId)) {
             throw new IllegalArgumentException("You are not assigned to this delivery");
         }
 
@@ -156,6 +173,13 @@ public class DeliveryServiceImpl implements DeliveryService {
         Donation donation = delivery.getDonation();
         donation.setStatus(DonationStatus.DELIVERED);
         donationRepository.save(donation);
+
+        if (statusHistoryRepository != null) {
+            statusHistoryRepository.save(StatusHistory.builder()
+                    .donation(donation)
+                    .status(DonationStatus.DELIVERED)
+                    .build());
+        }
 
         // Sync with VolunteerTask status
         List<VolunteerTask> activeTasks = volunteerTaskRepository.findByDonationIdAndStatusIn(
@@ -215,7 +239,7 @@ public class DeliveryServiceImpl implements DeliveryService {
         return DeliveryDto.builder()
                 .id(delivery.getId())
                 .donationId(delivery.getDonation().getId())
-                .volunteerId(delivery.getVolunteer().getId())
+                .volunteerId(delivery.getVolunteer() != null ? delivery.getVolunteer().getId() : null)
                 .status(delivery.getStatus())
                 .assignedAt(delivery.getAssignedAt())
                 .pickedUpAt(delivery.getPickedUpAt())
@@ -223,7 +247,6 @@ public class DeliveryServiceImpl implements DeliveryService {
                 .lastLat(delivery.getLastLat())
                 .lastLng(delivery.getLastLng())
                 .lastLocationAt(delivery.getLastLocationAt())
-
                 .proofImageUrl(delivery.getProofImageUrl())
                 .build();
     }

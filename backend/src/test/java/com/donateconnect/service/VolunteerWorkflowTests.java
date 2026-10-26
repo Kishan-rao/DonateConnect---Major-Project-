@@ -386,4 +386,44 @@ class VolunteerWorkflowTests {
                         .header("Authorization", "Bearer " + pendingToken))
                 .andExpect(status().isForbidden());
     }
+
+    @Test
+    @DisplayName("Cancelling a claim restores donation to available pickups and resets delivery")
+    void testCancelClaimRestoresDonationToAvailablePickups() throws Exception {
+        // Volunteer claims
+        String claimResponse = mockMvc.perform(post("/api/volunteer/pickups/" + acceptedDonation.getId() + "/claim")
+                        .header("Authorization", "Bearer " + volunteerToken))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        String taskId = objectMapper.readTree(claimResponse).get("data").get("id").asText();
+
+        // Verify available pickups count is 0
+        mockMvc.perform(get("/api/volunteer/pickups/available")
+                        .header("Authorization", "Bearer " + volunteerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(0));
+
+        // Volunteer cancels the claim
+        mockMvc.perform(patch("/api/volunteer/pickups/" + taskId + "/status")
+                        .header("Authorization", "Bearer " + volunteerToken)
+                        .param("status", "CANCELLED"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("CANCELLED"));
+
+        // Verify donation is still in ACCEPTED state
+        Donation donation = donationRepository.findById(acceptedDonation.getId()).orElseThrow();
+        assertEquals(DonationStatus.ACCEPTED, donation.getStatus());
+
+        // Verify delivery record remains intact in ASSIGNED state with null volunteer
+        Delivery delivery = deliveryRepository.findByDonationId(donation.getId()).orElseThrow();
+        assertEquals(DeliveryStatus.ASSIGNED, delivery.getStatus());
+        assertNull(delivery.getVolunteer());
+
+        // Verify available pickups count is restored to 1
+        mockMvc.perform(get("/api/volunteer/pickups/available")
+                        .header("Authorization", "Bearer " + volunteerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(1));
+    }
 }

@@ -5,7 +5,7 @@ import { Donation, PageResponse, VolunteerTask } from '../types';
 import { useToast } from '../context/ToastContext';
 import { Truck, CheckCircle2, MapPin, Calendar, Clock, RefreshCw, PackageSearch, ChevronRight } from 'lucide-react';
 import { LiveLocationTracker } from '../components/LiveLocationTracker';
-type DashboardTab = 'my-tasks' | 'available';
+type DashboardTab = 'my-tasks' | 'available' | 'history';
 
 export const isTaskActive = (t: VolunteerTask): boolean => {
   if (t.status === 'COMPLETED' || t.status === 'CANCELLED') return false;
@@ -17,9 +17,11 @@ export const isTaskActive = (t: VolunteerTask): boolean => {
 export const DriverDashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab: DashboardTab = searchParams.get('tab') === 'available' ? 'available' : 'my-tasks';
+  const initialParam = searchParams.get('tab');
+  const initialTab: DashboardTab = initialParam === 'available' ? 'available' : initialParam === 'history' ? 'history' : 'my-tasks';
   const [activeTab, setActiveTab] = useState<DashboardTab>(initialTab);
   const [tasks, setTasks] = useState<VolunteerTask[]>([]);
+  const [historyTasks, setHistoryTasks] = useState<VolunteerTask[]>([]);
   const [available, setAvailable] = useState<PageResponse<Donation> | null>(null);
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState<string | null>(null);
@@ -34,6 +36,15 @@ export const DriverDashboardPage: React.FC = () => {
     }
   };
 
+  const fetchHistoryTasks = async () => {
+    try {
+      const data = await getMyVolunteerTasks(false);
+      setHistoryTasks(data.filter((t) => !isTaskActive(t)));
+    } catch {
+      showError('Failed to load delivery history');
+    }
+  };
+
   const fetchAvailable = async (page = 0) => {
     try {
       const data = await getAvailablePickups(page, 20);
@@ -43,11 +54,11 @@ export const DriverDashboardPage: React.FC = () => {
     }
   };
 
-  // On mount: fetch both tasks and available pickups so tab counts are accurate immediately
+  // On mount: fetch tasks, available pickups, and history so tab counts are accurate immediately
   useEffect(() => {
     const loadInitialData = async () => {
       setLoading(true);
-      await Promise.all([fetchMyTasks(), fetchAvailable()]);
+      await Promise.all([fetchMyTasks(), fetchAvailable(), fetchHistoryTasks()]);
       setLoading(false);
     };
     loadInitialData();
@@ -55,11 +66,13 @@ export const DriverDashboardPage: React.FC = () => {
 
   const handleTabChange = (tab: DashboardTab) => {
     setActiveTab(tab);
-    setSearchParams(tab === 'available' ? { tab: 'available' } : {});
+    setSearchParams(tab === 'my-tasks' ? {} : { tab });
     if (tab === 'my-tasks') {
       fetchMyTasks();
-    } else {
+    } else if (tab === 'available') {
       fetchAvailable();
+    } else {
+      fetchHistoryTasks();
     }
   };
 
@@ -82,7 +95,7 @@ export const DriverDashboardPage: React.FC = () => {
     try {
       await claimVolunteerPickup(donationId);
       showSuccess('Pickup claimed successfully!');
-      await Promise.all([fetchMyTasks(), fetchAvailable()]);
+      await Promise.all([fetchMyTasks(), fetchAvailable(), fetchHistoryTasks()]);
       handleTabChange('my-tasks');
     } catch (err: any) {
       showError(err.message || 'Failed to claim pickup');
@@ -115,7 +128,7 @@ export const DriverDashboardPage: React.FC = () => {
         <button
           onClick={async () => {
             setLoading(true);
-            await Promise.all([fetchMyTasks(), fetchAvailable()]);
+            await Promise.all([fetchMyTasks(), fetchAvailable(), fetchHistoryTasks()]);
             setLoading(false);
           }}
           disabled={loading}
@@ -135,6 +148,11 @@ export const DriverDashboardPage: React.FC = () => {
           <PackageSearch className="w-4 h-4 inline mr-1.5 shrink-0" />
           <span>Available Pickups</span>
           {available && <span className="ml-1.5 text-xs bg-black/10 px-1.5 py-0.5 rounded font-mono">{available.totalElements}</span>}
+        </button>
+        <button onClick={() => handleTabChange('history')} className={tabButtonClass('history')}>
+          <Clock className="w-4 h-4 inline mr-1.5 shrink-0" />
+          <span>Delivery History</span>
+          {historyTasks.length > 0 && <span className="ml-1.5 text-xs bg-black/10 px-1.5 py-0.5 rounded font-mono">{historyTasks.length}</span>}
         </button>
       </div>
 
@@ -327,6 +345,78 @@ export const DriverDashboardPage: React.FC = () => {
                 </div>
               )}
             </>
+          )}
+        </>
+      )}
+
+      {/* ---- DELIVERY HISTORY TAB ---- */}
+      {activeTab === 'history' && (
+        <>
+          {loading ? (
+            <div className="text-center py-16 bg-white rounded-2xl border border-[#E5E7EB] text-[#4B5563] text-sm shadow-xs">
+              Loading delivery history...
+            </div>
+          ) : historyTasks.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-2xl border border-[#E5E7EB] space-y-3 shadow-xs">
+              <Clock className="w-12 h-12 text-[#9CA3AF] mx-auto" />
+              <h3 className="text-[#111827] font-semibold text-base">No completed deliveries yet</h3>
+              <p className="text-[#4B5563] text-xs max-w-sm mx-auto">
+                Completed pickups and verified deliveries will appear here as permanent historical records.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+              {historyTasks.map((task) => (
+                <div
+                  key={task.id}
+                  data-testid={`history-card-${task.donation.id}`}
+                  className="delivery-card bg-white border border-[#E5E7EB] rounded-2xl p-4 sm:p-6 flex flex-col justify-between space-y-4 shadow-[0_10px_15px_-3px_rgba(17,24,39,0.04)]"
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-200">
+                        {task.donation.category}
+                      </span>
+                      <span className="text-xs font-semibold px-2.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono">
+                        {task.status === 'COMPLETED' || task.deliveryStatus === 'DELIVERED' ? 'DELIVERED' : task.status}
+                      </span>
+                    </div>
+
+                    <h3 className="text-base font-bold text-[#111827] mb-1">
+                      → {task.donation.ngo?.name}
+                    </h3>
+                    <p className="text-xs text-[#4B5563] mb-3">{task.donation.description || 'Standard packaged donation.'}</p>
+
+                    <div className="bg-[#F9FAFB] p-3 rounded-xl border border-[#E5E7EB] text-xs text-[#4B5563] space-y-1.5">
+                      <div className="flex items-start gap-1.5 text-[#374151]">
+                        <MapPin className="w-3.5 h-3.5 text-indigo-600 shrink-0 mt-0.5" />
+                        <span><strong>Pickup:</strong> {task.donation.pickupAddress || 'Address not provided'}</span>
+                      </div>
+                      <div className="flex items-start gap-1.5 text-[#374151]">
+                        <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                        <span><strong>Delivered to:</strong> {task.donation.ngo?.address}</span>
+                      </div>
+                      {task.claimedAt && (
+                        <div className="flex items-center gap-1.5 text-[#4B5563]">
+                          <Calendar className="w-3.5 h-3.5 text-amber-600" />
+                          <span><strong>Claimed:</strong> {new Date(task.claimedAt).toLocaleDateString()}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="border-t border-[#E5E7EB] pt-3">
+                    <button
+                      onClick={() => navigate(`/donations/${task.donation.id}/track`)}
+                      className="w-full min-h-[44px] py-2.5 px-3 rounded-xl bg-white border border-[#E5E7EB] hover:bg-[#F4F2FA] text-[#111827] text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs"
+                    >
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>View Route & Delivery Details</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </>
       )}

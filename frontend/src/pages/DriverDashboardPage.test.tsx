@@ -220,4 +220,34 @@ describe('DriverDashboardPage - Delivery Completion and Task Sync', () => {
     await userEvent.click(screen.getByTestId('transit-button-donation-1'));
     expect(volunteerApi.updateVolunteerTaskStatus).toHaveBeenCalledWith('task-1', 'IN_TRANSIT');
   });
+
+  it('switches to Delivery History tab and renders completed task cards', async () => {
+    (volunteerApi.getMyVolunteerTasks as any).mockImplementation((activeOnly: boolean) => {
+      return Promise.resolve(activeOnly ? [activeTask1] : [activeTask1, completedTask]);
+    });
+
+    render(
+      <MemoryRouter>
+        <ToastProvider>
+          <DeliveryTrackingProvider>
+            <DriverDashboardPage />
+          </DeliveryTrackingProvider>
+        </ToastProvider>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('delivery-card-donation-1')).toBeInTheDocument();
+    });
+
+    const historyTab = screen.getByRole('button', { name: /delivery history/i });
+    expect(historyTab).toHaveTextContent('1');
+
+    await userEvent.click(historyTab);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('history-card-donation-2')).toBeInTheDocument();
+    });
+    expect(screen.getByText('View Route & Delivery Details')).toBeInTheDocument();
+  });
 });

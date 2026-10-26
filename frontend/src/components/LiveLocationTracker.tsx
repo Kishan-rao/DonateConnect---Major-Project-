@@ -52,7 +52,7 @@ export const LiveLocationTracker: React.FC<Props> = ({ deliveryId, status, donat
   };
 
   const handleSimulateRoute = () => {
-    if (status === 'COMPLETED' || status === 'DELIVERED') {
+    if (status === 'COMPLETED' || status === 'DELIVERED' || status === 'CANCELLED' || status === 'REJECTED') {
       showError('Simulation is disabled for inactive deliveries');
       return;
     }
@@ -92,7 +92,7 @@ export const LiveLocationTracker: React.FC<Props> = ({ deliveryId, status, donat
           </button>
           <button
             onClick={handleSimulateRoute}
-            disabled={status === 'COMPLETED' || status === 'DELIVERED'}
+            disabled={status === 'COMPLETED' || status === 'DELIVERED' || status === 'CANCELLED' || status === 'REJECTED'}
             className="w-full py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-all shadow-xs"
           >
             Simulate Route (Demo)

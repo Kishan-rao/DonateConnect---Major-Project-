@@ -304,6 +304,46 @@ class DonationServiceTests {
     }
 
     @Test
+    void testNgoCannotSetInvalidStatusDirectly() throws Exception {
+        Donation donation = donationRepository.save(Donation.builder()
+                .donor(donorUser)
+                .ngo(ngoProfile)
+                .category(Category.FOOD)
+                .description("Food donation")
+                .status(DonationStatus.REQUESTED)
+                .build());
+
+        UpdateDonationStatusDto dto = new UpdateDonationStatusDto();
+        dto.setStatus(DonationStatus.DELIVERED);
+
+        mockMvc.perform(patch("/api/ngo/donations/" + donation.getId() + "/status")
+                        .header("Authorization", "Bearer " + ngoToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testNgoCannotModifyDeliveredOrPickedUpDonation() throws Exception {
+        Donation donation = donationRepository.save(Donation.builder()
+                .donor(donorUser)
+                .ngo(ngoProfile)
+                .category(Category.FOOD)
+                .description("Food donation")
+                .status(DonationStatus.DELIVERED)
+                .build());
+
+        UpdateDonationStatusDto dto = new UpdateDonationStatusDto();
+        dto.setStatus(DonationStatus.REJECTED);
+
+        mockMvc.perform(patch("/api/ngo/donations/" + donation.getId() + "/status")
+                        .header("Authorization", "Bearer " + ngoToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
     void testDonorCanViewOwnDonations() throws Exception {
         donationRepository.save(Donation.builder()
                 .donor(donorUser)
