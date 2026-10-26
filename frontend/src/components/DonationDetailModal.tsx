@@ -314,7 +314,7 @@ export const DonationDetailModal: React.FC<DonationDetailModalProps> = ({
                 {typeof donation.pickupLat === 'number' && !isNaN(donation.pickupLat) &&
                  typeof donation.pickupLng === 'number' && !isNaN(donation.pickupLng) && (
                   <p className="text-xs text-[#6B7280]">
-                    GPS: {donation.pickupLat.toFixed(6)}, {donation.pickupLng.toFixed(6)}
+                    GPS: {donation.pickupLat?.toFixed(6)}, {donation.pickupLng?.toFixed(6)}
                   </p>
                 )}
               </div>

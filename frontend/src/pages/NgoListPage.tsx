@@ -64,9 +64,11 @@ export const NgoListPage: React.FC = () => {
 
   const filteredNgos = (ngos || []).filter(
     (ngo) =>
+      Boolean(ngo) && (
       (ngo.name && ngo.name.toLowerCase().includes(search.toLowerCase())) ||
       (ngo.description && ngo.description.toLowerCase().includes(search.toLowerCase())) ||
       (ngo.address && ngo.address.toLowerCase().includes(search.toLowerCase()))
+  )
   );
 
   return (
@@ -186,7 +188,7 @@ export const NgoListPage: React.FC = () => {
                   {typeof ngo.averageRating === 'number' && !isNaN(ngo.averageRating) && (ngo.ratingCount ?? 0) > 0 ? (
                     <div className="flex items-center gap-1 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-lg">
                       <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                      <span className="text-amber-700 font-bold text-xs">{ngo.averageRating.toFixed(1)}</span>
+                      <span className="text-amber-700 font-bold text-xs">{ngo.averageRating?.toFixed(1)}</span>
                       <span className="text-amber-600 text-[10px]">({ngo.ratingCount})</span>
                     </div>
                   ) : (
@@ -231,7 +233,7 @@ export const NgoListPage: React.FC = () => {
                     typeof ngo.distanceKm === 'number' && !isNaN(ngo.distanceKm) ? (
                       <div className="flex items-center gap-2 text-[#7567E8] font-medium">
                         <Compass className="w-3.5 h-3.5 shrink-0" />
-                        <span>{ngo.distanceKm.toFixed(1)} km away</span>
+                        <span>{ngo.distanceKm?.toFixed(1)} km away</span>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 text-[#9CA3AF]">
@@ -242,7 +244,7 @@ export const NgoListPage: React.FC = () => {
                   ) : typeof ngo.distanceKm === 'number' && !isNaN(ngo.distanceKm) ? (
                     <div className="flex items-center gap-2 text-[#7567E8] font-medium">
                       <Compass className="w-3.5 h-3.5 shrink-0" />
-                      <span>{ngo.distanceKm.toFixed(1)} km away</span>
+                      <span>{ngo.distanceKm?.toFixed(1)} km away</span>
                     </div>
                   ) : null}
                 </div>

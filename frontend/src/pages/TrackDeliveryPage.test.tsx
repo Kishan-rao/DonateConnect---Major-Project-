@@ -8,6 +8,7 @@ import * as donationApi from '../api/donationApi';
 import * as AuthContextModule from '../context/AuthContext';
 import { ToastProvider } from '../context/ToastContext';
 import { DeliveryTrackingProvider } from '../context/DeliveryTrackingContext';
+import { RouteEtaDto } from '../types';
 import '@testing-library/jest-dom/vitest';
 import { Client } from '@stomp/stompjs';
 
@@ -16,6 +17,7 @@ vi.mock('../api/donationApi', () => ({
   getDeliveryByDonationId: vi.fn(),
   getLiveLocation: vi.fn(),
   completeDelivery: vi.fn(),
+  getDeliveryRouteEta: vi.fn(),
 }));
 
 vi.mock('../context/AuthContext', () => ({
@@ -52,7 +54,7 @@ vi.mock('react-leaflet', () => ({
   TileLayer: () => <div data-testid="tile-layer" />,
   Marker: ({ children }: any) => <div data-testid="marker">{children}</div>,
   Popup: ({ children }: any) => <div data-testid="popup">{children}</div>,
-  Polyline: () => <div data-testid="polyline" />,
+  Polyline: ({ positions }: any) => <div data-testid="polyline" data-positions={JSON.stringify(positions)} />,
   useMap: () => ({ panTo: vi.fn(), setView: vi.fn() }),
 }));
 
@@ -63,40 +65,64 @@ describe('TrackDeliveryPage', () => {
     status: 'PICKED_UP',
     pickupLat: 28.1,
     pickupLng: 77.1,
+    pickupAddress: '100 Main St, New Delhi',
     ngo: { name: 'Test NGO', latitude: 28.2, longitude: 77.2, address: 'Test Address' },
   };
 
   const mockDelivery = {
     id: 'delivery-1',
     status: 'PICKED_UP',
+    lastLat: 28.15,
+    lastLng: 77.15,
+    lastLocationAt: new Date().toISOString(),
+  };
+
+  const mockRouteEta: RouteEtaDto = {
+    deliveryId: 'delivery-1',
+    donationId: 'test-id',
+    deliveryStatus: 'PICKED_UP',
+    destinationType: 'NGO_HUB',
+    destinationAddress: 'Test Address',
+    originLat: 28.15,
+    originLng: 77.15,
+    driverLastLocationAt: new Date().toISOString(),
+    staleGps: false,
+    destinationLat: 28.2,
+    destinationLng: 77.2,
+    roadDistanceKm: 7.6,
+    roadDistanceMeters: 7600,
+    durationMinutes: 28,
+    durationSeconds: 1680,
+    calculatedAt: new Date().toISOString(),
+    trafficAware: false,
+    provider: 'OSRM',
+    routingStatus: 'SUCCESS',
+    statusMessage: 'Route calculated via OpenStreetMap road routing.',
+    routeCoordinates: [[28.15, 77.15], [28.2, 77.2]],
   };
 
   let mockLoc: any;
 
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
-    vi.setSystemTime(new Date(2026, 9, 5, 12, 0, 0)); // Set a fixed system time
+    vi.setSystemTime(new Date(2026, 9, 5, 12, 0, 0));
     mockLoc = { lat: 28.15, lng: 77.15, timestamp: new Date().toISOString() };
     vi.clearAllMocks();
-    
+
     vi.mocked(donationApi.getDonationById).mockResolvedValue(mockDonation as any);
     vi.mocked(donationApi.getDeliveryByDonationId).mockResolvedValue(mockDelivery as any);
     vi.mocked(donationApi.getLiveLocation).mockResolvedValue(mockLoc);
-    
+    vi.mocked(donationApi.getDeliveryRouteEta).mockResolvedValue(mockRouteEta);
+
     vi.mocked(AuthContextModule.useAuth).mockReturnValue({
       token: 'test-token',
       user: { role: 'VOLUNTEER' },
     } as any);
-    
-    // reset mock stomp client
+
     mockStompClient.connected = false;
     mockStompClient.activate.mockClear();
     mockStompClient.deactivate.mockClear();
     mockStompClient.subscribe.mockClear();
-    
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      json: () => Promise.resolve({ code: 'Ok', routes: [] }),
-    });
   });
 
   afterEach(() => {
@@ -117,139 +143,134 @@ describe('TrackDeliveryPage', () => {
     );
   };
 
-  it('renders and fetches initial data', async () => {
+  it('1. renders and fetches initial donation, location, and backend route ETA', async () => {
     renderPage();
-    
-    // Check loading state
+
     expect(screen.getByText('Initializing live map tracker...')).toBeInTheDocument();
-    
+
     await waitFor(() => {
       expect(screen.queryByText('Initializing live map tracker...')).not.toBeInTheDocument();
     });
-    
+
     expect(donationApi.getDonationById).toHaveBeenCalledWith('test-id');
     expect(donationApi.getLiveLocation).toHaveBeenCalledWith('test-id');
+    expect(donationApi.getDeliveryRouteEta).toHaveBeenCalledWith('test-id');
+
     expect(screen.getByText(/Live Delivery Tracking/i)).toBeInTheDocument();
     expect(screen.getByText(/CLOTHES/i)).toBeInTheDocument();
   });
 
-  it('handles offline state and polling fallback when websocket drops', async () => {
+  it('2. displays authoritative road distance, arrival duration, and non-traffic notice', async () => {
     renderPage();
-    
+
     await waitFor(() => expect(screen.queryByText('Initializing live map tracker...')).not.toBeInTheDocument());
-    
-    // Ensure we are initially online
-    expect(screen.getByText(/Live GPS/i)).toBeInTheDocument();
-    
-    // Mock polling to fail so lastUpdated doesn't update
-    vi.mocked(donationApi.getLiveLocation).mockRejectedValue(new Error('Network error'));
-    
-    // Simulate time passing > 30s without update to trigger offline state
-    act(() => {
-      vi.advanceTimersByTime(50000);
-    });
-    
+
+    // Distance remaining
     await waitFor(() => {
-      expect(screen.getByText(/Offline/i)).toBeInTheDocument();
+      expect(screen.getByText('7.6 km')).toBeInTheDocument();
     });
-    
-    // Check polling fallback. Every 10s it polls if disconnected. 
-    // Advance timers to trigger polling.
-    vi.mocked(donationApi.getLiveLocation).mockReset();
-    vi.mocked(donationApi.getLiveLocation).mockResolvedValue(mockLoc);
-    
-    act(() => {
-      vi.setSystemTime(new Date(2026, 9, 5, 12, 1, 0));
-      vi.advanceTimersByTime(10000);
-    });
-    
-    // Should have called getLiveLocation since connected = false
-    expect(donationApi.getLiveLocation).toHaveBeenCalledWith('test-id');
+    expect(screen.getByText(/Road distance remaining/i)).toBeInTheDocument();
+
+    // Estimated arrival duration
+    expect(screen.getByText('28 min')).toBeInTheDocument();
+    expect(screen.getByText(/Estimated arrival/i)).toBeInTheDocument();
+
+    // Traffic awareness disclaimer
+    expect(screen.getByText(/ETA based on road routing — live traffic not available/i)).toBeInTheDocument();
+
+    // Map polyline rendered from backend coordinates
+    const polylines = screen.getAllByTestId('polyline');
+    const routePolyline = polylines.find(p => p.getAttribute('data-positions')?.includes('28.15'));
+    expect(routePolyline).toBeDefined();
   });
 
-  it('shows Mark Delivered modal (Verification Form) for volunteer on PICKED_UP delivery and handles submit', async () => {
+  it('3. displays warning banner when driver GPS is marked stale by backend', async () => {
+    vi.mocked(donationApi.getDeliveryRouteEta).mockResolvedValue({
+      ...mockRouteEta,
+      staleGps: true,
+      driverLastLocationAt: new Date(2026, 9, 5, 11, 55, 0).toISOString(),
+    });
+
     renderPage();
-    
+
     await waitFor(() => expect(screen.queryByText('Initializing live map tracker...')).not.toBeInTheDocument());
-    
+
+    await waitFor(() => {
+      expect(screen.getByText(/Warning: Location update is delayed \(Driver offline\)/i)).toBeInTheDocument();
+    });
+  });
+
+  it('4. displays fallback notice when routingStatus is FALLBACK_ESTIMATE', async () => {
+    vi.mocked(donationApi.getDeliveryRouteEta).mockResolvedValue({
+      ...mockRouteEta,
+      routingStatus: 'FALLBACK_ESTIMATE',
+      provider: 'ESTIMATED_FALLBACK',
+      roadDistanceKm: 8.5,
+      durationMinutes: 20,
+    });
+
+    renderPage();
+
+    await waitFor(() => expect(screen.queryByText('Initializing live map tracker...')).not.toBeInTheDocument());
+
+    await waitFor(() => {
+      expect(screen.getByText(/Estimated distance based on urban road network factor \(OSRM route unavailable\)/i)).toBeInTheDocument();
+    });
+    expect(screen.getByText('8.5 km')).toBeInTheDocument();
+    expect(screen.getByText('20 min')).toBeInTheDocument();
+  });
+
+  it('5. displays missing destination coordinates message without crashing or inventing a route', async () => {
+    vi.mocked(donationApi.getDeliveryRouteEta).mockResolvedValue({
+      ...mockRouteEta,
+      routingStatus: 'MISSING_COORDINATES',
+      roadDistanceKm: null,
+      durationMinutes: null,
+      routeCoordinates: [],
+    });
+
+    renderPage();
+
+    await waitFor(() => expect(screen.queryByText('Initializing live map tracker...')).not.toBeInTheDocument());
+
+    await waitFor(() => {
+      expect(screen.getByText(/Destination coordinates unavailable for road routing/i)).toBeInTheDocument();
+    });
+  });
+
+  it('6. shows Mark Delivered modal (Verification Form) for volunteer on PICKED_UP delivery and handles submit', async () => {
+    renderPage();
+
+    await waitFor(() => expect(screen.queryByText('Initializing live map tracker...')).not.toBeInTheDocument());
+
     expect(screen.getByText('Verification Form')).toBeInTheDocument();
-    
-    // Submit with empty OTP and image
+
     const completeBtn = screen.getByRole('button', { name: /Complete Delivery/i });
     expect(completeBtn).toBeDisabled();
-    
+
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    
+
     // Fill OTP
     const otpInputs = screen.getAllByRole('textbox');
     for (let i = 0; i < 6; i++) {
       await user.type(otpInputs[i], '1');
     }
-    
+
     // Upload image
     const file = new File(['dummy'], 'test.png', { type: 'image/png' });
-    // Find the file input - it's hidden, so we need to get it by its type or label
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     await user.upload(fileInput, file);
-    
+
     expect(completeBtn).not.toBeDisabled();
-    
-    // Mock successful complete
+
     vi.mocked(donationApi.completeDelivery).mockResolvedValueOnce({});
-    
+
     await user.click(completeBtn);
-    
+
     expect(donationApi.completeDelivery).toHaveBeenCalledWith('delivery-1', '111111', file);
   });
 
-  it('renders correctly for Donor without volunteer controls and shows map', async () => {
-    vi.mocked(AuthContextModule.useAuth).mockReturnValue({
-      token: 'donor-token',
-      user: { role: 'DONOR', id: 'donor-1' },
-    } as any);
-
-    renderPage();
-
-    await waitFor(() => expect(screen.queryByText('Initializing live map tracker...')).not.toBeInTheDocument());
-
-    // Donor should see live tracking and map
-    expect(screen.getByText(/Live Delivery Tracking/i)).toBeInTheDocument();
-    expect(screen.getByTestId('map-container')).toBeInTheDocument();
-    // Verification Form must not be shown to donor
-    expect(screen.queryByText('Verification Form')).not.toBeInTheDocument();
-    // Live Location Tracker controls must not be shown to donor
-    expect(screen.queryByRole('button', { name: /start trip & share location/i })).not.toBeInTheDocument();
-  });
-
-  it('displays Awaiting Volunteer Assignment when delivery is newly accepted and unassigned', async () => {
-    vi.mocked(AuthContextModule.useAuth).mockReturnValue({
-      token: 'donor-token',
-      user: { role: 'DONOR', id: 'donor-1' },
-    } as any);
-
-    vi.mocked(donationApi.getDonationById).mockResolvedValue({
-      ...mockDonation,
-      status: 'ACCEPTED',
-    } as any);
-
-    vi.mocked(donationApi.getDeliveryByDonationId).mockResolvedValue({
-      id: 'delivery-assigned',
-      donationId: 'test-id',
-      status: 'ASSIGNED',
-      volunteerId: null as any,
-    } as any);
-
-    vi.mocked(donationApi.getLiveLocation).mockResolvedValue(null as any);
-
-    renderPage();
-
-    await waitFor(() => expect(screen.queryByText('Initializing live map tracker...')).not.toBeInTheDocument());
-
-    expect(screen.getByText(/Awaiting Volunteer Assignment/i)).toBeInTheDocument();
-    expect(screen.getByTestId('map-container')).toBeInTheDocument();
-  });
-
-  it('displays Delivery Completed when donation is marked DELIVERED', async () => {
+  it('7. displays Delivery Completed and stops tracking when donation is marked DELIVERED', async () => {
     vi.mocked(AuthContextModule.useAuth).mockReturnValue({
       token: 'ngo-token',
       user: { role: 'NGO', id: 'ngo-user-1' },

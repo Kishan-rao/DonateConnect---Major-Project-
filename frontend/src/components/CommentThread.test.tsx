@@ -105,7 +105,9 @@ describe('CommentThread - Responsive Direct Chat Modal', () => {
     expect(screen.getByText('FOOD')).toBeInTheDocument();
 
     // Check message count badge
-    expect(screen.getByText('1 msg')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('1 msg')).toBeInTheDocument();
+    });
 
     // Close button has accessible aria-label and triggers onClose
     const closeBtn = screen.getByRole('button', { name: /Close chat/i });

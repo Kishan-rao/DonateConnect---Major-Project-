@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import { ApiResponse, CreateDonationRequest, Donation, DonationComment, DonationStatus, HealthStatus, PageResponse } from '../types';
+import { ApiResponse, CreateDonationRequest, Donation, DonationComment, DonationStatus, HealthStatus, PageResponse, RouteEtaDto } from '../types';
 
 export const getHealthStatus = async (): Promise<HealthStatus> => {
   try {
@@ -86,6 +86,11 @@ export const getAdminDonations = async (
 
 export const getLiveLocation = async (donationId: string) => {
   const response = await apiClient.get(`/deliveries/donations/${donationId}/location`);
+  return response.data.data;
+};
+
+export const getDeliveryRouteEta = async (donationId: string): Promise<RouteEtaDto> => {
+  const response = await apiClient.get<ApiResponse<RouteEtaDto>>(`/deliveries/donations/${donationId}/route-eta`);
   return response.data.data;
 };
 

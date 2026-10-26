@@ -2,11 +2,13 @@ package com.donateconnect.controller;
 
 import com.donateconnect.dto.ApiResponse;
 import com.donateconnect.dto.LocationUpdateDto;
+import com.donateconnect.dto.RouteEtaDto;
 import com.donateconnect.entity.Delivery;
 import com.donateconnect.entity.User;
 import com.donateconnect.exception.ResourceNotFoundException;
 import com.donateconnect.repository.DeliveryRepository;
 import com.donateconnect.repository.UserRepository;
+import com.donateconnect.service.RoutingService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,15 +27,18 @@ public class LocationRestController {
     private final DeliveryRepository deliveryRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final UserRepository userRepository;
+    private final RoutingService routingService;
 
     public LocationRestController(
             DeliveryRepository deliveryRepository,
             SimpMessagingTemplate messagingTemplate,
-            UserRepository userRepository
+            UserRepository userRepository,
+            RoutingService routingService
     ) {
         this.deliveryRepository = deliveryRepository;
         this.messagingTemplate = messagingTemplate;
         this.userRepository = userRepository;
+        this.routingService = routingService;
     }
 
     @PostMapping("/{id}/location")
@@ -114,6 +119,18 @@ public class LocationRestController {
         dto.setTimestamp(delivery.getLastLocationAt());
 
         return ResponseEntity.ok(ApiResponse.success("Fetched latest location", dto));
+    }
+
+    @GetMapping("/donations/{id}/route-eta")
+    @PreAuthorize("hasAnyRole('DONOR', 'NGO', 'ADMIN', 'VOLUNTEER')")
+    public ResponseEntity<ApiResponse<RouteEtaDto>> getDeliveryRouteEta(
+            Authentication authentication,
+            @PathVariable("id") UUID donationId
+    ) {
+        UUID userId = getUserIdFromAuth(authentication);
+        String role = authentication.getAuthorities().iterator().next().getAuthority();
+        RouteEtaDto routeEta = routingService.calculateDeliveryRouteEta(donationId, userId, role);
+        return ResponseEntity.ok(ApiResponse.success("Fetched delivery route ETA", routeEta));
     }
 
     private UUID getUserIdFromAuth(Authentication authentication) {

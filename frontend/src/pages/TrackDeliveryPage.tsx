@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getDonationById, getLiveLocation, getDeliveryByDonationId, completeDelivery } from '../api/donationApi';
-import { Donation, DeliveryDto } from '../types';
+import { getDonationById, getLiveLocation, getDeliveryByDonationId, completeDelivery, getDeliveryRouteEta } from '../api/donationApi';
+import { Donation, DeliveryDto, RouteEtaDto } from '../types';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -55,11 +55,11 @@ export const TrackDeliveryPage: React.FC = () => {
   const [isOffline, setIsOffline] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // OSRM Route & ETA State
-  const [osrmPath, setOsrmPath] = useState<[number, number][]>([]);
-  const [distanceKm, setDistanceKm] = useState<string | null>(null);
-  const [etaMinutes, setEtaMinutes] = useState<number | null>(null);
-  const [lastOsrmRefresh, setLastOsrmRefresh] = useState<Date | null>(null);
+  // Backend Authoritative Route ETA State
+  const [routeEta, setRouteEta] = useState<RouteEtaDto | null>(null);
+  const [etaLoading, setEtaLoading] = useState(false);
+  const [etaError, setEtaError] = useState<string | null>(null);
+  const lastEtaFetchTime = useRef<number>(0);
 
   // Proof of delivery state
   const [otp, setOtp] = useState('');
@@ -134,6 +134,10 @@ export const TrackDeliveryPage: React.FC = () => {
               });
               setLastUpdated(new Date());
               setIsOffline(false);
+              // Trigger route ETA refresh if at least 15s have passed since last fetch
+              if (Date.now() - lastEtaFetchTime.current > 15000) {
+                fetchRouteEta();
+              }
             }
           } catch (e) {
             console.error('Failed to parse incoming location update', e);
@@ -164,6 +168,9 @@ export const TrackDeliveryPage: React.FC = () => {
               return [...prev, [loc.lat, loc.lng]];
             });
             setLastUpdated(new Date());
+            if (Date.now() - lastEtaFetchTime.current > 15000) {
+              fetchRouteEta();
+            }
           }
         } catch (e: any) {
           if (e.response?.status === 400) {
@@ -196,48 +203,35 @@ export const TrackDeliveryPage: React.FC = () => {
     return () => clearInterval(checkOffline);
   }, []);
 
-  // OSRM Route & ETA fetch (Refreshes every 30 seconds)
+  // Backend Authoritative Route ETA fetch
+  const fetchRouteEta = useCallback(async () => {
+    if (!id) return;
+    if (donation?.status === 'DELIVERED' || donation?.status === 'REJECTED') return;
+
+    try {
+      setEtaLoading(true);
+      setEtaError(null);
+      const data = await getDeliveryRouteEta(id);
+      setRouteEta(data);
+      lastEtaFetchTime.current = Date.now();
+    } catch (err: any) {
+      console.warn('Failed to fetch authoritative route ETA:', err?.message);
+      setEtaError(err.message || 'Route ETA unavailable');
+    } finally {
+      setEtaLoading(false);
+    }
+  }, [id, donation?.status]);
+
   useEffect(() => {
-    if (!currentLoc || !donation?.ngo) return;
-    if (donation.status === 'DELIVERED' || donation.status === 'REJECTED') return;
+    if (!id) return;
+    if (donation?.status === 'DELIVERED' || donation?.status === 'REJECTED') return;
 
-    const isRoutingToPickup = delivery?.status === 'ASSIGNED' || delivery?.status === 'ACCEPTED_BY_VOLUNTEER' || delivery?.status === 'EN_ROUTE_TO_PICKUP';
-    
-    const targetLat = isRoutingToPickup && donation.pickupLat ? donation.pickupLat : (donation.ngo.latitude || currentLoc.lat + 0.03);
-    const targetLng = isRoutingToPickup && donation.pickupLng ? donation.pickupLng : (donation.ngo.longitude || currentLoc.lng + 0.03);
+    fetchRouteEta();
 
-    const fetchRoute = async () => {
-      try {
-        const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${currentLoc.lng},${currentLoc.lat};${targetLng},${targetLat}?overview=full&geometries=geojson`;
-        const res = await fetch(osrmUrl);
-        const data = await res.json();
-
-        if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-          const route = data.routes[0];
-          const distKm = (route.distance / 1000).toFixed(1);
-          const mins = Math.round(route.duration / 60);
-
-          const coords: [number, number][] = route.geometry.coordinates.map(
-            ([lng, lat]: [number, number]) => [lat, lng]
-          );
-
-          setOsrmPath(coords);
-          setDistanceKm(distKm);
-          setEtaMinutes(mins);
-          setLastOsrmRefresh(new Date());
-        }
-      } catch (err) {
-        console.error('OSRM route fetch failed:', err);
-      }
-    };
-
-    // Fetch immediately
-    fetchRoute();
-
-    // Refresh OSRM route every 30 seconds
-    const interval = setInterval(fetchRoute, 30000);
+    // Auto-refresh every 30 seconds (matching backend 30s cache TTL)
+    const interval = setInterval(fetchRouteEta, 30000);
     return () => clearInterval(interval);
-  }, [currentLoc?.lat, currentLoc?.lng, donation?.ngo?.latitude, donation?.ngo?.longitude, donation?.status]);
+  }, [id, fetchRouteEta, donation?.status]);
 
   if (loading) {
     return (
@@ -248,14 +242,15 @@ export const TrackDeliveryPage: React.FC = () => {
     );
   }
 
-  const pickupPoint: [number, number] = [
-    donation?.pickupLat || (path.length > 0 ? path[0][0] : 12.9716),
-    donation?.pickupLng || (path.length > 0 ? path[0][1] : 77.5946)
-  ];
-  const ngoLat = donation?.ngo?.latitude || (currentLoc ? currentLoc.lat + 0.03 : 28.6439);
-  const ngoLng = donation?.ngo?.longitude || (currentLoc ? currentLoc.lng + 0.03 : 77.2390);
-  const ngoPoint: [number, number] = [ngoLat, ngoLng];
-  const isRoutingToPickup = delivery?.status === 'ASSIGNED' || delivery?.status === 'ACCEPTED_BY_VOLUNTEER' || delivery?.status === 'EN_ROUTE_TO_PICKUP';
+  const pickupPoint: [number, number] | null = donation?.pickupLat && donation?.pickupLng
+    ? [donation.pickupLat, donation.pickupLng]
+    : path.length > 0 ? path[0] : null;
+  const ngoPoint: [number, number] | null = donation?.ngo?.latitude && donation?.ngo?.longitude
+    ? [donation.ngo.latitude, donation.ngo.longitude]
+    : null;
+  const isRoutingToPickup = routeEta
+    ? routeEta.destinationType === 'PICKUP'
+    : (delivery?.status === 'ASSIGNED' || delivery?.status === 'ACCEPTED_BY_VOLUNTEER' || delivery?.status === 'EN_ROUTE_TO_PICKUP');
 
   const handleCompleteDelivery = async () => {
     if (!delivery || !otp || !proofImage) {
@@ -313,10 +308,10 @@ export const TrackDeliveryPage: React.FC = () => {
           </div>
         </div>
 
-        {/* 30s Refresh Indicator */}
+        {/* Route ETA Sync Indicator */}
         <div className="hidden sm:flex items-center gap-2 bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-full text-xs font-medium text-indigo-700">
-          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-          OSRM Route auto-refreshed (30s)
+          <RefreshCw className={`w-3.5 h-3.5 ${etaLoading ? 'animate-spin' : ''}`} />
+          Route ETA auto-refreshed (30s cache)
         </div>
       </div>
 
@@ -327,9 +322,11 @@ export const TrackDeliveryPage: React.FC = () => {
             <Compass className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Distance to {isRoutingToPickup ? 'Pickup' : 'NGO'}</p>
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Road distance remaining</p>
             <p className="text-xl font-black text-slate-900">
-              {distanceKm ? `${distanceKm} km` : currentLoc ? 'Calculating...' : '—'}
+              {routeEta?.roadDistanceKm !== undefined && routeEta?.roadDistanceKm !== null
+                ? `${routeEta.roadDistanceKm} km`
+                : etaLoading ? 'Calculating...' : '—'}
             </p>
           </div>
         </div>
@@ -339,9 +336,11 @@ export const TrackDeliveryPage: React.FC = () => {
             <Clock className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Estimated ETA</p>
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Estimated arrival</p>
             <p className="text-xl font-black text-slate-900">
-              {etaMinutes !== null ? `${etaMinutes} mins` : currentLoc ? 'Calculating...' : '—'}
+              {routeEta?.durationMinutes !== undefined && routeEta?.durationMinutes !== null
+                ? `${routeEta.durationMinutes} min`
+                : etaLoading ? 'Calculating...' : '—'}
             </p>
           </div>
         </div>
@@ -352,11 +351,57 @@ export const TrackDeliveryPage: React.FC = () => {
           </div>
           <div className="overflow-hidden">
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Target Destination</p>
-            <p className="text-sm font-bold text-slate-900 truncate">{isRoutingToPickup ? 'Pickup Location' : (donation?.ngo?.name || 'NGO Destination')}</p>
-            <p className="text-[11px] text-slate-500 truncate">{isRoutingToPickup ? donation?.pickupAddress || 'Address not provided' : donation?.ngo?.address}</p>
+            <p className="text-sm font-bold text-slate-900 truncate">
+              {routeEta?.destinationType === 'PICKUP' ? 'Pickup Location' : (donation?.ngo?.name || 'NGO Hub')}
+            </p>
+            <p className="text-[11px] text-slate-500 truncate">
+              {routeEta?.destinationAddress || (routeEta?.destinationType === 'PICKUP' ? donation?.pickupAddress : donation?.ngo?.address) || 'Address not provided'}
+            </p>
           </div>
         </div>
       </div>
+
+      {/* ETA Disclaimer / Traffic Awareness Banner */}
+      {routeEta && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-2xl text-xs text-slate-600">
+          <div className="flex items-center gap-2">
+            <Navigation className="w-4 h-4 text-indigo-600 shrink-0" />
+            <div className="flex flex-wrap items-center gap-2">
+              <span>
+                {routeEta.routingStatus === 'FALLBACK_ESTIMATE'
+                  ? 'Estimated distance based on urban road network factor (OSRM route unavailable)'
+                  : routeEta.routingStatus === 'DRIVER_OFFLINE'
+                  ? 'Waiting for driver GPS location...'
+                  : routeEta.routingStatus === 'MISSING_COORDINATES'
+                  ? 'Destination coordinates unavailable for road routing'
+                  : routeEta.routingStatus === 'DELIVERY_COMPLETED'
+                  ? 'Delivery completed'
+                  : routeEta.statusMessage || 'Road routing active'}
+              </span>
+              {!routeEta.trafficAware && (
+                <span className="text-slate-500 font-normal">
+                  &bull; ETA based on road routing — live traffic not available
+                </span>
+              )}
+            </div>
+          </div>
+          {routeEta.calculatedAt && (
+            <span className="text-[11px] text-slate-400 font-mono">
+              Updated: {new Date(routeEta.calculatedAt).toLocaleTimeString()}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Stale GPS Warning Banner */}
+      {(routeEta?.staleGps || isOffline) && donation?.status !== 'DELIVERED' && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-2xl text-xs flex items-center gap-2.5 shadow-sm">
+          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+          <span className="font-medium">
+            Warning: Location update is delayed (Driver offline). Displayed position and ETA may not reflect real-time conditions.
+          </span>
+        </div>
+      )}
 
       {/* Volunteer Live Tracking Controller */}
       {isVolunteer && delivery && donation?.status !== 'DELIVERED' && donation?.status !== 'REJECTED' && (
@@ -512,7 +557,7 @@ export const TrackDeliveryPage: React.FC = () => {
         {/* Map Container */}
         <div className="h-[520px] w-full z-0 relative bg-slate-100">
           <MapContainer
-            center={currentLoc ? [currentLoc.lat, currentLoc.lng] : pickupPoint}
+            center={currentLoc ? [currentLoc.lat, currentLoc.lng] : (pickupPoint || ngoPoint || [12.9716, 77.5946])}
             zoom={13}
             style={{ height: '100%', width: '100%' }}
             zoomControl={false}
@@ -525,7 +570,7 @@ export const TrackDeliveryPage: React.FC = () => {
             
             {/* Pickup Marker */}
             {pickupPoint && (
-              <Marker position={pickupPoint as [number, number]}>
+              <Marker position={pickupPoint}>
                 <Popup>
                   <div className="p-1">
                     <p className="font-bold text-slate-900">Pickup Location</p>
@@ -536,18 +581,26 @@ export const TrackDeliveryPage: React.FC = () => {
             )}
 
             {/* Destination NGO Marker */}
-            <Marker position={ngoPoint}>
-              <Popup>
-                <div className="p-1">
-                  <p className="font-bold text-slate-900">{donation?.ngo?.name}</p>
-                  <p className="text-xs text-slate-600">{donation?.ngo?.address}</p>
-                </div>
-              </Popup>
-            </Marker>
+            {ngoPoint && (
+              <Marker position={ngoPoint}>
+                <Popup>
+                  <div className="p-1">
+                    <p className="font-bold text-slate-900">{donation?.ngo?.name || 'NGO Hub'}</p>
+                    <p className="text-xs text-slate-600">{donation?.ngo?.address || 'Address not provided'}</p>
+                  </div>
+                </Popup>
+              </Marker>
+            )}
 
-            {/* OSRM Route Polyline (Planned route to NGO) */}
-            {osrmPath.length > 0 && (
-              <Polyline positions={osrmPath} color="#6366f1" weight={6} opacity={0.85} dashArray="8, 8" />
+            {/* Authoritative Route Polyline */}
+            {routeEta?.routeCoordinates && routeEta.routeCoordinates.length > 0 && (
+              <Polyline
+                positions={routeEta.routeCoordinates}
+                color="#6366f1"
+                weight={6}
+                opacity={0.85}
+                dashArray={routeEta.routingStatus === 'FALLBACK_ESTIMATE' ? '8, 8' : undefined}
+              />
             )}
 
             {/* Traveled GPS History Path Polyline */}

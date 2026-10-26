@@ -20,6 +20,30 @@ export interface DeliveryDto {
   proofImageUrl?: string;
 }
 
+export interface RouteEtaDto {
+  deliveryId: string;
+  donationId: string;
+  deliveryStatus: string;
+  destinationType: 'PICKUP' | 'NGO_HUB' | string;
+  destinationAddress?: string | null;
+  originLat?: number | null;
+  originLng?: number | null;
+  driverLastLocationAt?: string | null;
+  staleGps: boolean;
+  destinationLat?: number | null;
+  destinationLng?: number | null;
+  roadDistanceKm?: number | null;
+  roadDistanceMeters?: number | null;
+  durationMinutes?: number | null;
+  durationSeconds?: number | null;
+  calculatedAt?: string | null;
+  trafficAware: boolean;
+  provider: string;
+  routingStatus: 'SUCCESS' | 'FALLBACK_ESTIMATE' | 'DRIVER_OFFLINE' | 'MISSING_COORDINATES' | 'DELIVERY_COMPLETED' | string;
+  statusMessage?: string | null;
+  routeCoordinates?: [number, number][];
+}
+
 export interface User {
   id: string;
   email: string;
