@@ -33,6 +33,7 @@ export const PhotoViewerModal: React.FC<PhotoViewerModalProps> = ({
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [imageLoading, setImageLoading] = useState<boolean>(true);
   const [imageError, setImageError] = useState<boolean>(false);
+  const [retryNonce, setRetryNonce] = useState<number>(0);
 
   // Drag & Touch tracking refs
   const dragStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -51,6 +52,7 @@ export const PhotoViewerModal: React.FC<PhotoViewerModalProps> = ({
       setPan({ x: 0, y: 0 });
       setImageLoading(true);
       setImageError(false);
+      setRetryNonce(0);
     }
   }, [isOpen, initialIndex, photos]);
 
@@ -61,6 +63,7 @@ export const PhotoViewerModal: React.FC<PhotoViewerModalProps> = ({
     setPan({ x: 0, y: 0 });
     setImageLoading(true);
     setImageError(false);
+    setRetryNonce(0);
   }, []);
 
   const handleNext = useCallback(() => {
@@ -240,12 +243,69 @@ export const PhotoViewerModal: React.FC<PhotoViewerModalProps> = ({
     }
   };
 
+  const currentRawUrl = photos && photos.length > 0 ? photos[currentIndex] : '';
+  const basePhotoUrl = getPhotoUrl(currentRawUrl);
+  const currentPhotoUrl = retryNonce > 0 && basePhotoUrl && !basePhotoUrl.startsWith('data:')
+    ? `${basePhotoUrl}${basePhotoUrl.includes('?') ? '&' : '?'}retry=${retryNonce}`
+    : basePhotoUrl;
+
+  // Preload and timeout safety effect: guarantees the viewer never spins indefinitely
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (!basePhotoUrl) {
+      setImageLoading(false);
+      setImageError(true);
+      return;
+    }
+
+    setImageLoading(true);
+    setImageError(false);
+
+    let isMounted = true;
+    const img = new Image();
+
+    // 8-second safety timeout so viewer never stays stuck on loading
+    const timer = setTimeout(() => {
+      if (isMounted) {
+        setImageLoading(false);
+        setImageError(true);
+      }
+    }, 8000);
+
+    img.onload = () => {
+      if (isMounted) {
+        clearTimeout(timer);
+        setImageLoading(false);
+        setImageError(false);
+      }
+    };
+
+    img.onerror = () => {
+      if (isMounted) {
+        clearTimeout(timer);
+        setImageLoading(false);
+        setImageError(true);
+      }
+    };
+
+    img.src = currentPhotoUrl;
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [isOpen, basePhotoUrl, currentPhotoUrl]);
+
   if (!isOpen || !photos || photos.length === 0) {
     return null;
   }
 
-  const currentRawUrl = photos[currentIndex];
-  const currentPhotoUrl = getPhotoUrl(currentRawUrl);
+  const handleRetry = () => {
+    setImageError(false);
+    setImageLoading(true);
+    setRetryNonce((prev) => prev + 1);
+  };
 
   return (
     <div
@@ -354,7 +414,7 @@ export const PhotoViewerModal: React.FC<PhotoViewerModalProps> = ({
         {imageLoading && !imageError && (
           <div
             data-testid="photo-viewer-loading"
-            className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white pointer-events-none"
+            className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white pointer-events-none z-10"
           >
             <Loader2 className="w-8 h-8 animate-spin text-[#7567E8]" />
             <span className="text-xs font-medium text-gray-300">Loading high-resolution photo...</span>
@@ -365,7 +425,7 @@ export const PhotoViewerModal: React.FC<PhotoViewerModalProps> = ({
         {imageError ? (
           <div
             data-testid="photo-viewer-error"
-            className="p-6 rounded-2xl bg-white/10 border border-white/20 backdrop-blur-md text-center max-w-sm mx-auto space-y-3 text-white"
+            className="p-6 rounded-2xl bg-white/10 border border-white/20 backdrop-blur-md text-center max-w-sm mx-auto space-y-3 text-white z-10"
             onClick={(e) => e.stopPropagation()}
           >
             <AlertTriangle className="w-10 h-10 text-amber-400 mx-auto" />
@@ -375,10 +435,7 @@ export const PhotoViewerModal: React.FC<PhotoViewerModalProps> = ({
             </p>
             <button
               type="button"
-              onClick={() => {
-                setImageError(false);
-                setImageLoading(true);
-              }}
+              onClick={handleRetry}
               className="px-4 py-2 rounded-xl bg-[#7567E8] hover:bg-[#6355d8] text-white text-xs font-semibold transition-colors"
             >
               Retry
@@ -405,6 +462,7 @@ export const PhotoViewerModal: React.FC<PhotoViewerModalProps> = ({
               transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
               cursor: zoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'zoom-in',
               transition: isDragging ? 'none' : 'transform 0.2s cubic-bezier(0.2, 0, 0, 1)',
+              opacity: imageLoading ? 0 : 1,
             }}
             className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl transition-opacity duration-200"
           />
@@ -420,7 +478,7 @@ export const PhotoViewerModal: React.FC<PhotoViewerModalProps> = ({
               handlePrev();
             }}
             aria-label="Previous photo"
-            className="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 p-3 rounded-full text-white bg-black/40 hover:bg-black/70 border border-white/20 backdrop-blur-sm transition-all min-w-[48px] min-h-[48px] flex items-center justify-center shadow-lg active:scale-95"
+            className="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 p-3 rounded-full text-white bg-black/40 hover:bg-black/70 border border-white/20 backdrop-blur-sm transition-all min-w-[48px] min-h-[48px] flex items-center justify-center shadow-lg active:scale-95 z-20"
             title="Previous Photo (←)"
           >
             <ChevronLeft className="w-6 h-6" />
@@ -437,7 +495,7 @@ export const PhotoViewerModal: React.FC<PhotoViewerModalProps> = ({
               handleNext();
             }}
             aria-label="Next photo"
-            className="absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 p-3 rounded-full text-white bg-black/40 hover:bg-black/70 border border-white/20 backdrop-blur-sm transition-all min-w-[48px] min-h-[48px] flex items-center justify-center shadow-lg active:scale-95"
+            className="absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 p-3 rounded-full text-white bg-black/40 hover:bg-black/70 border border-white/20 backdrop-blur-sm transition-all min-w-[48px] min-h-[48px] flex items-center justify-center shadow-lg active:scale-95 z-20"
             title="Next Photo (→)"
           >
             <ChevronRight className="w-6 h-6" />
@@ -463,4 +521,3 @@ export const PhotoViewerModal: React.FC<PhotoViewerModalProps> = ({
     </div>
   );
 };
-

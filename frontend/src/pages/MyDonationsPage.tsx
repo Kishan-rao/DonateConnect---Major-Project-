@@ -276,7 +276,10 @@ export const MyDonationsPage: React.FC = () => {
                             alt={`${donation.category} thumbnail`}
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200"
                             onError={(e) => {
-                              (e.currentTarget as HTMLImageElement).src = '/placeholder-donation.svg';
+                              const target = e.currentTarget as HTMLImageElement;
+                              if (!target.src.endsWith('/placeholder-donation.svg')) {
+                                target.src = '/placeholder-donation.svg';
+                              }
                             }}
                           />
                           <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -429,7 +432,10 @@ export const MyDonationsPage: React.FC = () => {
                           alt={`Donation attachment ${idx + 1}`}
                           className="w-14 h-14 object-cover group-hover:scale-105 transition-transform"
                           onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).src = '/placeholder-donation.svg';
+                            const target = e.currentTarget as HTMLImageElement;
+                            if (!target.src.endsWith('/placeholder-donation.svg')) {
+                              target.src = '/placeholder-donation.svg';
+                            }
                           }}
                         />
                       </button>

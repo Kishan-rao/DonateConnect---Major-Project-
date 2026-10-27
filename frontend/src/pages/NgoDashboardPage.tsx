@@ -281,7 +281,10 @@ export const NgoDashboardPage: React.FC = () => {
                           alt="Donation attachment"
                           className="w-14 h-14 object-cover group-hover:scale-105 transition-transform"
                           onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).src = '/placeholder-donation.svg';
+                            const target = e.currentTarget as HTMLImageElement;
+                            if (!target.src.endsWith('/placeholder-donation.svg')) {
+                              target.src = '/placeholder-donation.svg';
+                            }
                           }}
                         />
                       </button>

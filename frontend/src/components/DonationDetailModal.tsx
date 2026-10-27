@@ -363,7 +363,10 @@ export const DonationDetailModal: React.FC<DonationDetailModalProps> = ({
                           alt={`Donation attachment ${idx + 1}`}
                           className="w-24 h-24 object-cover group-hover:scale-105 transition-transform duration-200"
                           onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).src = '/placeholder-donation.svg';
+                            const target = e.currentTarget as HTMLImageElement;
+                            if (!target.src.endsWith('/placeholder-donation.svg')) {
+                              target.src = '/placeholder-donation.svg';
+                            }
                           }}
                         />
                         <div className="absolute inset-0 bg-[#111827]/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">

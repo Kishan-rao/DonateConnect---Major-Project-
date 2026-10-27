@@ -36,7 +36,7 @@ export const resolveApiBaseUrl = (options?: ResolveApiBaseUrlOptions): string =>
     } else {
       // Native Android development fallback
       if (!url) {
-        url = 'http://192.168.29.227:8080/api';
+        url = 'https://donateconnect-backend.onrender.com/api';
       }
     }
   } else {

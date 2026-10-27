@@ -167,6 +167,7 @@ public class DonationController {
             byte[] data = storageService.load(filename);
             String contentType = storageService.getContentType(filename);
             return ResponseEntity.ok()
+                    .cacheControl(org.springframework.http.CacheControl.maxAge(1, java.util.concurrent.TimeUnit.DAYS).cachePublic())
                     .contentType(MediaType.parseMediaType(Objects.requireNonNull(contentType)))
                     .body(data);
         } catch (IOException e) {
