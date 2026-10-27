@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import { ApiResponse, CreateDonationRequest, Donation, DonationComment, DonationStatus, HealthStatus, PageResponse, RouteEtaDto } from '../types';
+import { ApiResponse, CreateDonationRequest, DeliveryDto, Donation, DonationComment, DonationStatus, HealthStatus, PageResponse, RouteEtaDto } from '../types';
 
 export const getHealthStatus = async (): Promise<HealthStatus> => {
   try {
@@ -94,12 +94,12 @@ export const getDeliveryRouteEta = async (donationId: string): Promise<RouteEtaD
   return response.data.data;
 };
 
-export const completeDelivery = async (id: string, otp: string, proofImage: File): Promise<any> => {
+export const completeDelivery = async (id: string, otp: string, proofImage: File): Promise<DeliveryDto> => {
   const formData = new FormData();
   formData.append('otp', otp);
   formData.append('proofImage', proofImage);
 
-  const response = await apiClient.post(`/volunteer/deliveries/${id}/complete`, formData, {
+  const response = await apiClient.post<ApiResponse<DeliveryDto>>(`/volunteer/deliveries/${id}/complete`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
@@ -107,9 +107,28 @@ export const completeDelivery = async (id: string, otp: string, proofImage: File
   return response.data.data;
 };
 
-export const getDeliveryByDonationId = async (donationId: string): Promise<any> => {
-  const response = await apiClient.get(`/volunteer/deliveries/donation/${donationId}`);
+export const getDeliveryByDonationId = async (donationId: string): Promise<DeliveryDto> => {
+  const response = await apiClient.get<ApiResponse<DeliveryDto>>(`/volunteer/deliveries/donation/${donationId}`);
   return response.data.data;
+};
+
+export const getDeliveryProofPhoto = async (deliveryId: string): Promise<string> => {
+  const response = await apiClient.get<Blob>(`/volunteer/deliveries/${deliveryId}/proof-image`, {
+    responseType: 'blob',
+  });
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result);
+      } else {
+        reject(new Error('The proof photo could not be displayed.'));
+      }
+    };
+    reader.onerror = () => reject(new Error('The proof photo could not be displayed.'));
+    reader.readAsDataURL(response.data);
+  });
 };
 
 export const getDeliveryOtp = async (donationId: string): Promise<string> => {

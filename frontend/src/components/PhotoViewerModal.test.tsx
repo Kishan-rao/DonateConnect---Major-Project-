@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import React from 'react';
 import { PhotoViewerModal } from './PhotoViewerModal';
 import * as useAndroidBackButtonModule from '../utils/useAndroidBackButton';
@@ -261,6 +261,67 @@ describe('PhotoViewerModal', () => {
     // Click retry
     fireEvent.click(screen.getByText('Retry'));
     expect(screen.getByTestId('photo-viewer-image')).toBeInTheDocument();
+  });
+
+  it('handles empty or invalid photo URLs without infinite loading spinner', () => {
+    render(
+      <PhotoViewerModal
+        isOpen={true}
+        photos={['', '   ']}
+        onClose={mockOnClose}
+      />
+    );
+
+    // Empty URL immediately triggers error fallback and no infinite spinner
+    expect(screen.getByTestId('photo-viewer-error')).toBeInTheDocument();
+    expect(screen.queryByTestId('photo-viewer-loading')).not.toBeInTheDocument();
+  });
+
+  it('triggers safety timeout when image loading hangs without infinite spinner', () => {
+    vi.useFakeTimers();
+
+    render(
+      <PhotoViewerModal
+        isOpen={true}
+        photos={['https://example.com/hanging-image.jpg']}
+        onClose={mockOnClose}
+      />
+    );
+
+    // Initially loading
+    expect(screen.getByTestId('photo-viewer-loading')).toBeInTheDocument();
+
+    // Fast-forward past the 8-second safety timeout
+    act(() => {
+      vi.advanceTimersByTime(8500);
+    });
+
+    // Error state appears and loading spinner is dismissed
+    expect(screen.getByTestId('photo-viewer-error')).toBeInTheDocument();
+    expect(screen.queryByTestId('photo-viewer-loading')).not.toBeInTheDocument();
+
+    vi.useRealTimers();
+  });
+
+  it('retry button appends cache-buster to force fresh network request', () => {
+    render(
+      <PhotoViewerModal
+        isOpen={true}
+        photos={['https://example.com/photo-to-retry.jpg']}
+        onClose={mockOnClose}
+      />
+    );
+
+    // Simulate error
+    const image = screen.getByTestId('photo-viewer-image');
+    fireEvent.error(image);
+
+    // Click retry
+    fireEvent.click(screen.getByText('Retry'));
+
+    // Image reloads with retry parameter
+    const retriedImage = screen.getByTestId('photo-viewer-image');
+    expect(retriedImage.getAttribute('src')).toContain('retry=1');
   });
 });
 

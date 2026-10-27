@@ -12,11 +12,17 @@ import com.donateconnect.repository.DeliveryRepository;
 import com.donateconnect.repository.DonationRepository;
 import com.donateconnect.repository.StatusHistoryRepository;
 import com.donateconnect.repository.VolunteerTaskRepository;
+import com.donateconnect.service.DeliveryProofImage;
 import com.donateconnect.service.DeliveryService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.imageio.ImageIO;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.security.MessageDigest;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -24,6 +30,9 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class DeliveryServiceImpl implements DeliveryService {
+
+    private static final long MAX_PROOF_IMAGE_SIZE = 10 * 1024 * 1024;
+    private static final String DONATION_PHOTO_URL_PREFIX = "/api/donations/photo/";
 
     private final DeliveryRepository deliveryRepository;
     private final DonationRepository donationRepository;
@@ -35,11 +44,15 @@ public class DeliveryServiceImpl implements DeliveryService {
     @Override
     @Transactional
     public DeliveryDto updateDeliveryStatus(UUID volunteerId, UUID deliveryId, DeliveryStatus newStatus) {
-        Delivery delivery = deliveryRepository.findById(deliveryId)
+        Delivery delivery = deliveryRepository.findByIdForUpdate(deliveryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Delivery not found"));
 
         if (delivery.getVolunteer() == null || !delivery.getVolunteer().getId().equals(volunteerId)) {
-            throw new IllegalArgumentException("You are not assigned to this delivery");
+            throw new AccessDeniedException("You are not assigned to this delivery");
+        }
+
+        if (newStatus == DeliveryStatus.DELIVERED) {
+            throw new IllegalArgumentException("Use the proof-verified completion endpoint to deliver this donation");
         }
 
         DeliveryStatus currentStatus = delivery.getStatus();
@@ -126,11 +139,11 @@ public class DeliveryServiceImpl implements DeliveryService {
     @Override
     @Transactional
     public DeliveryDto completeDelivery(UUID volunteerId, UUID deliveryId, String otp, org.springframework.web.multipart.MultipartFile proofImage) {
-        Delivery delivery = deliveryRepository.findById(deliveryId)
+        Delivery delivery = deliveryRepository.findByIdForUpdate(deliveryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Delivery not found"));
 
         if (delivery.getVolunteer() == null || !delivery.getVolunteer().getId().equals(volunteerId)) {
-            throw new IllegalArgumentException("You are not assigned to this delivery");
+            throw new AccessDeniedException("You are not assigned to this delivery");
         }
 
         if (delivery.getStatus() == DeliveryStatus.DELIVERED) {
@@ -158,9 +171,17 @@ public class DeliveryServiceImpl implements DeliveryService {
             throw new IllegalArgumentException("Delivery must be PICKED_UP or EN_ROUTE_TO_NGO to complete");
         }
 
-        // Upload proof image
+        byte[] proofData = validateProofImage(proofImage);
         try {
-            String imageUrl = storageService.store(proofImage.getBytes(), proofImage.getOriginalFilename());
+            String originalFilename = proofImage.getOriginalFilename() != null
+                    ? proofImage.getOriginalFilename()
+                    : "delivery-proof.jpg";
+            String imageUrl = storageService.store(proofData, originalFilename);
+            String storedFilename = extractStoredPhotoFilename(imageUrl);
+            byte[] persistedProof = storageService.load(storedFilename);
+            if (!MessageDigest.isEqual(proofData, persistedProof)) {
+                throw new IllegalStateException("Stored proof image does not match the uploaded image");
+            }
             delivery.setProofImageUrl(imageUrl);
         } catch (java.io.IOException e) {
             throw new RuntimeException("Failed to store proof image", e);
@@ -195,6 +216,89 @@ public class DeliveryServiceImpl implements DeliveryService {
         notifyStatusChange(delivery, DeliveryStatus.DELIVERED);
 
         return mapToDto(deliveryRepository.save(delivery));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DeliveryProofImage getDeliveryProofImage(UUID requesterId, UUID deliveryId) {
+        Delivery delivery = deliveryRepository.findById(deliveryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Delivery not found"));
+
+        Donation donation = delivery.getDonation();
+        UUID donorId = donation.getDonor() != null ? donation.getDonor().getId() : null;
+        UUID ngoUserId = donation.getNgo() != null && donation.getNgo().getUser() != null
+                ? donation.getNgo().getUser().getId()
+                : null;
+        if (!requesterId.equals(donorId) && !requesterId.equals(ngoUserId)) {
+            throw new AccessDeniedException("Only the donor or receiving NGO can view this delivery proof");
+        }
+
+        String proofImageUrl = delivery.getProofImageUrl();
+        if (proofImageUrl == null || proofImageUrl.isBlank()) {
+            throw new ResourceNotFoundException("No proof image is available for this delivery");
+        }
+
+        String storedFilename = extractProofFilename(proofImageUrl);
+        try {
+            return new DeliveryProofImage(
+                    storageService.load(storedFilename),
+                    storageService.getContentType(storedFilename)
+            );
+        } catch (IOException e) {
+            throw new ResourceNotFoundException("The proof image for this delivery is unavailable");
+        }
+    }
+
+    private byte[] validateProofImage(org.springframework.web.multipart.MultipartFile proofImage) {
+        if (proofImage == null || proofImage.isEmpty()) {
+            throw new IllegalArgumentException("A proof-of-delivery photo is required");
+        }
+        if (proofImage.getSize() > MAX_PROOF_IMAGE_SIZE) {
+            throw new IllegalArgumentException("Proof-of-delivery photos must be 10 MB or smaller");
+        }
+
+        try {
+            byte[] data = proofImage.getBytes();
+            if (data.length == 0 || data.length > MAX_PROOF_IMAGE_SIZE
+                    || ImageIO.read(new ByteArrayInputStream(data)) == null) {
+                throw new IllegalArgumentException("The proof-of-delivery file must be a valid image");
+            }
+            return data;
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Could not read the proof-of-delivery image", e);
+        }
+    }
+
+    private String extractStoredPhotoFilename(String imageUrl) {
+        if (imageUrl == null || !imageUrl.startsWith(DONATION_PHOTO_URL_PREFIX)) {
+            throw new IllegalStateException("Storage returned an invalid proof image URL");
+        }
+        String filename = imageUrl.substring(DONATION_PHOTO_URL_PREFIX.length());
+        if (!filename.matches("[A-Za-z0-9._-]{1,255}")) {
+            throw new IllegalStateException("Storage returned an invalid proof image filename");
+        }
+        return filename;
+    }
+
+    private String extractProofFilename(String proofImageUrl) {
+        String path = proofImageUrl;
+        try {
+            java.net.URI uri = java.net.URI.create(proofImageUrl);
+            if (uri.isAbsolute()) {
+                if (!"http".equalsIgnoreCase(uri.getScheme()) && !"https".equalsIgnoreCase(uri.getScheme())) {
+                    throw new ResourceNotFoundException("The proof image URL is invalid");
+                }
+                path = uri.getPath();
+            }
+        } catch (IllegalArgumentException e) {
+            throw new ResourceNotFoundException("The proof image URL is invalid");
+        }
+        int separator = path.lastIndexOf('/');
+        String filename = separator >= 0 ? path.substring(separator + 1) : path;
+        if (!filename.matches("[A-Za-z0-9._-]{1,255}")) {
+            throw new ResourceNotFoundException("The proof image URL is invalid");
+        }
+        return filename;
     }
 
     private void notifyStatusChange(Delivery delivery, DeliveryStatus newStatus) {
@@ -247,7 +351,9 @@ public class DeliveryServiceImpl implements DeliveryService {
                 .lastLat(delivery.getLastLat())
                 .lastLng(delivery.getLastLng())
                 .lastLocationAt(delivery.getLastLocationAt())
-                .proofImageUrl(delivery.getProofImageUrl())
+                .proofImageUrl(delivery.getProofImageUrl() == null
+                        ? null
+                        : "/api/volunteer/deliveries/" + delivery.getId() + "/proof-image")
                 .build();
     }
 }

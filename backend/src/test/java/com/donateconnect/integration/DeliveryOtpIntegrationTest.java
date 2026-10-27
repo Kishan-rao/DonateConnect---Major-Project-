@@ -18,6 +18,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -63,12 +66,14 @@ class DeliveryOtpIntegrationTest {
     private User donorUser;
     private User ngoUser;
     private User volunteerUser;
+    private User otherVolunteerUser;
     private NGOProfile ngoProfile;
     private Donation donation;
     private Delivery delivery;
     private String donorToken;
     private String ngoToken;
     private String volunteerToken;
+    private String otherVolunteerToken;
 
     @BeforeEach
     void setup() {
@@ -94,6 +99,13 @@ class DeliveryOtpIntegrationTest {
                 .role(Role.VOLUNTEER)
                 .approved(true)
                 .build());
+        otherVolunteerUser = userRepository.save(User.builder()
+                .email("other.vol.otp@integration.com")
+                .passwordHash(passwordEncoder.encode("password123"))
+                .fullName("Other Volunteer")
+                .role(Role.VOLUNTEER)
+                .approved(true)
+                .build());
 
         ngoProfile = ngoProfileRepository.save(NGOProfile.builder()
                 .user(ngoUser)
@@ -106,6 +118,7 @@ class DeliveryOtpIntegrationTest {
         donorToken = jwtUtils.generateToken(donorUser);
         ngoToken = jwtUtils.generateToken(ngoUser);
         volunteerToken = jwtUtils.generateToken(volunteerUser);
+        otherVolunteerToken = jwtUtils.generateToken(otherVolunteerUser);
 
         donation = donationRepository.save(Donation.builder()
                 .donor(donorUser)
@@ -132,7 +145,8 @@ class DeliveryOtpIntegrationTest {
 
     @Test
     void wrongOtpThreeTimesThenRegenerate() throws Exception {
-        MockMultipartFile file = new MockMultipartFile("proofImage", "test.jpg", "image/jpeg", "image".getBytes());
+        byte[] proofData = createValidJpeg();
+        MockMultipartFile file = new MockMultipartFile("proofImage", "test.jpg", "image/jpeg", proofData);
 
         // Attempt 1: wrong OTP
         mockMvc.perform(multipart("/api/volunteer/deliveries/" + delivery.getId() + "/complete")
@@ -203,7 +217,96 @@ class DeliveryOtpIntegrationTest {
                             return request;
                         }))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.status").value("DELIVERED"));
+                .andExpect(jsonPath("$.data.status").value("DELIVERED"))
+                .andExpect(jsonPath("$.data.proofImageUrl").value(
+                        "/api/volunteer/deliveries/" + delivery.getId() + "/proof-image"));
+
+        mockMvc.perform(get("/api/volunteer/deliveries/" + delivery.getId() + "/proof-image")
+                        .header("Authorization", "Bearer " + donorToken))
+                .andExpect(status().isOk())
+                .andExpect(content().bytes(proofData));
+
+        mockMvc.perform(get("/api/volunteer/deliveries/" + delivery.getId() + "/proof-image")
+                        .header("Authorization", "Bearer " + ngoToken))
+                .andExpect(status().isOk())
+                .andExpect(content().bytes(proofData));
+
+        String storedProofUrl = deliveryRepository.findById(delivery.getId()).orElseThrow().getProofImageUrl();
+        String storedFilename = storedProofUrl.substring(storedProofUrl.lastIndexOf('/') + 1);
+        mockMvc.perform(get("/api/donations/photo/" + storedFilename))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/api/volunteer/deliveries/" + delivery.getId() + "/proof-image")
+                        .header("Authorization", "Bearer " + volunteerToken))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void deliveryCannotBeMarkedDeliveredWithoutPersistedProofOrByUnauthorizedUsers() throws Exception {
+        mockMvc.perform(patch("/api/volunteer/deliveries/" + delivery.getId() + "/status")
+                        .header("Authorization", "Bearer " + volunteerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"DELIVERED\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(
+                        "Use the proof-verified completion endpoint to deliver this donation"));
+
+        mockMvc.perform(patch("/api/volunteer/deliveries/" + delivery.getId() + "/status")
+                        .header("Authorization", "Bearer " + donorToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"DELIVERED\"}"))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(multipart("/api/volunteer/deliveries/" + delivery.getId() + "/complete")
+                        .param("otp", "123456")
+                        .header("Authorization", "Bearer " + volunteerToken)
+                        .with(request -> {
+                            request.setMethod("POST");
+                            return request;
+                        }))
+                .andExpect(status().isBadRequest());
+
+        MockMultipartFile file = new MockMultipartFile(
+                "proofImage", "test.jpg", "image/jpeg", createValidJpeg());
+        mockMvc.perform(multipart("/api/volunteer/deliveries/" + delivery.getId() + "/complete")
+                        .file(file)
+                        .param("otp", "123456")
+                        .header("Authorization", "Bearer " + otherVolunteerToken)
+                        .with(request -> {
+                            request.setMethod("POST");
+                            return request;
+                        }))
+                .andExpect(status().isForbidden());
+
+        assertEquals(DeliveryStatus.PICKED_UP, deliveryRepository.findById(delivery.getId()).orElseThrow().getStatus());
+        assertNull(deliveryRepository.findById(delivery.getId()).orElseThrow().getProofImageUrl());
+    }
+
+    @Test
+    void proofImageIsOnlyAvailableFromTheDeliveryItWasUploadedFor() throws Exception {
+        Donation secondDonation = donationRepository.save(Donation.builder()
+                .donor(donorUser)
+                .ngo(ngoProfile)
+                .category(Category.BOOKS)
+                .description("A second donation used for proof association testing.")
+                .status(DonationStatus.PICKED_UP)
+                .build());
+        Delivery secondDelivery = deliveryRepository.save(Delivery.builder()
+                .donation(secondDonation)
+                .volunteer(volunteerUser)
+                .status(DeliveryStatus.PICKED_UP)
+                .build());
+
+        mockMvc.perform(get("/api/volunteer/deliveries/" + secondDelivery.getId() + "/proof-image")
+                        .header("Authorization", "Bearer " + donorToken))
+                .andExpect(status().isNotFound());
+    }
+
+    private byte[] createValidJpeg() throws Exception {
+        BufferedImage image = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        ImageIO.write(image, "jpg", output);
+        return output.toByteArray();
     }
 
     @Test

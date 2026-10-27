@@ -51,6 +51,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 || path.endsWith("/api/auth/verify-otp")
                 || path.endsWith("/api/auth/resend-otp")
                 || path.endsWith("/api/health")
+                || path.contains("/api/donations/photo/")
                 || path.contains("/ws");
     }
 
@@ -124,7 +125,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             authentication.setDetails(
                     new WebAuthenticationDetailsSource().buildDetails(request)
-            );
+                    );
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
 

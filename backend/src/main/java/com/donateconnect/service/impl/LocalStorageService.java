@@ -1,5 +1,7 @@
 package com.donateconnect.service.impl;
 
+import com.donateconnect.entity.StoredFile;
+import com.donateconnect.repository.StoredFileRepository;
 import com.donateconnect.service.StorageService;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -30,9 +33,14 @@ public class LocalStorageService implements StorageService {
             "jpg", "jpeg", "png", "gif", "webp"
     );
 
+    private final StoredFileRepository storedFileRepository;
     private final Path uploadDir;
 
-    public LocalStorageService(@Value("${app.storage.upload-dir:uploads/}") String uploadDirPath) {
+    public LocalStorageService(
+            StoredFileRepository storedFileRepository,
+            @Value("${app.storage.upload-dir:uploads/}") String uploadDirPath
+    ) {
+        this.storedFileRepository = storedFileRepository;
         this.uploadDir = Paths.get(uploadDirPath).toAbsolutePath().normalize();
     }
 
@@ -40,9 +48,9 @@ public class LocalStorageService implements StorageService {
     public void init() {
         try {
             Files.createDirectories(uploadDir);
-            log.info("Storage directory initialised at: {}", uploadDir);
+            log.info("Storage directory initialized at: {}", uploadDir);
         } catch (IOException e) {
-            throw new IllegalStateException("Could not create upload directory: " + uploadDir, e);
+            log.warn("Could not create local upload directory: {}", uploadDir, e);
         }
     }
 
@@ -57,10 +65,33 @@ public class LocalStorageService implements StorageService {
 
         // Generate a unique filename to prevent collisions and path traversal attacks
         String storedFilename = UUID.randomUUID() + "." + extension.toLowerCase();
-        Path filePath = uploadDir.resolve(storedFilename);
+        String contentType = CONTENT_TYPE_MAP.getOrDefault(extension.toLowerCase(), "image/jpeg");
 
-        Files.write(filePath, data);
-        log.info("Stored file: {}", storedFilename);
+        // 1. Persist to PostgreSQL database (survives Render container restarts & redeploys)
+        try {
+            StoredFile fileRecord = StoredFile.builder()
+                    .filename(storedFilename)
+                    .originalFilename(originalFilename)
+                    .contentType(contentType)
+                    .data(data)
+                    .fileSize(data.length)
+                    .build();
+            storedFileRepository.save(fileRecord);
+            log.info("Persisted photo to database: {} ({} bytes)", storedFilename, data.length);
+        } catch (Exception e) {
+            log.error("Failed to persist photo to database: {}", e.getMessage(), e);
+            throw new IOException("Failed to save photo to database: " + e.getMessage(), e);
+        }
+
+        // 2. Also write to local cache for fast filesystem reads
+        try {
+            Files.createDirectories(uploadDir);
+            Path filePath = uploadDir.resolve(storedFilename);
+            Files.write(filePath, data);
+            log.info("Cached photo to disk: {}", storedFilename);
+        } catch (Exception e) {
+            log.warn("Failed to cache photo to local disk (will still be served from database): {}", e.getMessage());
+        }
 
         // Return the relative URL used to serve this file
         return "/api/donations/photo/" + storedFilename;
@@ -68,33 +99,68 @@ public class LocalStorageService implements StorageService {
 
     @Override
     public byte[] load(String filename) throws IOException {
-        // Sanitize filename to prevent path traversal
-        Path filePath = uploadDir.resolve(sanitizeFilename(filename)).normalize();
-        if (!filePath.startsWith(uploadDir)) {
-            throw new IllegalArgumentException("Invalid filename (path traversal detected)");
+        String safeName = sanitizeFilename(filename);
+
+        // 1. Try local disk cache first
+        Path filePath = uploadDir.resolve(safeName).normalize();
+        if (filePath.startsWith(uploadDir) && Files.exists(filePath)) {
+            try {
+                return Files.readAllBytes(filePath);
+            } catch (IOException e) {
+                log.warn("Error reading cached file {}: {}", safeName, e.getMessage());
+            }
         }
-        if (!Files.exists(filePath)) {
-            throw new IOException("File not found: " + filename);
+
+        // 2. Look up in PostgreSQL database
+        Optional<StoredFile> storedFile = storedFileRepository.findByFilename(safeName);
+        if (storedFile.isPresent()) {
+            byte[] data = storedFile.get().getData();
+            // Rehydrate local disk cache
+            try {
+                if (filePath.startsWith(uploadDir)) {
+                    Files.createDirectories(uploadDir);
+                    Files.write(filePath, data);
+                    log.info("Rehydrated disk cache for photo: {}", safeName);
+                }
+            } catch (Exception e) {
+                log.debug("Could not write rehydrated cache to disk: {}", e.getMessage());
+            }
+            return data;
         }
-        return Files.readAllBytes(filePath);
+
+        throw new IOException("File not found: " + filename);
     }
 
     @Override
     public void delete(String filename) {
+        String safeName = sanitizeFilename(filename);
         try {
-            Path filePath = uploadDir.resolve(sanitizeFilename(filename)).normalize();
+            storedFileRepository.deleteById(safeName);
+            log.info("Deleted photo record from database: {}", safeName);
+        } catch (Exception e) {
+            log.warn("Could not delete database record for {}: {}", safeName, e.getMessage());
+        }
+
+        try {
+            Path filePath = uploadDir.resolve(safeName).normalize();
             if (filePath.startsWith(uploadDir)) {
                 Files.deleteIfExists(filePath);
-                log.info("Deleted file: {}", filename);
+                log.info("Deleted photo file from disk: {}", safeName);
             }
         } catch (IOException e) {
-            log.warn("Could not delete file {}: {}", filename, e.getMessage());
+            log.warn("Could not delete disk file {}: {}", safeName, e.getMessage());
         }
     }
 
     @Override
     public String getContentType(String filename) {
-        String ext = getExtension(filename).toLowerCase();
+        String safeName = sanitizeFilename(filename);
+        Optional<StoredFile> storedFile = storedFileRepository.findByFilename(safeName);
+        if (storedFile.isPresent() && storedFile.get().getContentType() != null) {
+            return storedFile.get().getContentType();
+        }
+
+        String ext = getExtension(safeName).toLowerCase();
         return CONTENT_TYPE_MAP.getOrDefault(ext, "application/octet-stream");
     }
 

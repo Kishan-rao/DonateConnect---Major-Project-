@@ -7,9 +7,12 @@ import com.donateconnect.entity.User;
 import com.donateconnect.exception.ResourceNotFoundException;
 import com.donateconnect.repository.UserRepository;
 import com.donateconnect.service.DeliveryService;
+import com.donateconnect.service.DeliveryProofImage;
 import com.donateconnect.service.AuditLogService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.CacheControl;
+import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -68,9 +71,25 @@ public class DeliveryController {
                 .lastLat(delivery.getLastLat())
                 .lastLng(delivery.getLastLng())
                 .lastLocationAt(delivery.getLastLocationAt())
-                .proofImageUrl(delivery.getProofImageUrl())
+                .proofImageUrl(delivery.getProofImageUrl() == null
+                        ? null
+                        : "/api/volunteer/deliveries/" + delivery.getId() + "/proof-image")
                 .build();
         return ResponseEntity.ok(ApiResponse.success("Delivery details fetched", dto));
+    }
+
+    @GetMapping("/deliveries/{id}/proof-image")
+    @PreAuthorize("hasAnyRole('DONOR', 'NGO')")
+    public ResponseEntity<byte[]> getDeliveryProofImage(
+            Authentication authentication,
+            @PathVariable UUID id
+    ) {
+        UUID requesterId = getUserIdFromAuth(authentication);
+        DeliveryProofImage proofImage = deliveryService.getDeliveryProofImage(requesterId, id);
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .contentType(MediaType.parseMediaType(proofImage.contentType()))
+                .body(proofImage.data());
     }
 
     @PatchMapping("/deliveries/{id}/status")
@@ -92,7 +111,7 @@ public class DeliveryController {
             Authentication authentication,
             @PathVariable UUID id,
             @RequestParam("otp") String otp,
-            @RequestParam("proofImage") org.springframework.web.multipart.MultipartFile proofImage
+            @RequestParam(value = "proofImage", required = false) org.springframework.web.multipart.MultipartFile proofImage
     ) {
         UUID volunteerId = getUserIdFromAuth(authentication);
         DeliveryDto updated = deliveryService.completeDelivery(volunteerId, id, otp, proofImage);

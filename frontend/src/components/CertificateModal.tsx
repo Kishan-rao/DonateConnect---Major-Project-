@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { X, Download, Award, Loader2, CheckCircle2 } from 'lucide-react';
 import { Donation, DeliveryDto } from '../types';
-import { apiClient } from '../api/client';
+import { getDeliveryByDonationId, getDeliveryProofPhoto } from '../api/donationApi';
 import { formatDate } from '../utils/formatters';
 import { pushModalDismiss } from '../utils/useAndroidBackButton';
 import html2canvas from 'html2canvas';
@@ -15,6 +15,9 @@ interface CertificateModalProps {
 export const CertificateModal: React.FC<CertificateModalProps> = ({ donation, onClose }) => {
   const [loading, setLoading] = useState(true);
   const [delivery, setDelivery] = useState<DeliveryDto | null>(null);
+  const [proofPhoto, setProofPhoto] = useState<string | null>(null);
+  const [proofPhotoError, setProofPhotoError] = useState(false);
+  const [proofPhotoLoading, setProofPhotoLoading] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const certificateRef = useRef<HTMLDivElement>(null);
 
@@ -25,8 +28,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({ donation, on
   useEffect(() => {
     const fetchDelivery = async () => {
       try {
-        const res = await apiClient.get(`/deliveries/donation/${donation.id}`);
-        setDelivery(res.data.data);
+        setDelivery(await getDeliveryByDonationId(donation.id));
       } catch (err) {
         console.warn('Could not fetch delivery details for certificate', err);
       } finally {
@@ -35,6 +37,25 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({ donation, on
     };
     fetchDelivery();
   }, [donation.id]);
+
+  useEffect(() => {
+    if (!delivery?.proofImageUrl) return;
+    let active = true;
+    setProofPhotoLoading(true);
+    getDeliveryProofPhoto(delivery.id)
+      .then((photo) => {
+        if (active) setProofPhoto(photo);
+      })
+      .catch(() => {
+        if (active) setProofPhotoError(true);
+      })
+      .finally(() => {
+        if (active) setProofPhotoLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [delivery?.id, delivery?.proofImageUrl]);
 
   const handleDownloadPdf = async () => {
     if (!certificateRef.current) return;
@@ -155,16 +176,19 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({ donation, on
                     <p className="text-xs text-slate-500">Authorized Signature</p>
                   </div>
                   
-                  {delivery?.proofImageUrl ? (
+                  {delivery?.proofImageUrl && proofPhoto ? (
                     <div className="text-center">
                       <p className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">Proof of Delivery</p>
                       <img 
-                        src={delivery.proofImageUrl} 
+                        src={proofPhoto}
                         alt="Delivery Proof" 
                         className="w-24 h-24 object-cover rounded-lg border-2 border-slate-200" 
-                        crossOrigin="anonymous"
                       />
                     </div>
+                  ) : delivery?.proofImageUrl && proofPhotoError ? (
+                    <div className="text-center text-xs text-slate-500">Proof photo unavailable</div>
+                  ) : delivery?.proofImageUrl && (proofPhotoLoading || (!proofPhoto && !proofPhotoError)) ? (
+                    <div className="text-center text-xs text-slate-500">Loading proof photo...</div>
                   ) : (
                     <div className="text-center flex flex-col items-center justify-center w-24 h-24 bg-emerald-50 rounded-lg border-2 border-emerald-100">
                        <CheckCircle2 className="w-8 h-8 text-emerald-500 mb-1" />

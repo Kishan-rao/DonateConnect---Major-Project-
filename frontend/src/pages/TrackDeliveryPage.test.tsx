@@ -18,6 +18,7 @@ vi.mock('../api/donationApi', () => ({
   getDeliveryByDonationId: vi.fn(),
   getLiveLocation: vi.fn(),
   completeDelivery: vi.fn(),
+  getDeliveryProofPhoto: vi.fn(),
   getDeliveryRouteEta: vi.fn(),
 }));
 
@@ -117,6 +118,7 @@ describe('TrackDeliveryPage', () => {
     vi.mocked(donationApi.getDonationById).mockResolvedValue(mockDonation as any);
     vi.mocked(donationApi.getDeliveryByDonationId).mockResolvedValue(mockDelivery as any);
     vi.mocked(donationApi.getLiveLocation).mockResolvedValue(mockLoc);
+    vi.mocked(donationApi.getDeliveryProofPhoto).mockResolvedValue('data:image/jpeg;base64,cHJvb2Y=');
     vi.mocked(donationApi.getDeliveryRouteEta).mockResolvedValue(mockRouteEta);
 
     vi.mocked(AuthContextModule.useAuth).mockReturnValue({
@@ -282,7 +284,11 @@ describe('TrackDeliveryPage', () => {
       expect(completeBtn).not.toBeDisabled();
     });
 
-    vi.mocked(donationApi.completeDelivery).mockResolvedValueOnce({});
+    vi.mocked(donationApi.completeDelivery).mockResolvedValueOnce({
+      ...mockDelivery,
+      status: 'DELIVERED',
+      proofImageUrl: '/api/volunteer/deliveries/delivery-1/proof-image',
+    } as any);
 
     await user.click(completeBtn);
 
@@ -326,6 +332,10 @@ describe('TrackDeliveryPage', () => {
       expect(screen.getByText('second-proof.jpg')).toBeInTheDocument();
     });
 
+    vi.mocked(cameraService.capturePhotoWithCamera).mockResolvedValueOnce(null);
+    await user.click(screen.getByTestId('retake-proof-btn'));
+    expect(screen.getByText('second-proof.jpg')).toBeInTheDocument();
+
     // 3. Remove photo
     await user.click(screen.getByTestId('remove-proof-btn'));
 
@@ -336,6 +346,70 @@ describe('TrackDeliveryPage', () => {
 
     // OTP was preserved throughout
     expect(otpInputs[0]).toHaveValue('5');
+  });
+
+  it('6c. preserves the workflow when camera capture is cancelled', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.queryByText('Initializing live map tracker...')).not.toBeInTheDocument());
+
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const otpInputs = screen.getAllByRole('textbox');
+    await user.type(otpInputs[0], '7');
+
+    vi.mocked(cameraService.capturePhotoWithCamera).mockResolvedValueOnce(null);
+    await user.click(screen.getByTestId('capture-proof-btn'));
+
+    expect(otpInputs[0]).toHaveValue('7');
+    expect(screen.getByTestId('capture-proof-btn')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Complete Delivery/i })).toBeDisabled();
+  });
+
+  it('6d. does not mark delivery complete when proof upload fails', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.queryByText('Initializing live map tracker...')).not.toBeInTheDocument());
+
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const otpInputs = screen.getAllByRole('textbox');
+    for (let i = 0; i < 6; i++) await user.type(otpInputs[i], '1');
+
+    const file = new File(['proof'], 'proof.jpg', { type: 'image/jpeg' });
+    vi.mocked(cameraService.capturePhotoWithCamera).mockResolvedValueOnce({
+      file,
+      previewUrl: 'blob:http://localhost/proof-upload-failure',
+    });
+    await user.click(screen.getByTestId('capture-proof-btn'));
+    vi.mocked(donationApi.completeDelivery).mockRejectedValueOnce(new Error('Upload failed'));
+
+    await user.click(screen.getByRole('button', { name: /Complete Delivery/i }));
+
+    await waitFor(() => expect(screen.getByText('Upload failed')).toBeInTheDocument());
+    expect(donationApi.completeDelivery).toHaveBeenCalledWith('delivery-1', '111111', file);
+    expect(screen.queryByText('Delivery Completed & Verified')).not.toBeInTheDocument();
+  });
+
+  it.each(['DONOR', 'NGO'] as const)('6e. allows the authorized %s to view the stored proof photo', async (role) => {
+    vi.mocked(AuthContextModule.useAuth).mockReturnValue({
+      token: 'viewer-token',
+      user: { role, id: `${role.toLowerCase()}-user` },
+    } as any);
+    vi.mocked(donationApi.getDonationById).mockResolvedValue({
+      ...mockDonation,
+      status: 'DELIVERED',
+    } as any);
+    vi.mocked(donationApi.getDeliveryByDonationId).mockResolvedValue({
+      ...mockDelivery,
+      status: 'DELIVERED',
+      proofImageUrl: '/api/volunteer/deliveries/delivery-1/proof-image',
+    } as any);
+
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderPage();
+    await waitFor(() => expect(screen.queryByText('Initializing live map tracker...')).not.toBeInTheDocument());
+
+    await user.click(screen.getByRole('button', { name: 'View proof photo' }));
+
+    expect(await screen.findByRole('dialog', { name: 'Proof of Delivery' })).toBeInTheDocument();
+    expect(donationApi.getDeliveryProofPhoto).toHaveBeenCalledWith('delivery-1');
   });
 
   it('7. displays Delivery Completed and stops tracking when donation is marked DELIVERED', async () => {

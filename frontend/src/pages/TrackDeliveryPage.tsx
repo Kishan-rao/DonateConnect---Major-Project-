@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getDonationById, getLiveLocation, getDeliveryByDonationId, completeDelivery, getDeliveryRouteEta } from '../api/donationApi';
+import { getDonationById, getLiveLocation, getDeliveryByDonationId, completeDelivery, getDeliveryProofPhoto, getDeliveryRouteEta } from '../api/donationApi';
 import { Donation, DeliveryDto, RouteEtaDto } from '../types';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -15,6 +15,7 @@ import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { OtpInput } from '../components/OtpInput';
 import { LiveLocationTracker } from '../components/LiveLocationTracker';
+import { PhotoViewerModal } from '../components/PhotoViewerModal';
 import { getWsUrl } from '../utils/urlUtils';
 import { getBaseUrl } from '../api/client';
 
@@ -73,8 +74,21 @@ export const TrackDeliveryPage: React.FC = () => {
   const [proofPreviewUrl, setProofPreviewUrl] = useState<string | null>(null);
   const [submittingProof, setSubmittingProof] = useState(false);
   const [proofError, setProofError] = useState<string | null>(null);
+  const [capturingProof, setCapturingProof] = useState(false);
+  const [proofViewError, setProofViewError] = useState<string | null>(null);
+  const [proofViewerPhoto, setProofViewerPhoto] = useState<string | null>(null);
+  const [loadingProofPhoto, setLoadingProofPhoto] = useState(false);
+  const submittingProofRef = useRef(false);
+  const capturingProofRef = useRef(false);
+  const proofViewerPhotos = useMemo(
+    () => proofViewerPhoto ? [proofViewerPhoto] : [],
+    [proofViewerPhoto]
+  );
 
   const handleCaptureProof = async () => {
+    if (capturingProofRef.current) return;
+    capturingProofRef.current = true;
+    setCapturingProof(true);
     setProofError(null);
     try {
       const result = await capturePhotoWithCamera('delivery-proof');
@@ -84,19 +98,23 @@ export const TrackDeliveryPage: React.FC = () => {
       }
       setProofImage(result.file);
       setProofPreviewUrl(result.previewUrl);
-    } catch (err: any) {
-      setProofError(err.message || 'Failed to capture proof of delivery photo.');
+    } catch (err) {
+      setProofError(err instanceof Error ? err.message : 'Failed to capture proof of delivery photo.');
+    } finally {
+      capturingProofRef.current = false;
+      setCapturingProof(false);
     }
   };
 
-  const handleRemoveProof = () => {
-    if (proofPreviewUrl) {
-      try {
+  useEffect(() => {
+    return () => {
+      if (proofPreviewUrl?.startsWith('blob:')) {
         URL.revokeObjectURL(proofPreviewUrl);
-      } catch {
-        // ignore
       }
-    }
+    };
+  }, [proofPreviewUrl]);
+
+  const handleRemoveProof = () => {
     setProofImage(null);
     setProofPreviewUrl(null);
     setProofError(null);
@@ -341,6 +359,7 @@ export const TrackDeliveryPage: React.FC = () => {
     : (delivery?.status === 'ASSIGNED' || delivery?.status === 'ACCEPTED_BY_VOLUNTEER' || delivery?.status === 'EN_ROUTE_TO_PICKUP');
 
   const handleCompleteDelivery = async () => {
+    if (submittingProofRef.current) return;
     if (!delivery || !otp || !proofImage) {
       setProofError('OTP and Proof Image are required');
       return;
@@ -350,16 +369,21 @@ export const TrackDeliveryPage: React.FC = () => {
       return;
     }
     try {
+      submittingProofRef.current = true;
       setSubmittingProof(true);
       setProofError(null);
-      await completeDelivery(delivery.id, otp, proofImage);
+      const completedDelivery = await completeDelivery(delivery.id, otp, proofImage);
       // Immediately stop live GPS broadcast
       stopTracking();
-      // Refresh page data
-      const updatedDonation = await getDonationById(id as string);
-      setDonation(updatedDonation);
-      setDelivery((prev) => (prev ? { ...prev, status: 'DELIVERED' } : null));
+      setDelivery(completedDelivery);
+      setDonation((current) => current ? { ...current, status: 'DELIVERED' } : current);
       if (pollInterval.current) clearInterval(pollInterval.current);
+      try {
+        const updatedDonation = await getDonationById(id as string);
+        setDonation(updatedDonation);
+      } catch (refreshError) {
+        console.warn('Delivery completed, but donation details could not be refreshed:', refreshError);
+      }
       showSuccess('Delivery completed and verified successfully! Returning to task list...');
       setTimeout(() => {
         navigate('/driver-dashboard?tab=my-tasks');
@@ -367,7 +391,21 @@ export const TrackDeliveryPage: React.FC = () => {
     } catch (err: any) {
       setProofError(err.response?.data?.message || err.message || 'Failed to complete delivery');
     } finally {
+      submittingProofRef.current = false;
       setSubmittingProof(false);
+    }
+  };
+
+  const handleViewProofPhoto = async () => {
+    if (!delivery?.proofImageUrl || loadingProofPhoto) return;
+    setLoadingProofPhoto(true);
+    setProofViewError(null);
+    try {
+      setProofViewerPhoto(await getDeliveryProofPhoto(delivery.id));
+    } catch (err) {
+      setProofViewError(err instanceof Error ? err.message : 'Could not load the proof photo.');
+    } finally {
+      setLoadingProofPhoto(false);
     }
   };
 
@@ -520,6 +558,24 @@ export const TrackDeliveryPage: React.FC = () => {
               Back to My Tasks
             </button>
           )}
+          {delivery?.proofImageUrl && (user?.role === 'DONOR' || user?.role === 'NGO') && (
+            <div className="flex flex-col items-end gap-2">
+              <button
+                type="button"
+                onClick={handleViewProofPhoto}
+                disabled={loadingProofPhoto}
+                className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-xs font-bold rounded-xl transition-all"
+              >
+                {loadingProofPhoto ? 'Loading proof photo...' : 'View proof photo'}
+              </button>
+              {proofViewError && (
+                <p role="alert" className="text-xs text-rose-700">{proofViewError}</p>
+              )}
+            </div>
+          )}
+          {!delivery?.proofImageUrl && (user?.role === 'DONOR' || user?.role === 'NGO') && (
+            <p className="text-xs text-slate-600">No proof photo is available for this delivery.</p>
+          )}
         </div>
       )}
 
@@ -568,13 +624,14 @@ export const TrackDeliveryPage: React.FC = () => {
                       type="button"
                       data-testid="capture-proof-btn"
                       onClick={handleCaptureProof}
+                      disabled={capturingProof}
                       className="flex flex-col items-center justify-center w-full py-5 px-4 border-2 border-[#E5E7EB] border-dashed rounded-xl hover:bg-[#F4F2FA] hover:border-[#7567E8] active:border-[#7567E8] transition-colors bg-white text-center group focus:outline-none focus:ring-2 focus:ring-[#7567E8]"
                     >
                       <div className="w-10 h-10 rounded-full bg-[#7567E8]/10 group-hover:bg-[#7567E8]/20 flex items-center justify-center text-[#7567E8] mb-2 transition-colors">
                         <Camera className="w-5 h-5" />
                       </div>
                       <p className="text-sm font-bold text-[#111827] group-hover:text-[#7567E8] transition-colors">
-                        Capture Proof of Delivery
+                        {capturingProof ? 'Opening camera...' : 'Capture Proof of Delivery'}
                       </p>
                       <p className="text-[11px] text-[#6B7280] mt-0.5">
                         Take a live photo of the handed-over items
@@ -601,11 +658,12 @@ export const TrackDeliveryPage: React.FC = () => {
                             type="button"
                             data-testid="retake-proof-btn"
                             onClick={handleCaptureProof}
+                            disabled={capturingProof}
                             className="px-2.5 py-1 text-xs font-bold rounded-lg border border-[#7567E8] text-[#7567E8] bg-[#7567E8]/5 hover:bg-[#7567E8]/15 transition-colors flex items-center gap-1"
                             title="Retake Photo"
                           >
                             <Camera className="w-3 h-3" />
-                            Retake
+                            {capturingProof ? 'Opening...' : 'Retake'}
                           </button>
                           <button
                             type="button"
@@ -615,12 +673,13 @@ export const TrackDeliveryPage: React.FC = () => {
                             title="Remove Photo"
                           >
                             <X className="w-3 h-3" />
-                            Remove
+                            Cancel photo
                           </button>
                         </div>
                       </div>
                     </div>
                   )}
+
                 </div>
 
                 <button
@@ -640,6 +699,13 @@ export const TrackDeliveryPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      <PhotoViewerModal
+        isOpen={proofViewerPhotos.length > 0}
+        photos={proofViewerPhotos}
+        title="Proof of Delivery"
+        onClose={() => setProofViewerPhoto(null)}
+      />
 
       {/* Map Card */}
       <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden flex flex-col">

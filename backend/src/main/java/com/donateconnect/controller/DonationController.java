@@ -7,6 +7,7 @@ import com.donateconnect.dto.UpdateDonationStatusDto;
 import com.donateconnect.entity.User;
 import com.donateconnect.exception.ResourceNotFoundException;
 import com.donateconnect.repository.UserRepository;
+import com.donateconnect.repository.DeliveryRepository;
 import com.donateconnect.service.DonationService;
 import com.donateconnect.service.AuditLogService;
 import com.donateconnect.service.StorageService;
@@ -35,17 +36,20 @@ public class DonationController {
     private final UserRepository userRepository;
     private final StorageService storageService;
     private final AuditLogService auditLogService;
+    private final DeliveryRepository deliveryRepository;
 
     public DonationController(
             DonationService donationService,
             UserRepository userRepository,
             StorageService storageService,
-            AuditLogService auditLogService
+            AuditLogService auditLogService,
+            DeliveryRepository deliveryRepository
     ) {
         this.donationService = donationService;
         this.userRepository = userRepository;
         this.storageService = storageService;
         this.auditLogService = auditLogService;
+        this.deliveryRepository = deliveryRepository;
     }
 
     // ==================== DONOR ENDPOINTS ====================
@@ -163,6 +167,9 @@ public class DonationController {
      */
     @GetMapping("/donations/photo/{filename}")
     public ResponseEntity<byte[]> servePhoto(@PathVariable String filename) {
+        if (deliveryRepository.existsByProofImageUrl("/api/donations/photo/" + filename)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         try {
             byte[] data = storageService.load(filename);
             String contentType = storageService.getContentType(filename);
