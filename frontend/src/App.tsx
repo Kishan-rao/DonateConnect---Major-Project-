@@ -32,6 +32,7 @@ import { UnauthorizedPage } from './pages/UnauthorizedPage';
 import { TrackDeliveryPage } from './pages/TrackDeliveryPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { MessagesPage } from './pages/MessagesPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { EmergencySosBanner } from './components/EmergencySosBanner';
 import { getApiConfigError } from './api/client';
@@ -79,6 +80,12 @@ const AppContent: React.FC<{ apiConfigError: Error | null }> = ({ apiConfigError
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/donations/:id/track" element={<TrackDeliveryPage />} />
+          </Route>
+
+          {/* Protected Donor & NGO Chat Routes (Strictly DONOR and NGO only) */}
+          <Route element={<ProtectedRoute allowedRoles={['DONOR', 'NGO']} />}>
+            <Route path="/messages" element={<MessagesPage />} />
+            <Route path="/messages/:conversationId" element={<MessagesPage />} />
           </Route>
 
           {/* Protected Donor Routes */}

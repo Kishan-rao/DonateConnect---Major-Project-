@@ -15,6 +15,7 @@ import {
   Cpu,
   Recycle,
   Mic,
+  MessageSquare,
   ChevronDown,
   Menu,
   X,
@@ -228,6 +229,11 @@ export const Navbar: React.FC = () => {
                   <Building2 className="w-3.5 h-3.5" /> NGO Portal
                 </Link>
               )}
+              {(isDonor || isNgo) && (
+                <Link to="/messages" className={navLinkClass('/messages')}>
+                  <MessageSquare className="w-3.5 h-3.5" /> Messages
+                </Link>
+              )}
               {isVolunteer && (
                 <Link to="/driver-dashboard" className={navLinkClass('/driver-dashboard')}>
                   <Truck className="w-3.5 h-3.5" /> Delivery Partner
@@ -417,6 +423,9 @@ export const Navbar: React.FC = () => {
                         <Link to="/donations" className={drawerLinkClass('/donations')}>
                           <PackageSearch className="w-4 h-4 text-[#7567E8]" /> My Donations
                         </Link>
+                        <Link to="/messages" className={drawerLinkClass('/messages')}>
+                          <MessageSquare className="w-4 h-4 text-[#7567E8]" /> Messages
+                        </Link>
                         <Link to="/donor/profile" className={drawerLinkClass('/donor/profile')}>
                           <User className="w-4 h-4 text-[#7567E8]" /> Donor Profile
                         </Link>
@@ -432,6 +441,9 @@ export const Navbar: React.FC = () => {
                         </Link>
                         <Link to="/ngo-dashboard/inventory" className={drawerLinkClass('/ngo-dashboard/inventory')}>
                           <PackageSearch className="w-4 h-4 text-[#7567E8]" /> Delivered Inventory
+                        </Link>
+                        <Link to="/messages" className={drawerLinkClass('/messages')}>
+                          <MessageSquare className="w-4 h-4 text-[#7567E8]" /> Messages
                         </Link>
                         <Link to="/ngo-dashboard/profile" className={drawerLinkClass('/ngo-dashboard/profile')}>
                           <User className="w-4 h-4 text-[#7567E8]" /> NGO Profile

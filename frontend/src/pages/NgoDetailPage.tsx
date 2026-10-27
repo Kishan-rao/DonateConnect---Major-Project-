@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getNgoById } from '../api/ngoApi';
 import { NGOProfile } from '../types';
-import { Building2, ShieldCheck, MapPin, Phone, Mail, ArrowLeft, HeartHandshake, Calendar, Star } from 'lucide-react';
+import { Building2, ShieldCheck, MapPin, Phone, Mail, ArrowLeft, HeartHandshake, Calendar, Star, MessageSquare } from 'lucide-react';
 import { formatDate } from '../utils/formatters';
+import { useAuth } from '../context/AuthContext';
 
 export const NgoDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [ngo, setNgo] = useState<NGOProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -88,13 +90,24 @@ export const NgoDetailPage: React.FC = () => {
             </div>
           </div>
 
-          <Link
-            to={`/donate/new?ngoId=${ngo.id}`}
-            className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#7567E8] hover:bg-[#6355d8] text-white font-bold text-sm shadow-md shadow-[#7567E8]/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
-          >
-            <HeartHandshake className="w-5 h-5" />
-            Donate to this NGO
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+            {user?.role === 'DONOR' && (
+              <Link
+                to={`/messages?ngoId=${ngo.id}`}
+                className="w-full sm:w-auto px-5 py-3 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#7567E8] border border-[#7567E8]/30 font-bold text-sm transition-all flex items-center justify-center gap-2"
+              >
+                <MessageSquare className="w-5 h-5" />
+                Message NGO
+              </Link>
+            )}
+            <Link
+              to={`/donate/new?ngoId=${ngo.id}`}
+              className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#7567E8] hover:bg-[#6355d8] text-white font-bold text-sm shadow-md shadow-[#7567E8]/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
+            >
+              <HeartHandshake className="w-5 h-5" />
+              Donate to this NGO
+            </Link>
+          </div>
         </div>
 
         {/* Details Grid */}

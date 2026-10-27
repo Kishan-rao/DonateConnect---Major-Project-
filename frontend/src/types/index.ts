@@ -350,3 +350,52 @@ export interface PageResponse<T> {
   number: number;
   size: number;
 }
+
+
+export interface ConversationDto {
+  id: string;
+  otherParticipantId: string;
+  otherParticipantName: string;
+  otherParticipantRole: Role;
+  otherParticipantEmail: string;
+  ngoVerified?: boolean | null;
+  ngoAddress?: string | null;
+  ngoCity?: string | null;
+  donationId?: string | null;
+  donationCategory?: Category | null;
+  donationDescription?: string | null;
+  lastMessageText?: string | null;
+  lastMessageAt?: string | null;
+  lastMessageSenderId?: string | null;
+  unreadCount: number;
+  createdAt: string;
+}
+
+export interface ChatMessageDto {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  senderName: string;
+  senderRole: Role;
+  recipientId: string;
+  content?: string | null;
+  attachmentUrl?: string | null;
+  attachmentContentType?: string | null;
+  attachmentSize?: number | null;
+  attachmentOriginalFilename?: string | null;
+  read: boolean;
+  readAt?: string | null;
+  createdAt: string;
+  clientMessageId?: string | null;
+}
+
+export interface CreateConversationRequest {
+  ngoId?: string;
+  donorId?: string;
+  donationId?: string;
+}
+
+export interface SendMessageRequest {
+  content?: string;
+  clientMessageId?: string;
+}
