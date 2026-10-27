@@ -16,3 +16,4 @@ public class CreateConversationRequest {
     private UUID donorId;
     private UUID donationId;
 }
+

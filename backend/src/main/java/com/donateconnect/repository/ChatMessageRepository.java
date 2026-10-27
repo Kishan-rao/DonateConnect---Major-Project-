@@ -31,3 +31,4 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, UUID> 
     @Query("SELECT m FROM ChatMessage m WHERE m.attachmentUrl = :attachmentUrl OR m.attachmentUrl LIKE %:filename")
     Optional<ChatMessage> findByAttachmentUrlOrFilename(@Param("attachmentUrl") String attachmentUrl, @Param("filename") String filename);
 }
+

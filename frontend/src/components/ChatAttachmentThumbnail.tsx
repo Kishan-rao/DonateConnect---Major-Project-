@@ -94,3 +94,4 @@ export const ChatAttachmentThumbnail: React.FC<ChatAttachmentThumbnailProps> = (
     </div>
   );
 };
+

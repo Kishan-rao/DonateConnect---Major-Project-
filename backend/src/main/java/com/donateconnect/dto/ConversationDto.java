@@ -36,3 +36,4 @@ public class ConversationDto {
     @JsonFormat(shape = JsonFormat.Shape.STRING)
     private LocalDateTime createdAt;
 }
+

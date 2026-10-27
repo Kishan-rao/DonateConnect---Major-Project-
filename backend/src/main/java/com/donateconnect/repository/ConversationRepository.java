@@ -23,3 +23,4 @@ public interface ConversationRepository extends JpaRepository<Conversation, UUID
     @Query("SELECT c FROM Conversation c WHERE c.donor.id = :donorId AND c.ngo.id = :ngoId ORDER BY COALESCE(c.lastMessageAt, c.createdAt) DESC")
     List<Conversation> findAllByDonorIdAndNgoId(@Param("donorId") UUID donorId, @Param("ngoId") UUID ngoId);
 }
+

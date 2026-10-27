@@ -37,3 +37,4 @@ public interface ChatService {
 
     long getTotalUnreadCount(UUID authUserId);
 }
+

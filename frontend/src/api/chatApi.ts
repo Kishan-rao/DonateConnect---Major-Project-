@@ -116,3 +116,4 @@ export const getChatAttachmentBlobUrl = async (attachmentUrl: string): Promise<s
     reader.readAsDataURL(response.data);
   });
 };
+

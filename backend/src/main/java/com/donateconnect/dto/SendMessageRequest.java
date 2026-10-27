@@ -18,3 +18,4 @@ public class SendMessageRequest {
     @Size(max = 64, message = "Client message ID must not exceed 64 characters")
     private String clientMessageId;
 }
+

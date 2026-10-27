@@ -162,3 +162,4 @@ class ChatControllerTest {
                 .andExpect(jsonPath("$.data.content[0].content").value("First message"));
     }
 }
+
