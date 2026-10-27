@@ -9,6 +9,7 @@ import { useToast } from '../context/ToastContext';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { MapControls } from '../components/MapControls';
 
 // Fix Leaflet icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -68,6 +69,8 @@ export const CreateDonationPage: React.FC = () => {
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const todayInputValue = getTodayInputValue();
   const [mapPosition, setMapPosition] = useState<L.LatLng | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false);
 
   const [mapCenter, setMapCenter] = useState<L.LatLngExpression>([12.9716, 77.5946]);
   const [geocoding, setGeocoding] = useState(false);
@@ -588,12 +591,32 @@ export const CreateDonationPage: React.FC = () => {
                 <MapPin className="w-4 h-4 text-[#7567E8]" />
                 Pin Location on Map *
               </label>
-              <div className="h-[250px] w-full rounded-2xl overflow-hidden border border-[#E5E7EB] relative z-0">
+              <div
+                ref={mapContainerRef}
+                data-testid="create-donation-map-wrapper"
+                className={
+                  isMapFullscreen
+                    ? "fixed inset-0 z-[9999] w-screen h-screen m-0 p-0 bg-slate-100 flex flex-col pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]"
+                    : "h-[250px] w-full rounded-2xl overflow-hidden border border-[#E5E7EB] relative z-0"
+                }
+              >
+                {isMapFullscreen && (
+                  <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-[1000] bg-white/95 backdrop-blur-md border border-[#E5E7EB] rounded-xl px-3 py-2 shadow-lg text-xs font-semibold text-[#111827] flex items-center gap-2 pointer-events-auto">
+                    <MapPin className="w-4 h-4 text-[#7567E8]" />
+                    <span>Tap map to pin exact pickup location</span>
+                  </div>
+                )}
                 <MapContainer
                   center={mapCenter}
                   zoom={12}
                   style={{ height: '100%', width: '100%' }}
+                  zoomControl={false}
                 >
+                  <MapControls
+                    containerRef={mapContainerRef}
+                    isFullscreen={isMapFullscreen}
+                    onFullscreenChange={setIsMapFullscreen}
+                  />
                   <ChangeView center={mapCenter} />
                   <TileLayer
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

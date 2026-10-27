@@ -187,4 +187,31 @@ describe('CreateDonationPage Form Validation', () => {
       expect(screen.getByText('Pickup date cannot be in the past')).toBeInTheDocument();
     });
   });
+
+  it('renders zoom and full-screen controls on pickup pin map', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByRole('button', { name: /Submit Donation Request/i })).not.toBeDisabled());
+
+    expect(screen.getByRole('button', { name: 'Zoom in' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Zoom out' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Enter full screen' })).toBeInTheDocument();
+  });
+
+  it('toggles full-screen mode on donor pickup map', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByRole('button', { name: /Submit Donation Request/i })).not.toBeDisabled());
+
+    const toggleBtn = screen.getByRole('button', { name: 'Enter full screen' });
+    fireEvent.click(toggleBtn);
+
+    const mapWrapper = screen.getByTestId('create-donation-map-wrapper');
+    expect(mapWrapper.className).toContain('fixed inset-0');
+    expect(screen.getByText('Tap map to pin exact pickup location')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Exit full screen' })).toBeInTheDocument();
+
+    // Exit full screen
+    fireEvent.click(screen.getByRole('button', { name: 'Exit full screen' }));
+    expect(mapWrapper.className).toContain('h-[250px]');
+    expect(screen.getByRole('button', { name: 'Enter full screen' })).toBeInTheDocument();
+  });
 });

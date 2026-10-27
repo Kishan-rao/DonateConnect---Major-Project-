@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { getVerifiedNgos } from '../api/ngoApi';
 import { NGOProfile } from '../types';
 import { UrgentNeedsBanner } from '../components/UrgentNeedsBanner';
@@ -14,8 +15,12 @@ import {
 } from 'lucide-react';
 
 export const HomePage: React.FC = () => {
+  const { user } = useAuth();
   const [ngos, setNgos] = useState<NGOProfile[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const normalizedRole = user?.role ? (user.role as string).replace(/^ROLE_/, '').toUpperCase() : null;
+  const isDonor = normalizedRole === 'DONOR';
 
   useEffect(() => {
     getVerifiedNgos()
@@ -58,13 +63,15 @@ export const HomePage: React.FC = () => {
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
-            <Link
-              to="/donate/new"
-              className="px-6 py-3.5 rounded-xl bg-[#7567E8] hover:bg-[#6355d8] text-white font-bold text-sm shadow-md shadow-[#7567E8]/20 hover:scale-[1.02] transition-all flex items-center gap-2"
-            >
-              <HeartHandshake className="w-5 h-5 text-white" />
-              Donate Now
-            </Link>
+            {isDonor && (
+              <Link
+                to="/donate/new"
+                className="px-6 py-3.5 rounded-xl bg-[#7567E8] hover:bg-[#6355d8] text-white font-bold text-sm shadow-md shadow-[#7567E8]/20 hover:scale-[1.02] transition-all flex items-center gap-2"
+              >
+                <HeartHandshake className="w-5 h-5 text-white" />
+                Donate Now
+              </Link>
+            )}
             <Link
               to="/impact"
               className="px-6 py-3.5 rounded-xl bg-white text-[#111827] border border-[#E5E7EB] hover:bg-[#F9FAFB] font-bold text-sm transition-colors flex items-center gap-2 shadow-sm"

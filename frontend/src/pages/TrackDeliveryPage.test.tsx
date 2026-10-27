@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -354,5 +354,33 @@ describe('TrackDeliveryPage', () => {
     await new Promise((r) => setTimeout(r, 50));
     expect(screen.getByText('12 min')).toBeInTheDocument();
     expect(screen.queryByText('28 min')).not.toBeInTheDocument();
+  });
+
+  it('10. renders zoom and full-screen controls on delivery tracking map', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.queryByText('Initializing live map tracker...')).not.toBeInTheDocument());
+
+    expect(screen.getByRole('button', { name: 'Zoom in' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Zoom out' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Enter full screen' })).toBeInTheDocument();
+  });
+
+  it('11. toggles full-screen mode on tracking map and displays full-screen HUD', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.queryByText('Initializing live map tracker...')).not.toBeInTheDocument());
+
+    const toggleBtn = screen.getByRole('button', { name: 'Enter full screen' });
+    fireEvent.click(toggleBtn);
+
+    const mapWrapper = screen.getByTestId('track-map-wrapper');
+    expect(mapWrapper.className).toContain('fixed inset-0');
+
+    expect(screen.getByRole('button', { name: 'Exit full screen' })).toBeInTheDocument();
+    expect(screen.getByText('CLOTHES Donation')).toBeInTheDocument();
+
+    // Exit full screen
+    fireEvent.click(screen.getByRole('button', { name: 'Exit full screen' }));
+    expect(mapWrapper.className).toContain('h-[520px]');
+    expect(screen.getByRole('button', { name: 'Enter full screen' })).toBeInTheDocument();
   });
 });

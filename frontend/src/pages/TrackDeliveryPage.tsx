@@ -5,6 +5,7 @@ import { Donation, DeliveryDto, RouteEtaDto } from '../types';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { MapControls } from '../components/MapControls';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useDeliveryTracking } from '../context/DeliveryTrackingContext';
@@ -62,6 +63,8 @@ export const TrackDeliveryPage: React.FC = () => {
   const lastEtaFetchTime = useRef<number>(0);
   const lastEtaOrigin = useRef<{ lat: number; lng: number } | null>(null);
   const latestEtaRequestId = useRef<number>(0);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false);
 
   // Proof of delivery state
   const [otp, setOtp] = useState('');
@@ -614,13 +617,57 @@ export const TrackDeliveryPage: React.FC = () => {
         </div>
 
         {/* Map Container */}
-        <div className="h-[520px] w-full z-0 relative bg-slate-100">
+        <div
+          ref={mapContainerRef}
+          data-testid="track-map-wrapper"
+          className={
+            isMapFullscreen
+              ? "fixed inset-0 z-[9999] w-screen h-screen m-0 p-0 bg-slate-100 flex flex-col pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]"
+              : "h-[520px] w-full z-0 relative bg-slate-100"
+          }
+        >
+          {isMapFullscreen && (
+            <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-[1000] bg-white/95 backdrop-blur-md border border-[#E5E7EB] rounded-2xl p-2.5 sm:p-3 shadow-xl max-w-[280px] sm:max-w-sm flex flex-col gap-1 pointer-events-auto">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold text-[#111827] truncate">
+                  {donation?.category ? `${donation.category} Donation` : 'Live Delivery'}
+                </span>
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#7567E8] text-white shrink-0">
+                  {donation?.status === 'DELIVERED'
+                    ? 'Delivered'
+                    : routeEta && routeEta.durationMinutes !== null && routeEta.durationMinutes !== undefined
+                    ? `ETA: ${routeEta.durationMinutes}m`
+                    : 'Tracking'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-[#4B5563]">
+                <span className="font-semibold text-[#7567E8]">
+                  {routeEta?.destinationType === 'NGO_HUB'
+                    ? 'NGO Hub'
+                    : routeEta?.destinationType === 'PICKUP'
+                    ? 'Pickup'
+                    : donation?.status === 'PICKED_UP'
+                    ? 'NGO Hub'
+                    : 'Pickup'}
+                </span>
+                {routeEta?.roadDistanceKm !== null && routeEta?.roadDistanceKm !== undefined ? (
+                  <span>• {routeEta.roadDistanceKm.toFixed(1)} km</span>
+                ) : null}
+                <span>• {currentLoc ? 'Live GPS' : 'Signal pending'}</span>
+              </div>
+            </div>
+          )}
           <MapContainer
             center={currentLoc ? [currentLoc.lat, currentLoc.lng] : (pickupPoint || ngoPoint || [12.9716, 77.5946])}
             zoom={13}
             style={{ height: '100%', width: '100%' }}
             zoomControl={false}
           >
+            <MapControls
+              containerRef={mapContainerRef}
+              isFullscreen={isMapFullscreen}
+              onFullscreenChange={setIsMapFullscreen}
+            />
             {currentLoc && <MapPanController center={[currentLoc.lat, currentLoc.lng]} />}
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
