@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Donation, DonationStatus } from '../types';
 import { formatDate, getCategoryBadgeColor } from '../utils/formatters';
 import { Tag, User, Building2 } from 'lucide-react';
 import { getPhotoUrl } from '../utils/photoHelper';
+import { PhotoViewerModal } from './PhotoViewerModal';
 
 interface DonationCardProps {
   donation: Donation;
@@ -11,6 +12,9 @@ interface DonationCardProps {
 }
 
 export const DonationCard: React.FC<DonationCardProps> = ({ donation, onStatusChange, isNgoView }) => {
+  const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
+  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
+
   const getStatusBadgeStyle = (status: DonationStatus) => {
     switch (status) {
       case 'ACCEPTED':
@@ -53,12 +57,23 @@ export const DonationCard: React.FC<DonationCardProps> = ({ donation, onStatusCh
         {donation.photoUrls && donation.photoUrls.length > 0 && (
           <div className="flex gap-2 overflow-x-auto pb-2 mb-3">
             {donation.photoUrls.map((url, idx) => (
-              <img
+              <button
                 key={idx}
-                src={getPhotoUrl(url)}
-                alt="Donation attachment"
-                className="w-14 h-14 object-cover rounded-lg border border-[#E5E7EB]"
-              />
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedPhotoIndex(idx);
+                  setPhotoViewerOpen(true);
+                }}
+                className="group relative rounded-lg overflow-hidden border border-[#E5E7EB] hover:border-[#7567E8] transition-all shrink-0 focus:outline-none focus:ring-2 focus:ring-[#7567E8]"
+                aria-label={`View photo ${idx + 1} full size`}
+              >
+                <img
+                  src={getPhotoUrl(url)}
+                  alt="Donation attachment"
+                  className="w-14 h-14 object-cover group-hover:scale-105 transition-transform"
+                />
+              </button>
             ))}
           </div>
         )}
@@ -99,6 +114,14 @@ export const DonationCard: React.FC<DonationCardProps> = ({ donation, onStatusCh
           </div>
         )}
       </div>
+
+      <PhotoViewerModal
+        isOpen={photoViewerOpen}
+        photos={donation.photoUrls || []}
+        initialIndex={selectedPhotoIndex}
+        onClose={() => setPhotoViewerOpen(false)}
+        title={`${donation.category} Donation Photo`}
+      />
     </div>
   );
 };

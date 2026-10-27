@@ -9,7 +9,8 @@ import { MapControls } from '../components/MapControls';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useDeliveryTracking } from '../context/DeliveryTrackingContext';
-import { ArrowLeft, Navigation, Clock, ShieldCheck, MapPin, AlertTriangle, RefreshCw, Compass, CheckCircle, Upload, KeyRound } from 'lucide-react';
+import { ArrowLeft, Navigation, Clock, ShieldCheck, MapPin, AlertTriangle, RefreshCw, Compass, CheckCircle, Upload, KeyRound, Camera, X } from 'lucide-react';
+import { capturePhotoWithCamera } from '../utils/cameraService';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { OtpInput } from '../components/OtpInput';
@@ -66,11 +67,40 @@ export const TrackDeliveryPage: React.FC = () => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
 
-  // Proof of delivery state
+  // Proof of delivery state (Camera-Only)
   const [otp, setOtp] = useState('');
   const [proofImage, setProofImage] = useState<File | null>(null);
+  const [proofPreviewUrl, setProofPreviewUrl] = useState<string | null>(null);
   const [submittingProof, setSubmittingProof] = useState(false);
   const [proofError, setProofError] = useState<string | null>(null);
+
+  const handleCaptureProof = async () => {
+    setProofError(null);
+    try {
+      const result = await capturePhotoWithCamera('delivery-proof');
+      if (!result) {
+        // User cancelled camera capture — preserve state
+        return;
+      }
+      setProofImage(result.file);
+      setProofPreviewUrl(result.previewUrl);
+    } catch (err: any) {
+      setProofError(err.message || 'Failed to capture proof of delivery photo.');
+    }
+  };
+
+  const handleRemoveProof = () => {
+    if (proofPreviewUrl) {
+      try {
+        URL.revokeObjectURL(proofPreviewUrl);
+      } catch {
+        // ignore
+      }
+    }
+    setProofImage(null);
+    setProofPreviewUrl(null);
+    setProofError(null);
+  };
 
   // Poll fallback interval
   const pollInterval = useRef<NodeJS.Timeout | null>(null);
@@ -526,19 +556,71 @@ export const TrackDeliveryPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#4B5563] uppercase tracking-wider mb-1">Delivery Photo</label>
-                  <label className="flex items-center justify-center w-full h-24 border-2 border-[#E5E7EB] border-dashed rounded-xl cursor-pointer hover:bg-[#F4F2FA] hover:border-[#7567E8] transition-colors bg-white">
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6 text-[#6B7280]">
-                      <Upload className="w-6 h-6 mb-2 text-[#7567E8]" />
-                      <p className="text-sm font-semibold">{proofImage ? proofImage.name : 'Tap to upload photo'}</p>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-[#4B5563] uppercase tracking-wider">
+                      Delivery Proof Photo *
+                    </label>
+                    <span className="text-[11px] text-[#6B7280]">Camera only</span>
+                  </div>
+
+                  {!proofImage ? (
+                    <button
+                      type="button"
+                      data-testid="capture-proof-btn"
+                      onClick={handleCaptureProof}
+                      className="flex flex-col items-center justify-center w-full py-5 px-4 border-2 border-[#E5E7EB] border-dashed rounded-xl hover:bg-[#F4F2FA] hover:border-[#7567E8] active:border-[#7567E8] transition-colors bg-white text-center group focus:outline-none focus:ring-2 focus:ring-[#7567E8]"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-[#7567E8]/10 group-hover:bg-[#7567E8]/20 flex items-center justify-center text-[#7567E8] mb-2 transition-colors">
+                        <Camera className="w-5 h-5" />
+                      </div>
+                      <p className="text-sm font-bold text-[#111827] group-hover:text-[#7567E8] transition-colors">
+                        Capture Proof of Delivery
+                      </p>
+                      <p className="text-[11px] text-[#6B7280] mt-0.5">
+                        Take a live photo of the handed-over items
+                      </p>
+                    </button>
+                  ) : (
+                    <div className="relative rounded-xl overflow-hidden border border-[#E5E7EB] bg-black/5 p-3 flex items-center gap-3">
+                      {proofPreviewUrl && (
+                        <img
+                          src={proofPreviewUrl}
+                          alt="Delivery proof preview"
+                          className="w-16 h-16 object-cover rounded-lg border border-[#E5E7EB] shrink-0"
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-[#111827] truncate">
+                          {proofImage.name}
+                        </p>
+                        <p className="text-[11px] text-emerald-600 font-medium">
+                          ✓ Photo captured ({(proofImage.size / 1024).toFixed(1)} KB)
+                        </p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <button
+                            type="button"
+                            data-testid="retake-proof-btn"
+                            onClick={handleCaptureProof}
+                            className="px-2.5 py-1 text-xs font-bold rounded-lg border border-[#7567E8] text-[#7567E8] bg-[#7567E8]/5 hover:bg-[#7567E8]/15 transition-colors flex items-center gap-1"
+                            title="Retake Photo"
+                          >
+                            <Camera className="w-3 h-3" />
+                            Retake
+                          </button>
+                          <button
+                            type="button"
+                            data-testid="remove-proof-btn"
+                            onClick={handleRemoveProof}
+                            className="px-2.5 py-1 text-xs font-bold rounded-lg border border-rose-200 text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors flex items-center gap-1"
+                            title="Remove Photo"
+                          >
+                            <X className="w-3 h-3" />
+                            Remove
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept="image/*"
-                      onChange={(e) => setProofImage(e.target.files?.[0] || null)}
-                    />
-                  </label>
+                  )}
                 </div>
 
                 <button

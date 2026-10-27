@@ -4,6 +4,7 @@ import { getNgoAssignedDonations, updateDonationStatusByNgo, getDeliveryOtp, reg
 import { Donation, DonationStatus } from '../types';
 import { formatDate } from '../utils/formatters';
 import { getPhotoUrl } from '../utils/photoHelper';
+import { PhotoViewerModal } from '../components/PhotoViewerModal';
 import {
   Building2,
   RefreshCw,
@@ -33,6 +34,12 @@ export const NgoDashboardPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+
+  // Photo viewer modal state
+  const [viewerPhotos, setViewerPhotos] = useState<string[]>([]);
+  const [viewerIndex, setViewerIndex] = useState<number>(0);
+  const [viewerTitle, setViewerTitle] = useState<string | undefined>(undefined);
+  const [isViewerOpen, setIsViewerOpen] = useState<boolean>(false);
   const [otpLoadingId, setOtpLoadingId] = useState<string | null>(null);
   const [otpData, setOtpData] = useState<Record<string, string>>({});
 
@@ -254,12 +261,25 @@ export const NgoDashboardPage: React.FC = () => {
                  {donation.photoUrls && donation.photoUrls.length > 0 && (
                   <div className="flex gap-2 overflow-x-auto pb-2 mb-3">
                     {donation.photoUrls.map((url, idx) => (
-                      <img
+                      <button
                         key={idx}
-                        src={getPhotoUrl(url)}
-                        alt="Donation attachment"
-                        className="w-14 h-14 object-cover rounded-lg border border-[#E5E7EB]"
-                      />
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setViewerPhotos(donation.photoUrls);
+                          setViewerIndex(idx);
+                          setViewerTitle(`${donation.category} Donation Photo`);
+                          setIsViewerOpen(true);
+                        }}
+                        className="group relative rounded-lg overflow-hidden border border-[#E5E7EB] hover:border-[#7567E8] transition-all shrink-0 focus:outline-none focus:ring-2 focus:ring-[#7567E8]"
+                        aria-label={`View photo ${idx + 1} full size`}
+                      >
+                        <img
+                          src={getPhotoUrl(url)}
+                          alt="Donation attachment"
+                          className="w-14 h-14 object-cover group-hover:scale-105 transition-transform"
+                        />
+                      </button>
                     ))}
                   </div>
                 )}
@@ -367,6 +387,15 @@ export const NgoDashboardPage: React.FC = () => {
           ))}
         </div>
       )}
+
+      {/* Full-size Photo Viewer Modal */}
+      <PhotoViewerModal
+        isOpen={isViewerOpen}
+        photos={viewerPhotos}
+        initialIndex={viewerIndex}
+        title={viewerTitle}
+        onClose={() => setIsViewerOpen(false)}
+      />
     </div>
   );
 };

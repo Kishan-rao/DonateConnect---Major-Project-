@@ -6,6 +6,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CreateDonationPage } from './CreateDonationPage';
 import * as ngoApi from '../api/ngoApi';
 import * as donationApi from '../api/donationApi';
+import * as cameraService from '../utils/cameraService';
 import { ToastProvider } from '../context/ToastContext';
 
 vi.mock('../api/ngoApi', () => ({
@@ -15,6 +16,10 @@ vi.mock('../api/ngoApi', () => ({
 vi.mock('../api/donationApi', () => ({
   createDonation: vi.fn(),
   uploadDonationPhoto: vi.fn(),
+}));
+
+vi.mock('../utils/cameraService', () => ({
+  capturePhotoWithCamera: vi.fn(),
 }));
 
 // Mock map components to avoid Leaflet errors in jsdom
@@ -213,5 +218,66 @@ describe('CreateDonationPage Form Validation', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Exit full screen' }));
     expect(mapWrapper.className).toContain('h-[250px]');
     expect(screen.getByRole('button', { name: 'Enter full screen' })).toBeInTheDocument();
+  });
+
+  it('provides camera-only photo capture and completely removes gallery file picker', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByRole('button', { name: /Submit Donation Request/i })).not.toBeDisabled());
+
+    // 1. Confirm NO file input exists on the page
+    expect(document.querySelector('input[type="file"]')).toBeNull();
+
+    // 2. Camera capture button is present
+    const takePhotoButton = screen.getByTestId('take-photo-btn');
+    expect(takePhotoButton).toBeInTheDocument();
+    expect(screen.getByText('Take Photo with Camera')).toBeInTheDocument();
+    expect(screen.getByText('Camera capture only')).toBeInTheDocument();
+
+    // 3. Mock camera capture
+    const dummyFile = new File(['content'], 'captured-item.jpg', { type: 'image/jpeg' });
+    vi.mocked(cameraService.capturePhotoWithCamera).mockResolvedValueOnce({
+      file: dummyFile,
+      previewUrl: 'blob:http://localhost/preview-1',
+    });
+    vi.mocked(donationApi.uploadDonationPhoto).mockResolvedValueOnce('/api/donations/photo/server-1.jpg');
+
+    // Click take photo
+    fireEvent.click(takePhotoButton);
+
+    await waitFor(() => {
+      expect(cameraService.capturePhotoWithCamera).toHaveBeenCalledWith('donation-item');
+      expect(donationApi.uploadDonationPhoto).toHaveBeenCalledWith(dummyFile);
+      expect(screen.getByAltText('Captured item 1')).toBeInTheDocument();
+    });
+
+    // 4. Removing the photo
+    const removeBtn = screen.getByTestId('remove-photo-0');
+    fireEvent.click(removeBtn);
+
+    await waitFor(() => {
+      expect(screen.queryByAltText('Captured item 1')).not.toBeInTheDocument();
+    });
+  });
+
+  it('preserves form state when camera capture is cancelled', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByRole('button', { name: /Submit Donation Request/i })).not.toBeDisabled());
+
+    const user = userEvent.setup();
+    await user.type(screen.getByPlaceholderText(/Describe the items being donated/i), 'Books for kids');
+
+    // Mock cancellation (returns null)
+    vi.mocked(cameraService.capturePhotoWithCamera).mockResolvedValueOnce(null);
+
+    const takePhotoButton = screen.getByTestId('take-photo-btn');
+    fireEvent.click(takePhotoButton);
+
+    await waitFor(() => {
+      expect(cameraService.capturePhotoWithCamera).toHaveBeenCalled();
+    });
+
+    // Description is intact and no error is thrown
+    expect(screen.getByPlaceholderText(/Describe the items being donated/i)).toHaveValue('Books for kids');
+    expect(screen.queryByText(/Failed/i)).not.toBeInTheDocument();
   });
 });

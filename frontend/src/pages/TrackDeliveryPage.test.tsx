@@ -6,6 +6,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { TrackDeliveryPage } from './TrackDeliveryPage';
 import * as donationApi from '../api/donationApi';
 import * as AuthContextModule from '../context/AuthContext';
+import * as cameraService from '../utils/cameraService';
 import { ToastProvider } from '../context/ToastContext';
 import { DeliveryTrackingProvider } from '../context/DeliveryTrackingContext';
 import { RouteEtaDto } from '../types';
@@ -18,6 +19,10 @@ vi.mock('../api/donationApi', () => ({
   getLiveLocation: vi.fn(),
   completeDelivery: vi.fn(),
   getDeliveryRouteEta: vi.fn(),
+}));
+
+vi.mock('../utils/cameraService', () => ({
+  capturePhotoWithCamera: vi.fn(),
 }));
 
 vi.mock('../context/AuthContext', () => ({
@@ -238,12 +243,15 @@ describe('TrackDeliveryPage', () => {
     });
   });
 
-  it('6. shows Mark Delivered modal (Verification Form) for volunteer on PICKED_UP delivery and handles submit', async () => {
+  it('6. shows Mark Delivered modal (Verification Form) for volunteer on PICKED_UP delivery and handles submit with camera-only capture', async () => {
     renderPage();
 
     await waitFor(() => expect(screen.queryByText('Initializing live map tracker...')).not.toBeInTheDocument());
 
     expect(screen.getByText('Verification Form')).toBeInTheDocument();
+
+    // 1. Confirm NO file input exists
+    expect(document.querySelector('input[type="file"]')).toBeNull();
 
     const completeBtn = screen.getByRole('button', { name: /Complete Delivery/i });
     expect(completeBtn).toBeDisabled();
@@ -256,18 +264,78 @@ describe('TrackDeliveryPage', () => {
       await user.type(otpInputs[i], '1');
     }
 
-    // Upload image
-    const file = new File(['dummy'], 'test.png', { type: 'image/png' });
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    await user.upload(fileInput, file);
+    // Capture photo via camera
+    const file = new File(['dummy content'], 'proof.jpg', { type: 'image/jpeg' });
+    vi.mocked(cameraService.capturePhotoWithCamera).mockResolvedValueOnce({
+      file,
+      previewUrl: 'blob:http://localhost/proof-preview',
+    });
 
-    expect(completeBtn).not.toBeDisabled();
+    const captureBtn = screen.getByTestId('capture-proof-btn');
+    await user.click(captureBtn);
+
+    expect(cameraService.capturePhotoWithCamera).toHaveBeenCalledWith('delivery-proof');
+
+    // Preview rendered, complete button now active
+    await waitFor(() => {
+      expect(screen.getByAltText('Delivery proof preview')).toBeInTheDocument();
+      expect(completeBtn).not.toBeDisabled();
+    });
 
     vi.mocked(donationApi.completeDelivery).mockResolvedValueOnce({});
 
     await user.click(completeBtn);
 
     expect(donationApi.completeDelivery).toHaveBeenCalledWith('delivery-1', '111111', file);
+  });
+
+  it('6b. allows retaking and removing captured delivery proof photo without clearing OTP', async () => {
+    renderPage();
+
+    await waitFor(() => expect(screen.queryByText('Initializing live map tracker...')).not.toBeInTheDocument());
+
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+    // Fill partial OTP
+    const otpInputs = screen.getAllByRole('textbox');
+    await user.type(otpInputs[0], '5');
+
+    // 1. First camera capture
+    const firstFile = new File(['first'], 'first-proof.jpg', { type: 'image/jpeg' });
+    vi.mocked(cameraService.capturePhotoWithCamera).mockResolvedValueOnce({
+      file: firstFile,
+      previewUrl: 'blob:http://localhost/first-proof',
+    });
+
+    await user.click(screen.getByTestId('capture-proof-btn'));
+
+    await waitFor(() => {
+      expect(screen.getByText('first-proof.jpg')).toBeInTheDocument();
+    });
+
+    // 2. Retake photo with new capture
+    const secondFile = new File(['second'], 'second-proof.jpg', { type: 'image/jpeg' });
+    vi.mocked(cameraService.capturePhotoWithCamera).mockResolvedValueOnce({
+      file: secondFile,
+      previewUrl: 'blob:http://localhost/second-proof',
+    });
+
+    await user.click(screen.getByTestId('retake-proof-btn'));
+
+    await waitFor(() => {
+      expect(screen.getByText('second-proof.jpg')).toBeInTheDocument();
+    });
+
+    // 3. Remove photo
+    await user.click(screen.getByTestId('remove-proof-btn'));
+
+    await waitFor(() => {
+      expect(screen.queryByText('second-proof.jpg')).not.toBeInTheDocument();
+      expect(screen.getByTestId('capture-proof-btn')).toBeInTheDocument();
+    });
+
+    // OTP was preserved throughout
+    expect(otpInputs[0]).toHaveValue('5');
   });
 
   it('7. displays Delivery Completed and stops tracking when donation is marked DELIVERED', async () => {

@@ -3,6 +3,8 @@ import { getDonationById } from '../api/donationApi';
 import { Donation, DonationStatus } from '../types';
 import { formatDate } from '../utils/formatters';
 import { getPhotoUrl } from '../utils/photoHelper';
+import { pushModalDismiss } from '../utils/useAndroidBackButton';
+import { PhotoViewerModal } from './PhotoViewerModal';
 import {
   X,
   Building2,
@@ -39,7 +41,8 @@ export const DonationDetailModal: React.FC<DonationDetailModalProps> = ({
   const [donation, setDonation] = useState<Donation | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [photoViewerOpen, setPhotoViewerOpen] = useState<boolean>(false);
+  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number>(0);
 
   const fetchDetail = async () => {
     setLoading(true);
@@ -58,19 +61,24 @@ export const DonationDetailModal: React.FC<DonationDetailModalProps> = ({
     fetchDetail();
   }, [donationId]);
 
+  // Android back button dismiss for detail modal (when photo viewer is not open)
+  useEffect(() => {
+    if (photoViewerOpen) return;
+    const cleanup = pushModalDismiss(() => {
+      onClose();
+    });
+    return cleanup;
+  }, [photoViewerOpen, onClose]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (selectedPhoto) {
-          setSelectedPhoto(null);
-        } else {
-          onClose();
-        }
+      if (e.key === 'Escape' && !photoViewerOpen) {
+        onClose();
       }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onClose, selectedPhoto]);
+  }, [onClose, photoViewerOpen]);
 
   const getStatusBadgeStyle = (status: DonationStatus) => {
     switch (status) {
@@ -342,8 +350,13 @@ export const DonationDetailModal: React.FC<DonationDetailModalProps> = ({
                     return (
                       <button
                         key={idx}
-                        onClick={() => setSelectedPhoto(fullUrl)}
-                        className="group relative rounded-xl overflow-hidden border border-[#E5E7EB] hover:border-[#7567E8] transition-colors shrink-0"
+                        type="button"
+                        onClick={() => {
+                          setSelectedPhotoIndex(idx);
+                          setPhotoViewerOpen(true);
+                        }}
+                        aria-label={`View photo ${idx + 1} full size`}
+                        className="group relative rounded-xl overflow-hidden border border-[#E5E7EB] hover:border-[#7567E8] transition-colors shrink-0 focus:outline-none focus:ring-2 focus:ring-[#7567E8]"
                       >
                         <img
                           src={fullUrl}
@@ -409,27 +422,14 @@ export const DonationDetailModal: React.FC<DonationDetailModalProps> = ({
         </div>
       </div>
 
-      {/* Lightbox Photo Overlay */}
-      {selectedPhoto && (
-        <div
-          className="fixed inset-0 z-60 bg-[#111827]/80 backdrop-blur-md flex items-center justify-center p-4"
-          onClick={() => setSelectedPhoto(null)}
-        >
-          <div className="relative max-w-3xl max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
-            <img
-              src={selectedPhoto}
-              alt="Enlarged attachment"
-              className="max-w-full max-h-[85vh] object-contain rounded-2xl border border-[#E5E7EB] shadow-2xl"
-            />
-            <button
-              onClick={() => setSelectedPhoto(null)}
-              className="absolute -top-4 -right-4 p-2 rounded-full bg-white text-[#111827] border border-[#E5E7EB] shadow-lg hover:bg-[#F9FAFB]"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Full-size Photo Viewer Modal */}
+      <PhotoViewerModal
+        isOpen={photoViewerOpen}
+        photos={donation?.photoUrls || []}
+        initialIndex={selectedPhotoIndex}
+        onClose={() => setPhotoViewerOpen(false)}
+        title={donation ? `${donation.category} Donation Photo` : undefined}
+      />
     </div>
   );
 };

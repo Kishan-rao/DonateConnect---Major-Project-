@@ -4,8 +4,9 @@ import { useForm } from 'react-hook-form';
 import { createDonation, uploadDonationPhoto } from '../api/donationApi';
 import { getVerifiedNgos } from '../api/ngoApi';
 import { CreateDonationRequest, NGOProfile } from '../types';
-import { HeartHandshake, ArrowLeft, Send, Building2, UploadCloud, X, Loader2, MapPin, Search, Navigation } from 'lucide-react';
+import { HeartHandshake, ArrowLeft, Send, Building2, Camera, X, Loader2, MapPin, Search, Navigation } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { capturePhotoWithCamera } from '../utils/cameraService';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -168,65 +169,40 @@ export const CreateDonationPage: React.FC = () => {
     showSuccess('Location pinned!');
   };
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
+  const handleCameraCapture = async () => {
     setPhotoError(null);
-    const incomingFiles = Array.from(files);
-    const remainingSlots = MAX_PHOTOS - photos.length;
-
-    if (remainingSlots <= 0) {
-      setPhotoError(`You can upload up to ${MAX_PHOTOS} photos.`);
-      e.target.value = '';
+    if (photos.length >= MAX_PHOTOS) {
+      setPhotoError(`You can capture up to ${MAX_PHOTOS} photos.`);
       return;
     }
 
-    const validFiles: File[] = [];
-
-    for (const file of incomingFiles.slice(0, remainingSlots)) {
-      if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-        setPhotoError('Photos must be PNG, JPG, or WEBP images.');
-        continue;
+    try {
+      const result = await capturePhotoWithCamera('donation-item');
+      if (!result) {
+        // User cancelled camera capture — keep existing form state
+        return;
       }
-      if (file.size > MAX_PHOTO_SIZE_BYTES) {
-        setPhotoError('Each photo must be 10 MB or smaller.');
-        continue;
-      }
-      validFiles.push(file);
+
+      setUploadingPhotos(true);
+      const serverUrl = await uploadDonationPhoto(result.file);
+      setPhotos((prev) => [...prev, { previewUrl: result.previewUrl, serverUrl }]);
+    } catch (err: any) {
+      setPhotoError(err.message || 'Failed to capture or upload photo.');
+    } finally {
+      setUploadingPhotos(false);
     }
-
-    if (incomingFiles.length > remainingSlots) {
-      setPhotoError(`Only ${remainingSlots} more photo${remainingSlots === 1 ? '' : 's'} can be added.`);
-    }
-
-    if (validFiles.length === 0) {
-      e.target.value = '';
-      return;
-    }
-
-    setUploadingPhotos(true);
-    const uploaded: UploadedPhoto[] = [];
-
-    for (const file of validFiles) {
-      try {
-        const previewUrl = URL.createObjectURL(file);
-        const serverUrl = await uploadDonationPhoto(file);
-        uploaded.push({ previewUrl, serverUrl });
-      } catch (err: any) {
-        setPhotoError(err.message || 'Failed to upload one or more photos.');
-      }
-    }
-
-    setPhotos((prev) => [...prev, ...uploaded]);
-    setUploadingPhotos(false);
-    e.target.value = '';
   };
 
   const removePhoto = (index: number) => {
     setPhotos((prev) => {
       const removed = prev[index];
-      if (removed) URL.revokeObjectURL(removed.previewUrl);
+      if (removed) {
+        try {
+          URL.revokeObjectURL(removed.previewUrl);
+        } catch {
+          // ignore revocation errors if not blob URL
+        }
+      }
       return prev.filter((_, i) => i !== index);
     });
     setPhotoError(null);
@@ -664,34 +640,39 @@ export const CreateDonationPage: React.FC = () => {
             )}
           </div>
 
-          {/* Photo Upload Section */}
+          {/* Photo Capture Section (Camera-Only) */}
           <div>
-            <label className="block text-xs font-semibold text-[#374151] uppercase tracking-wider mb-2">
-              Item Photos *
-            </label>
-            <div className="border-2 border-dashed border-[#E5E7EB] hover:border-[#7567E8] rounded-2xl p-6 text-center transition-colors bg-[#F9FAFB]">
-              <input
-                type="file"
-                id="photo-upload"
-                multiple
-                accept="image/png,image/jpeg,image/webp"
-                onChange={handlePhotoUpload}
-                disabled={uploadingPhotos}
-                className="hidden"
-              />
-              <label htmlFor="photo-upload" className="cursor-pointer flex flex-col items-center justify-center gap-2">
-                <UploadCloud className="w-8 h-8 text-[#7567E8]" />
-                <span className="text-xs text-[#374151] font-medium">Click to upload photo attachments</span>
-                <span className="text-[10px] text-[#6B7280]">PNG, JPG, WEBP only. Up to {MAX_PHOTOS} photos, 10 MB each.</span>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-semibold text-[#374151] uppercase tracking-wider">
+                Item Photos * ({photos.length}/{MAX_PHOTOS})
               </label>
+              <span className="text-[11px] text-[#6B7280]">Camera capture only</span>
             </div>
+
+            <button
+              type="button"
+              data-testid="take-photo-btn"
+              onClick={handleCameraCapture}
+              disabled={uploadingPhotos || photos.length >= MAX_PHOTOS}
+              className="w-full border-2 border-dashed border-[#E5E7EB] hover:border-[#7567E8] active:border-[#7567E8] rounded-2xl p-6 text-center transition-colors bg-[#F9FAFB] hover:bg-[#F4F2FA] flex flex-col items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group focus:outline-none focus:ring-2 focus:ring-[#7567E8]"
+            >
+              <div className="w-12 h-12 rounded-full bg-[#7567E8]/10 group-hover:bg-[#7567E8]/20 flex items-center justify-center text-[#7567E8] transition-colors">
+                <Camera className="w-6 h-6" />
+              </div>
+              <span className="text-sm text-[#111827] font-bold group-hover:text-[#7567E8] transition-colors">
+                {photos.length === 0 ? 'Take Photo with Camera' : 'Take Another Photo'}
+              </span>
+              <span className="text-[11px] text-[#6B7280]">
+                Capture live photo of items using device camera. Up to {MAX_PHOTOS} photos.
+              </span>
+            </button>
             {photoError && <p className="text-rose-600 text-xs mt-1">{photoError}</p>}
 
             {/* Upload Progress Indicator */}
             {uploadingPhotos && (
               <div className="flex items-center gap-2 text-xs text-[#7567E8] mt-2 font-medium">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                Uploading photo to server...
+                Uploading captured photo to server...
               </div>
             )}
 
@@ -700,11 +681,14 @@ export const CreateDonationPage: React.FC = () => {
               <div className="flex flex-wrap gap-3 mt-4">
                 {photos.map((photo, idx) => (
                   <div key={idx} className="relative group w-20 h-20 rounded-xl overflow-hidden border border-[#E5E7EB] shadow-sm">
-                    <img src={photo.previewUrl} alt="Upload preview" className="w-full h-full object-cover" />
+                    <img src={photo.previewUrl} alt={`Captured item ${idx + 1}`} className="w-full h-full object-cover" />
                     <button
                       type="button"
+                      aria-label={`Remove photo ${idx + 1}`}
+                      data-testid={`remove-photo-${idx}`}
                       onClick={() => removePhoto(idx)}
                       className="absolute top-1 right-1 p-1 rounded-full bg-white/90 text-rose-600 hover:text-rose-700 shadow transition-colors"
+                      title="Remove Photo"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
