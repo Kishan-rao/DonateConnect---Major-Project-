@@ -13,6 +13,7 @@ export const NotificationBell: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [, setTick] = useState(0);
 
   const fetchNotifications = async () => {
     if (!isAuthenticated) return;
@@ -33,6 +34,17 @@ export const NotificationBell: React.FC = () => {
 
     return () => clearInterval(interval);
   }, [isAuthenticated]);
+
+  // Periodically refresh displayed relative timestamps while dropdown is open
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const interval = setInterval(() => {
+      setTick((t) => t + 1);
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [isOpen]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

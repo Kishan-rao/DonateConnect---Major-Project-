@@ -11,6 +11,7 @@ export const NotificationsPage: React.FC = () => {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const { showSuccess, showError } = useToast();
+  const [, setTick] = useState(0);
 
   const fetchNotifications = async () => {
     try {
@@ -29,6 +30,15 @@ export const NotificationsPage: React.FC = () => {
       fetchNotifications();
     }
   }, [isAuthenticated]);
+
+  // Periodically refresh displayed relative timestamps while notifications page is open
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTick((t) => t + 1);
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleMarkAllRead = async () => {
     try {

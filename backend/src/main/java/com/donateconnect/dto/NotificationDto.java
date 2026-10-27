@@ -1,5 +1,6 @@
 package com.donateconnect.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,5 +18,7 @@ public class NotificationDto {
     private String message;
     private boolean read;
     private UUID relatedDonationId;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private LocalDateTime createdAt;
 }

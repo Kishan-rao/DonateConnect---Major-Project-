@@ -2,6 +2,7 @@ package com.donateconnect.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -36,11 +37,12 @@ public class Notification {
     @Column(name = "related_donation_id")
     private UUID relatedDonationId;
 
+    @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @PrePersist
-    protected void onCreate() {
+    public void onCreate() {
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
         }
