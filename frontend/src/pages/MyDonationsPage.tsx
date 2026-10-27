@@ -23,10 +23,13 @@ import {
   Eye,
   AlertTriangle,
   Star,
-  Download
+  Download,
+  Image as ImageIcon
 } from 'lucide-react';
 import { RatingModal } from '../components/RatingModal';
 import { CertificateModal } from '../components/CertificateModal';
+import { PhotoViewerModal } from '../components/PhotoViewerModal';
+import { getPhotoUrl, hasValidPhotos } from '../utils/photoHelper';
 
 export const MyDonationsPage: React.FC = () => {
   const { user } = useAuth();
@@ -47,6 +50,19 @@ export const MyDonationsPage: React.FC = () => {
   const [activeRatingDonation, setActiveRatingDonation] = useState<Donation | null>(null);
   const [activeCertDonation, setActiveCertDonation] = useState<Donation | null>(null);
   const [detailDonationId, setDetailDonationId] = useState<string | null>(null);
+
+  // Full-size Photo Viewer state
+  const [viewerPhotos, setViewerPhotos] = useState<string[]>([]);
+  const [viewerIndex, setViewerIndex] = useState<number>(0);
+  const [viewerTitle, setViewerTitle] = useState<string | undefined>(undefined);
+  const [isViewerOpen, setIsViewerOpen] = useState<boolean>(false);
+
+  const openPhotoViewer = (photos: string[], index = 0, title?: string) => {
+    setViewerPhotos(photos);
+    setViewerIndex(index);
+    setViewerTitle(title);
+    setIsViewerOpen(true);
+  };
 
   const fetchDonations = async (currentPage = page, pageSize = size) => {
     setLoading(true);
@@ -229,6 +245,7 @@ export const MyDonationsPage: React.FC = () => {
             <table className="w-full text-left text-sm">
               <thead className="text-xs uppercase font-extrabold border-b border-[#E5E7EB] bg-[#F9FAFB] text-[#4B5563]">
                 <tr>
+                  <th className="py-3.5 px-4">Photo</th>
                   <th className="py-3.5 px-4">Date</th>
                   <th className="py-3.5 px-4">NGO</th>
                   <th className="py-3.5 px-4">Category</th>
@@ -245,6 +262,36 @@ export const MyDonationsPage: React.FC = () => {
                     className="hover:bg-[#F4F2FA] transition-colors cursor-pointer"
                     onClick={() => setDetailDonationId(donation.id)}
                   >
+                    <td className="py-3 px-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                      {hasValidPhotos(donation.photoUrls) ? (
+                        <button
+                          type="button"
+                          onClick={() => openPhotoViewer(donation.photoUrls, 0, `${donation.category} Donation Photo`)}
+                          aria-label={`View photo for ${donation.category} donation`}
+                          data-testid={`donor-table-photo-${donation.id}`}
+                          className="group relative w-12 h-12 rounded-xl overflow-hidden border border-[#E5E7EB] hover:border-[#7567E8] transition-all flex items-center justify-center shrink-0 focus:outline-none focus:ring-2 focus:ring-[#7567E8]"
+                        >
+                          <img
+                            src={getPhotoUrl(donation.photoUrls[0])}
+                            alt={`${donation.category} thumbnail`}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).src = '/placeholder-donation.svg';
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <Eye className="w-4 h-4 text-white" />
+                          </div>
+                        </button>
+                      ) : (
+                        <div
+                          className="w-12 h-12 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] flex flex-col items-center justify-center text-[#9CA3AF]"
+                          title="No photo attached"
+                        >
+                          <ImageIcon className="w-5 h-5 opacity-60" />
+                        </div>
+                      )}
+                    </td>
                     <td className="py-4 px-4 whitespace-nowrap text-xs text-[#4B5563]">
                       {formatDate(donation.createdAt)}
                     </td>
@@ -364,6 +411,36 @@ export const MyDonationsPage: React.FC = () => {
                     {donation.description || 'No description provided.'}
                   </p>
                 </div>
+
+                {/* Photo Thumbnails on Card */}
+                {hasValidPhotos(donation.photoUrls) ? (
+                  <div className="flex gap-2 overflow-x-auto pb-1" onClick={(e) => e.stopPropagation()}>
+                    {donation.photoUrls.map((url, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => openPhotoViewer(donation.photoUrls, idx, `${donation.category} Donation Photo`)}
+                        className="group relative rounded-lg overflow-hidden border border-[#E5E7EB] hover:border-[#7567E8] transition-all shrink-0 focus:outline-none focus:ring-2 focus:ring-[#7567E8]"
+                        aria-label={`View photo ${idx + 1} full size`}
+                        data-testid={`donor-card-photo-${donation.id}-${idx}`}
+                      >
+                        <img
+                          src={getPhotoUrl(url)}
+                          alt={`Donation attachment ${idx + 1}`}
+                          className="w-14 h-14 object-cover group-hover:scale-105 transition-transform"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src = '/placeholder-donation.svg';
+                          }}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 text-[11px] text-[#6B7280] italic py-0.5">
+                    <ImageIcon className="w-3.5 h-3.5 text-gray-400" />
+                    <span>No photo attachments</span>
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between text-xs pt-2 border-t border-[#E5E7EB] text-[#4B5563]">
                   <span>Requested: {formatDate(donation.createdAt)}</span>
@@ -503,6 +580,15 @@ export const MyDonationsPage: React.FC = () => {
           onClose={() => setActiveChatDonation(null)}
         />
       )}
+
+      {/* Full-size Photo Viewer Modal for Donor */}
+      <PhotoViewerModal
+        isOpen={isViewerOpen}
+        photos={viewerPhotos}
+        initialIndex={viewerIndex}
+        title={viewerTitle}
+        onClose={() => setIsViewerOpen(false)}
+      />
     </div>
   );
 };

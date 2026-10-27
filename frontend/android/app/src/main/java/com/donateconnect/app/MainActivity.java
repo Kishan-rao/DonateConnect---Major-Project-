@@ -1,11 +1,26 @@
 package com.donateconnect.app;
 
+import android.os.Bundle;
+import androidx.activity.OnBackPressedCallback;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
 
     @Override
-    public void onBackPressed() {
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        // Register callback with OnBackPressedDispatcher so both hardware/system
+        // Back buttons and Android edge-swipe gestures route through WebView
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                dispatchBackButtonToWebView();
+            }
+        });
+    }
+
+    private void dispatchBackButtonToWebView() {
         if (getBridge() != null && getBridge().getWebView() != null) {
             getBridge().getWebView().evaluateJavascript(
                 "(function() {" +
@@ -16,17 +31,20 @@ public class MainActivity extends BridgeActivity {
                 value -> {
                     if (!"true".equals(value)) {
                         runOnUiThread(() -> {
-                            if (getBridge().getWebView().canGoBack()) {
-                                getBridge().getWebView().goBack();
-                            } else {
-                                moveTaskToBack(true);
-                            }
+                            // If web application did not prevent default exit, minimize/exit to device home
+                            moveTaskToBack(true);
                         });
                     }
                 }
             );
             return;
         }
-        super.onBackPressed();
+        moveTaskToBack(true);
+    }
+
+    @Override
+    public void onBackPressed() {
+        // Fallback for older Android devices or direct calls
+        dispatchBackButtonToWebView();
     }
 }

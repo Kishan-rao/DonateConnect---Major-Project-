@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Truck, Navigation, Phone, ShieldCheck, MapPin, X, CheckCircle2, Clock } from 'lucide-react';
+import { pushModalDismiss } from '../utils/useAndroidBackButton';
 
 interface LiveDriverTrackerModalProps {
   donationTitle: string;
@@ -18,6 +19,10 @@ export const LiveDriverTrackerModal: React.FC<LiveDriverTrackerModalProps> = ({
   const [progress, setProgress] = useState(25); // Percentage completed along route
   const [etaMinutes, setEtaMinutes] = useState(8);
   const [driverSpeed, setDriverSpeed] = useState(32); // km/h
+
+  useEffect(() => {
+    return pushModalDismiss(onClose);
+  }, [onClose]);
 
   useEffect(() => {
     const interval = setInterval(() => {

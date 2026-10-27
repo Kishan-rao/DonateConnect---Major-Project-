@@ -3,6 +3,7 @@ import { addDonationComment, getDonationComments } from '../api/donationApi';
 import { Donation, DonationComment } from '../types';
 import { useToast } from '../context/ToastContext';
 import { Building2, MessageSquare, Send, X, Loader2 } from 'lucide-react';
+import { pushModalDismiss } from '../utils/useAndroidBackButton';
 
 export interface CommentThreadProps {
   donationId: string;
@@ -62,16 +63,20 @@ export const CommentThread: React.FC<CommentThreadProps> = ({
     }
   }, [comments.length, loading]);
 
-  // Handle ESC key to close modal
+  // Handle ESC key and Android back button to close modal
   useEffect(() => {
     if (!onClose) return;
+    const cleanupBack = pushModalDismiss(onClose);
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      cleanupBack();
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [onClose]);
 
   const handleSubmit = async (e: React.FormEvent) => {

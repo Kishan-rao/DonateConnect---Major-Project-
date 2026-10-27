@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Donation, DonationStatus } from '../types';
 import { formatDate, getCategoryBadgeColor } from '../utils/formatters';
-import { Tag, User, Building2 } from 'lucide-react';
-import { getPhotoUrl } from '../utils/photoHelper';
+import { Tag, User, Building2, Image as ImageIcon } from 'lucide-react';
+import { getPhotoUrl, hasValidPhotos } from '../utils/photoHelper';
 import { PhotoViewerModal } from './PhotoViewerModal';
 
 interface DonationCardProps {
@@ -54,7 +54,7 @@ export const DonationCard: React.FC<DonationCardProps> = ({ donation, onStatusCh
           {donation.description || 'No detailed description provided.'}
         </p>
 
-        {donation.photoUrls && donation.photoUrls.length > 0 && (
+        {hasValidPhotos(donation.photoUrls) ? (
           <div className="flex gap-2 overflow-x-auto pb-2 mb-3">
             {donation.photoUrls.map((url, idx) => (
               <button
@@ -72,9 +72,17 @@ export const DonationCard: React.FC<DonationCardProps> = ({ donation, onStatusCh
                   src={getPhotoUrl(url)}
                   alt="Donation attachment"
                   className="w-14 h-14 object-cover group-hover:scale-105 transition-transform"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = '/placeholder-donation.svg';
+                  }}
                 />
               </button>
             ))}
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 text-[11px] text-[#6B7280] italic py-1 mb-3">
+            <ImageIcon className="w-3.5 h-3.5 text-gray-400" />
+            <span>No photos attached</span>
           </div>
         )}
       </div>

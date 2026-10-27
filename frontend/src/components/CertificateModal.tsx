@@ -3,6 +3,7 @@ import { X, Download, Award, Loader2, CheckCircle2 } from 'lucide-react';
 import { Donation, DeliveryDto } from '../types';
 import { apiClient } from '../api/client';
 import { formatDate } from '../utils/formatters';
+import { pushModalDismiss } from '../utils/useAndroidBackButton';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
@@ -16,6 +17,10 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({ donation, on
   const [delivery, setDelivery] = useState<DeliveryDto | null>(null);
   const [downloading, setDownloading] = useState(false);
   const certificateRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    return pushModalDismiss(onClose);
+  }, [onClose]);
 
   useEffect(() => {
     const fetchDelivery = async () => {

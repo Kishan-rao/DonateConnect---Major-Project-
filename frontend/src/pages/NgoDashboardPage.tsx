@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getNgoAssignedDonations, updateDonationStatusByNgo, getDeliveryOtp, regenerateDeliveryOtp } from '../api/donationApi';
 import { Donation, DonationStatus } from '../types';
 import { formatDate } from '../utils/formatters';
-import { getPhotoUrl } from '../utils/photoHelper';
+import { getPhotoUrl, hasValidPhotos } from '../utils/photoHelper';
 import { PhotoViewerModal } from '../components/PhotoViewerModal';
 import {
   Building2,
@@ -21,7 +21,8 @@ import {
   KeyRound,
   Eye,
   EyeOff,
-  RotateCcw
+  RotateCcw,
+  Image as ImageIcon
 } from 'lucide-react';
 
 import { useToast } from '../context/ToastContext';
@@ -258,7 +259,7 @@ export const NgoDashboardPage: React.FC = () => {
                   {donation.description || 'No item description provided.'}
                 </p>
 
-                 {donation.photoUrls && donation.photoUrls.length > 0 && (
+                 {hasValidPhotos(donation.photoUrls) ? (
                   <div className="flex gap-2 overflow-x-auto pb-2 mb-3">
                     {donation.photoUrls.map((url, idx) => (
                       <button
@@ -273,14 +274,23 @@ export const NgoDashboardPage: React.FC = () => {
                         }}
                         className="group relative rounded-lg overflow-hidden border border-[#E5E7EB] hover:border-[#7567E8] transition-all shrink-0 focus:outline-none focus:ring-2 focus:ring-[#7567E8]"
                         aria-label={`View photo ${idx + 1} full size`}
+                        data-testid={`ngo-card-photo-${donation.id}-${idx}`}
                       >
                         <img
                           src={getPhotoUrl(url)}
                           alt="Donation attachment"
                           className="w-14 h-14 object-cover group-hover:scale-105 transition-transform"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src = '/placeholder-donation.svg';
+                          }}
                         />
                       </button>
                     ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 text-[11px] text-[#6B7280] italic py-1 mb-3">
+                    <ImageIcon className="w-3.5 h-3.5 text-gray-400" />
+                    <span>No photos attached for this request</span>
                   </div>
                 )}
               </div>

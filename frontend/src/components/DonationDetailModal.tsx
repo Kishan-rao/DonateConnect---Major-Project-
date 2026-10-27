@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { getDonationById } from '../api/donationApi';
 import { Donation, DonationStatus } from '../types';
 import { formatDate } from '../utils/formatters';
-import { getPhotoUrl } from '../utils/photoHelper';
+import { getPhotoUrl, hasValidPhotos } from '../utils/photoHelper';
 import { pushModalDismiss } from '../utils/useAndroidBackButton';
 import { PhotoViewerModal } from './PhotoViewerModal';
 import {
@@ -343,7 +343,7 @@ export const DonationDetailModal: React.FC<DonationDetailModalProps> = ({
                 Attached Photos
               </h4>
 
-              {donation.photoUrls && donation.photoUrls.length > 0 ? (
+              {hasValidPhotos(donation.photoUrls) ? (
                 <div className="flex gap-3 overflow-x-auto pb-2">
                   {donation.photoUrls.map((url, idx) => {
                     const fullUrl = getPhotoUrl(url);
@@ -363,7 +363,7 @@ export const DonationDetailModal: React.FC<DonationDetailModalProps> = ({
                           alt={`Donation attachment ${idx + 1}`}
                           className="w-24 h-24 object-cover group-hover:scale-105 transition-transform duration-200"
                           onError={(e) => {
-                            (e.target as HTMLElement).style.display = 'none';
+                            (e.currentTarget as HTMLImageElement).src = '/placeholder-donation.svg';
                           }}
                         />
                         <div className="absolute inset-0 bg-[#111827]/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">

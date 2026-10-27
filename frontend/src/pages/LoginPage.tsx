@@ -6,6 +6,7 @@ import { OtpInput } from '../components/OtpInput';
 import { PasswordInput } from '../components/PasswordInput';
 import { LoginRequest } from '../types';
 import { resendOtpApi } from '../api/authApi';
+import { pushModalDismiss } from '../utils/useAndroidBackButton';
 import { LogIn, Mail, Lock, HeartHandshake, ArrowRight } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
@@ -30,6 +31,16 @@ export const LoginPage: React.FC = () => {
   const [resending, setResending] = useState(false);
   const [resendCountdown, setResendCountdown] = useState(0);
   const [resendMessage, setResendMessage] = useState<string | null>(null);
+
+  // Android back button: dismiss OTP screen and return to login form
+  useEffect(() => {
+    if (!showOtp) return;
+    return pushModalDismiss(() => {
+      setShowOtp(false);
+      setOtpCode('');
+      setError(null);
+    });
+  }, [showOtp]);
 
   const {
     register,

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Donation } from '../types';
 import { formatDate } from '../utils/formatters';
 import { HeartHandshake, ShieldCheck, Printer, X, QrCode } from 'lucide-react';
+import { pushModalDismiss } from '../utils/useAndroidBackButton';
 
 interface DonationReceiptModalProps {
   donation: Donation;
@@ -9,6 +10,10 @@ interface DonationReceiptModalProps {
 }
 
 export const DonationReceiptModal: React.FC<DonationReceiptModalProps> = ({ donation, onClose }) => {
+  useEffect(() => {
+    return pushModalDismiss(onClose);
+  }, [onClose]);
+
   const handlePrint = () => {
     window.print();
   };

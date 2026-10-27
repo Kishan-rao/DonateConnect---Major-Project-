@@ -10,6 +10,7 @@ import {
 } from '../api/userApi';
 import { User, UserPreference, ChangePasswordRequest } from '../types';
 import { StatusToggle } from '../components/StatusToggle';
+import { pushModalDismiss } from '../utils/useAndroidBackButton';
 import {
   User as UserIcon,
   Mail,
@@ -56,6 +57,15 @@ export const SettingsPage: React.FC = () => {
   const [deleteConfirmationInput, setDeleteConfirmationInput] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!showDeleteModal) return;
+    return pushModalDismiss(() => {
+      setShowDeleteModal(false);
+      setDeleteConfirmationInput('');
+      setDeleteError(null);
+    });
+  }, [showDeleteModal]);
 
   useEffect(() => {
     let isMounted = true;

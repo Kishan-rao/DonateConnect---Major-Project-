@@ -4,6 +4,7 @@ import { Donation, DeliveryDto } from '../types';
 import { addNgoRating } from '../api/ngoApi';
 import { addVolunteerRating } from '../api/volunteerApi';
 import { apiClient } from '../api/client'; // Assuming standard axios instance
+import { pushModalDismiss } from '../utils/useAndroidBackButton';
 
 interface RatingModalProps {
   donation: Donation;
@@ -24,6 +25,10 @@ export const RatingModal: React.FC<RatingModalProps> = ({ donation, onClose, onS
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    return pushModalDismiss(onClose);
+  }, [onClose]);
 
   useEffect(() => {
     const fetchDelivery = async () => {
