@@ -325,4 +325,39 @@ describe('LoginPage Component & Role-Specific Login', () => {
       expect(mockNavigate).toHaveBeenCalledWith('/ngo-dashboard');
     });
   });
+
+  it('toggles password visibility when clicking the eye button without submitting form', async () => {
+    render(
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>
+    );
+
+    const user = userEvent.setup();
+    const passwordInput = screen.getByPlaceholderText('••••••••');
+    const toggleBtn = screen.getByRole('button', { name: 'Show password' });
+
+    // Initially masked
+    expect(passwordInput).toHaveAttribute('type', 'password');
+
+    // Type a password
+    await user.clear(passwordInput);
+    await user.type(passwordInput, 'mysecretpass');
+    expect(passwordInput).toHaveValue('mysecretpass');
+
+    // Reveal password
+    await user.click(toggleBtn);
+    expect(passwordInput).toHaveAttribute('type', 'text');
+    expect(passwordInput).toHaveValue('mysecretpass');
+    expect(screen.getByRole('button', { name: 'Hide password' })).toBeInTheDocument();
+    // Clicking toggle button did not submit form
+    expect(mockLogin).not.toHaveBeenCalled();
+
+    // Conceal password
+    await user.click(screen.getByRole('button', { name: 'Hide password' }));
+    expect(passwordInput).toHaveAttribute('type', 'password');
+    expect(passwordInput).toHaveValue('mysecretpass');
+    expect(screen.getByRole('button', { name: 'Show password' })).toBeInTheDocument();
+    expect(mockLogin).not.toHaveBeenCalled();
+  });
 });

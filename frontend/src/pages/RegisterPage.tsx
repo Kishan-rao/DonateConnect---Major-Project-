@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../context/AuthContext';
 import { OtpInput } from '../components/OtpInput';
+import { PasswordInput } from '../components/PasswordInput';
 import { RegisterRequest } from '../types';
 import { resendOtpApi } from '../api/authApi';
 import { UserPlus, Mail, Lock, User as UserIcon, HeartHandshake, ShieldAlert, Building2 } from 'lucide-react';
@@ -231,18 +232,13 @@ export const RegisterPage: React.FC = () => {
                 <label className="block text-xs font-semibold text-[#4B5563] uppercase tracking-wider mb-1.5">
                   Password
                 </label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-[#9CA3AF] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="password"
-                    placeholder="Minimum 6 characters"
-                    {...register('password', {
-                      required: 'Password is required',
-                      minLength: { value: 6, message: 'Password must be at least 6 characters' },
-                    })}
-                    className="w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl pl-10 pr-4 py-2.5 text-sm text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#7567E8] transition-colors"
-                  />
-                </div>
+                <PasswordInput
+                  placeholder="Minimum 6 characters"
+                  {...register('password', {
+                    required: 'Password is required',
+                    minLength: { value: 6, message: 'Password must be at least 6 characters' },
+                  })}
+                />
                 {errors.password && (
                   <p className="text-rose-600 text-xs mt-1">{errors.password.message}</p>
                 )}
