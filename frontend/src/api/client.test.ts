@@ -1,7 +1,14 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { resolveApiBaseUrl, getBaseUrl, getApiConfigError, apiClient } from './client';
 
 describe('API client base URL resolution', () => {
+  beforeEach(() => {
+    vi.stubEnv('VITE_API_BASE_URL', '');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
   describe('resolveApiBaseUrl', () => {
     describe('Browser environment (isNative: false)', () => {
       it('falls back to /api when envUrl is undefined', () => {
@@ -31,14 +38,14 @@ describe('API client base URL resolution', () => {
     });
 
     describe('Native Android Dev environment (isNative: true, isProd: false)', () => {
-      it('falls back to local LAN IP when envUrl is undefined', () => {
+      it('falls back to production backend URL when envUrl is undefined', () => {
         const url = resolveApiBaseUrl({ envUrl: undefined, isNative: true, isProd: false });
-        expect(url).toBe('http://192.168.29.227:8080/api');
+        expect(url).toBe('https://donateconnect-backend.onrender.com/api');
       });
 
-      it('falls back to local LAN IP when envUrl is empty', () => {
+      it('falls back to production backend URL when envUrl is empty', () => {
         const url = resolveApiBaseUrl({ envUrl: '', isNative: true, isProd: false });
-        expect(url).toBe('http://192.168.29.227:8080/api');
+        expect(url).toBe('https://donateconnect-backend.onrender.com/api');
       });
 
       it('uses custom LAN IP if configured', () => {
