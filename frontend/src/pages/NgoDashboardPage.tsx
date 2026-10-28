@@ -22,7 +22,8 @@ import {
   Eye,
   EyeOff,
   RotateCcw,
-  Image as ImageIcon
+  Image as ImageIcon,
+  MessageSquare
 } from 'lucide-react';
 
 import { useToast } from '../context/ToastContext';
@@ -146,14 +147,26 @@ export const NgoDashboardPage: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={fetchDonations}
-          disabled={loading}
-          className="p-2.5 rounded-xl bg-white text-[#4B5563] hover:text-[#111827] hover:bg-[#F4F2FA] transition-colors border border-[#E5E7EB] flex items-center gap-2 text-xs font-semibold self-start md:self-auto shadow-xs"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh List
-        </button>
+        <div className="flex items-center gap-2 self-start md:self-auto">
+          <button
+            data-testid="ngo-header-messages-btn"
+            onClick={() => navigate('/messages')}
+            className="p-2.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#7567E8] border border-[#7567E8]/30 transition-colors flex items-center gap-2 text-xs font-bold shadow-xs"
+            title="Open Donor Messages"
+          >
+            <MessageSquare className="w-4 h-4 text-[#7567E8]" />
+            <span>Messages</span>
+          </button>
+
+          <button
+            onClick={fetchDonations}
+            disabled={loading}
+            className="p-2.5 rounded-xl bg-white text-[#4B5563] hover:text-[#111827] hover:bg-[#F4F2FA] transition-colors border border-[#E5E7EB] flex items-center gap-2 text-xs font-semibold shadow-xs"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh List
+          </button>
+        </div>
       </div>
 
       {/* Filter Tabs */}
@@ -318,6 +331,21 @@ export const NgoDashboardPage: React.FC = () => {
                   >
                     <Navigation className="w-3.5 h-3.5 text-[#7567E8] animate-pulse" />
                     {donation.status === 'DELIVERED' ? 'View Completed Delivery Route' : 'Track Delivery & Driver Live GPS'} &rarr;
+                  </button>
+                )}
+
+                {/* Chat with Donor Button */}
+                {donation.donor?.id && (
+                  <button
+                    data-testid={`ngo-chat-donor-${donation.id}`}
+                    onClick={() => {
+                      const donorId = donation.donor.id;
+                      navigate(`/messages?donorId=${donorId}&donationId=${donation.id}`);
+                    }}
+                    className="w-full py-2 px-3 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#7567E8] text-xs font-bold border border-[#7567E8]/30 transition-all flex items-center justify-center gap-1.5 shadow-xs"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5 text-[#7567E8]" />
+                    Chat with Donor
                   </button>
                 )}
 

@@ -29,6 +29,7 @@ import {
   markConversationRead,
 } from '../api/chatApi';
 import { getVerifiedNgos } from '../api/ngoApi';
+import { getNgoAssignedDonations } from '../api/donationApi';
 import { ConversationDto, ChatMessageDto, NGOProfile } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { formatRelativeTime } from '../utils/formatters';
@@ -56,6 +57,8 @@ export const MessagesPage: React.FC = () => {
   const [showNewChatModal, setShowNewChatModal] = useState<boolean>(false);
   const [ngosList, setNgosList] = useState<NGOProfile[]>([]);
   const [loadingNgos, setLoadingNgos] = useState<boolean>(false);
+  const [donorOptions, setDonorOptions] = useState<Array<{ id: string; name: string; email?: string; donationId: string; donationCategory: string }>>([]);
+  const [loadingDonors, setLoadingDonors] = useState<boolean>(false);
 
   // Composer
   const [inputText, setInputText] = useState<string>('');
@@ -256,7 +259,7 @@ export const MessagesPage: React.FC = () => {
     }
   };
 
-  // 8. Open New Chat Modal (NGO selection for Donors)
+  // 8. Open New Chat Modal (NGO selection for Donors / Donor selection for NGOs)
   const handleOpenNewChat = async () => {
     setShowNewChatModal(true);
     if (isDonor && ngosList.length === 0) {
@@ -269,6 +272,33 @@ export const MessagesPage: React.FC = () => {
       } finally {
         setLoadingNgos(false);
       }
+    } else if (isNgo && donorOptions.length === 0) {
+      setLoadingDonors(true);
+      try {
+        const res = await getNgoAssignedDonations(0, 50);
+        const donationList = res.content || [];
+        const seen = new Set<string>();
+        const list: Array<{ id: string; name: string; email?: string; donationId: string; donationCategory: string }> = [];
+        for (const d of donationList) {
+          const donorId = d.donor?.id;
+          const donorName = d.donor?.fullName || 'Donor';
+          if (donorId && !seen.has(donorId)) {
+            seen.add(donorId);
+            list.push({
+              id: donorId,
+              name: donorName,
+              email: d.donor?.email,
+              donationId: d.id,
+              donationCategory: d.category,
+            });
+          }
+        }
+        setDonorOptions(list);
+      } catch (err) {
+        console.error('Failed to load assigned donors:', err);
+      } finally {
+        setLoadingDonors(false);
+      }
     }
   };
 
@@ -276,6 +306,16 @@ export const MessagesPage: React.FC = () => {
     setShowNewChatModal(false);
     try {
       const conv = await createOrGetConversation({ ngoId });
+      navigate(`/messages/${conv.id}`);
+    } catch (err: any) {
+      setConversationsError(err?.message || 'Failed to start conversation.');
+    }
+  };
+
+  const handleSelectDonorForChat = async (donorId: string, donationId?: string) => {
+    setShowNewChatModal(false);
+    try {
+      const conv = await createOrGetConversation({ donorId, donationId });
       navigate(`/messages/${conv.id}`);
     } catch (err: any) {
       setConversationsError(err?.message || 'Failed to start conversation.');
@@ -312,11 +352,12 @@ export const MessagesPage: React.FC = () => {
               <MessageSquare className="w-5 h-5 text-[#7567E8]" />
               <h1 className="text-base font-extrabold text-[#111827]">Messages</h1>
             </div>
-            {isDonor && (
+            {(isDonor || isNgo) && (
               <button
+                data-testid="start-new-chat-btn"
                 onClick={handleOpenNewChat}
                 className="p-2 rounded-xl bg-[#7567E8]/10 hover:bg-[#7567E8]/20 text-[#7567E8] transition-colors flex items-center gap-1 text-xs font-bold"
-                title="Start new conversation with an NGO"
+                title={isNgo ? 'Start new conversation with an assigned donor' : 'Start new conversation with an NGO'}
               >
                 <Plus className="w-4 h-4" />
                 <span className="hidden sm:inline">New Chat</span>
@@ -369,12 +410,21 @@ export const MessagesPage: React.FC = () => {
                       : 'Conversations with donors will appear here as donations are scheduled.'}
                   </p>
                 </div>
-                {isDonor && (
+                {isDonor ? (
                   <button
+                    data-testid="find-ngo-btn"
                     onClick={handleOpenNewChat}
                     className="mt-2 px-4 py-2 bg-[#7567E8] text-white text-xs font-bold rounded-xl shadow-sm hover:bg-[#6355d8] transition-colors"
                   >
                     Find an NGO to Message
+                  </button>
+                ) : (
+                  <button
+                    data-testid="find-donor-btn"
+                    onClick={handleOpenNewChat}
+                    className="mt-2 px-4 py-2 bg-[#7567E8] text-white text-xs font-bold rounded-xl shadow-sm hover:bg-[#6355d8] transition-colors"
+                  >
+                    Message an Assigned Donor
                   </button>
                 )}
               </div>
@@ -575,7 +625,7 @@ export const MessagesPage: React.FC = () => {
 
               {/* Photo Attachment Preview Bar (above composer when photo is captured) */}
               {capturedPhoto && (
-                <div className="p-3 bg-slate-50 border-t border-[#E5E7EB] flex items-center justify-between gap-3 animate-fadeIn">
+                <div data-testid="chat-photo-preview" className="p-3 bg-slate-50 border-t border-[#E5E7EB] flex items-center justify-between gap-3 animate-fadeIn">
                   <div className="flex items-center gap-3">
                     <img
                       src={capturedPhoto.previewUrl}
@@ -593,6 +643,7 @@ export const MessagesPage: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
+                      data-testid="chat-retake-btn"
                       onClick={handleOpenNativeCamera}
                       disabled={capturingPhoto || sending}
                       className="px-2.5 py-1 text-xs font-bold rounded-lg border border-[#7567E8] text-[#7567E8] bg-white hover:bg-[#7567E8]/10 transition-colors flex items-center gap-1"
@@ -603,6 +654,7 @@ export const MessagesPage: React.FC = () => {
                     </button>
                     <button
                       type="button"
+                      data-testid="chat-cancel-attachment-btn"
                       onClick={handleCancelCapturedPhoto}
                       disabled={sending}
                       className="px-2.5 py-1 text-xs font-bold rounded-lg border border-rose-200 text-rose-600 bg-white hover:bg-rose-50 transition-colors flex items-center gap-1"
@@ -633,6 +685,7 @@ export const MessagesPage: React.FC = () => {
                 {/* Native Device Camera Button (Camera-Only) */}
                 <button
                   type="button"
+                  data-testid="chat-camera-btn"
                   onClick={handleOpenNativeCamera}
                   disabled={capturingPhoto || sending}
                   className="p-2.5 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] hover:bg-[#F4F2FA] text-[#7567E8] transition-colors flex items-center justify-center shrink-0 min-w-[40px] min-h-[40px]"
@@ -649,6 +702,7 @@ export const MessagesPage: React.FC = () => {
                 {/* Text Input */}
                 <input
                   type="text"
+                  data-testid="chat-message-input"
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
                   placeholder={capturedPhoto ? 'Add a caption (optional)...' : 'Type a message...'}
@@ -660,6 +714,7 @@ export const MessagesPage: React.FC = () => {
                 {/* Send Button */}
                 <button
                   type="submit"
+                  data-testid="chat-send-btn"
                   disabled={sending || (!inputText.trim() && !capturedPhoto)}
                   className="px-4 py-2.5 bg-[#7567E8] hover:bg-[#6355d8] disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5 shrink-0 min-h-[40px]"
                   title="Send message"
@@ -682,21 +737,36 @@ export const MessagesPage: React.FC = () => {
               </div>
               <h3 className="text-base font-extrabold text-[#111827]">Your Conversations</h3>
               <p className="text-xs text-[#6B7280] max-w-sm">
-                Select a conversation on the left to view message history, or initiate a new chat with an NGO partner.
+                {isNgo
+                  ? 'Select a conversation on the left to view message history, or message a donor from your assigned donations.'
+                  : 'Select a conversation on the left to view message history, or initiate a new chat with an NGO partner.'}
               </p>
+              <button
+                data-testid="empty-state-start-chat-btn"
+                onClick={handleOpenNewChat}
+                className="mt-2 px-4 py-2 bg-[#7567E8] text-white text-xs font-bold rounded-xl shadow-sm hover:bg-[#6355d8] transition-colors"
+              >
+                {isNgo ? 'Message a Donor' : 'Start New Chat'}
+              </button>
             </div>
           )}
         </div>
       </div>
 
-      {/* New Conversation Modal for Donors */}
+      {/* New Conversation Modal for Donors & NGOs */}
       {showNewChatModal && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl sm:rounded-3xl max-w-md w-full shadow-2xl overflow-hidden border border-[#E5E7EB]">
             <div className="p-4 border-b border-[#E5E7EB] flex items-center justify-between bg-[#FAF8F5]">
               <div className="flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-[#7567E8]" />
-                <h3 className="text-sm font-bold text-[#111827]">Message an NGO</h3>
+                {isNgo ? (
+                  <UserIcon className="w-4 h-4 text-[#7567E8]" />
+                ) : (
+                  <Building2 className="w-4 h-4 text-[#7567E8]" />
+                )}
+                <h3 className="text-sm font-bold text-[#111827]">
+                  {isNgo ? 'Message an Assigned Donor' : 'Message an NGO'}
+                </h3>
               </div>
               <button
                 onClick={() => setShowNewChatModal(false)}
@@ -707,32 +777,61 @@ export const MessagesPage: React.FC = () => {
             </div>
 
             <div className="p-4 max-h-80 overflow-y-auto space-y-2">
-              {loadingNgos ? (
-                <div className="p-8 text-center text-[#6B7280] flex flex-col items-center gap-2">
-                  <Loader2 className="w-5 h-5 animate-spin text-[#7567E8]" />
-                  <span className="text-xs">Loading NGO partners...</span>
-                </div>
-              ) : ngosList.length === 0 ? (
-                <p className="text-xs text-[#6B7280] text-center p-6">No NGO partners available.</p>
-              ) : (
-                ngosList.map((ngo) => (
-                  <div
-                    key={ngo.id}
-                    onClick={() => handleSelectNgoForChat(ngo.id)}
-                    className="p-3 rounded-xl border border-[#E5E7EB] hover:border-[#7567E8] hover:bg-[#7567E8]/5 cursor-pointer transition-all flex items-center justify-between"
-                  >
-                    <div>
-                      <h4 className="text-xs font-bold text-[#111827] flex items-center gap-1.5">
-                        {ngo.name}
-                        {ngo.verified && (
-                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                        )}
-                      </h4>
-                      <p className="text-[11px] text-[#6B7280]">{ngo.city || ngo.address}</p>
-                    </div>
-                    <span className="text-xs font-bold text-[#7567E8]">Chat</span>
+              {isNgo ? (
+                loadingDonors ? (
+                  <div className="p-8 text-center text-[#6B7280] flex flex-col items-center gap-2">
+                    <Loader2 className="w-5 h-5 animate-spin text-[#7567E8]" />
+                    <span className="text-xs">Loading assigned donors...</span>
                   </div>
-                ))
+                ) : donorOptions.length === 0 ? (
+                  <p className="text-xs text-[#6B7280] text-center p-6">No assigned donors found.</p>
+                ) : (
+                  donorOptions.map((donor) => (
+                    <div
+                      key={donor.id}
+                      onClick={() => handleSelectDonorForChat(donor.id, donor.donationId)}
+                      className="p-3 rounded-xl border border-[#E5E7EB] hover:border-[#7567E8] hover:bg-[#7567E8]/5 cursor-pointer transition-all flex items-center justify-between"
+                    >
+                      <div>
+                        <h4 className="text-xs font-bold text-[#111827]">
+                          {donor.name}
+                        </h4>
+                        <p className="text-[11px] text-[#6B7280]">
+                          Donation: {donor.donationCategory}
+                        </p>
+                      </div>
+                      <span className="text-xs font-bold text-[#7567E8]">Chat</span>
+                    </div>
+                  ))
+                )
+              ) : (
+                loadingNgos ? (
+                  <div className="p-8 text-center text-[#6B7280] flex flex-col items-center gap-2">
+                    <Loader2 className="w-5 h-5 animate-spin text-[#7567E8]" />
+                    <span className="text-xs">Loading NGO partners...</span>
+                  </div>
+                ) : ngosList.length === 0 ? (
+                  <p className="text-xs text-[#6B7280] text-center p-6">No NGO partners available.</p>
+                ) : (
+                  ngosList.map((ngo) => (
+                    <div
+                      key={ngo.id}
+                      onClick={() => handleSelectNgoForChat(ngo.id)}
+                      className="p-3 rounded-xl border border-[#E5E7EB] hover:border-[#7567E8] hover:bg-[#7567E8]/5 cursor-pointer transition-all flex items-center justify-between"
+                    >
+                      <div>
+                        <h4 className="text-xs font-bold text-[#111827] flex items-center gap-1.5">
+                          {ngo.name}
+                          {ngo.verified && (
+                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                          )}
+                        </h4>
+                        <p className="text-[11px] text-[#6B7280]">{ngo.city || ngo.address}</p>
+                      </div>
+                      <span className="text-xs font-bold text-[#7567E8]">Chat</span>
+                    </div>
+                  ))
+                )
               )}
             </div>
           </div>

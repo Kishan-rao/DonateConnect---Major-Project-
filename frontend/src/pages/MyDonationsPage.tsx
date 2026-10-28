@@ -64,6 +64,14 @@ export const MyDonationsPage: React.FC = () => {
     setIsViewerOpen(true);
   };
 
+  const handleOpenChat = (donation: Donation) => {
+    if (donation.ngo?.id) {
+      navigate(`/messages?ngoId=${donation.ngo.id}&donationId=${donation.id}`);
+    } else {
+      setActiveChatDonation(donation);
+    }
+  };
+
   const fetchDonations = async (currentPage = page, pageSize = size) => {
     setLoading(true);
     setError(null);
@@ -370,7 +378,7 @@ export const MyDonationsPage: React.FC = () => {
                           </>
                         )}
                         <button
-                          onClick={() => setActiveChatDonation(donation)}
+                          onClick={() => handleOpenChat(donation)}
                           className="p-2 rounded-lg transition-colors border bg-white hover:bg-[#F4F2FA] text-[#111827] border-[#E5E7EB] shadow-sm"
                           title="Chat with NGO"
                         >
@@ -477,7 +485,7 @@ export const MyDonationsPage: React.FC = () => {
                     </button>
                   )}
                   <button
-                    onClick={() => setActiveChatDonation(donation)}
+                    onClick={() => handleOpenChat(donation)}
                     className="flex items-center justify-center gap-1 py-2 px-2 rounded-xl text-xs font-bold border bg-white hover:bg-[#F4F2FA] text-[#111827] border-[#E5E7EB] shadow-sm"
                   >
                     <MessageSquare className="w-3.5 h-3.5 text-[#4B5563]" />
@@ -553,7 +561,7 @@ export const MyDonationsPage: React.FC = () => {
         <DonationDetailModal
           donationId={detailDonationId}
           onClose={() => setDetailDonationId(null)}
-          onOpenChat={(donation) => setActiveChatDonation(donation)}
+          onOpenChat={(donation) => handleOpenChat(donation)}
           onOpenTracker={(donation) => navigate(`/donations/${donation.id}/track`)}
         />
       )}

@@ -116,7 +116,7 @@ export const Navbar: React.FC = () => {
       case 'DONOR':
         return [
           { path: '/', label: 'Home', icon: Home },
-          { path: '/map', label: 'Map', icon: MapPin },
+          { path: '/messages', label: 'Messages', icon: MessageSquare },
           { path: '/donate/new', label: 'Donate', icon: PlusCircle, isPrimary: true },
           { path: '/donations', label: 'Donations', icon: PackageSearch },
           { path: '/donor/profile', label: 'Profile', icon: User },
@@ -124,6 +124,7 @@ export const Navbar: React.FC = () => {
       case 'NGO':
         return [
           { path: '/ngo-dashboard', label: 'Assigned', icon: Building2 },
+          { path: '/messages', label: 'Messages', icon: MessageSquare },
           { path: '/ngo-dashboard/inventory', label: 'Inventory', icon: PackageSearch },
           { path: '/map', label: 'Map', icon: MapPin },
           { path: '/ngo-dashboard/profile', label: 'Profile', icon: User },
