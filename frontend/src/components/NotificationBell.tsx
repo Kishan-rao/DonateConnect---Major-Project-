@@ -2,7 +2,6 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getMyNotifications, markNotificationRead } from '../api/notificationApi';
 import { NotificationItem } from '../types';
-import { formatRelativeTime } from '../utils/formatters';
 import { useAuth } from '../context/AuthContext';
 import { Bell, CheckCheck, Inbox } from 'lucide-react';
 
@@ -13,7 +12,6 @@ export const NotificationBell: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const [, setTick] = useState(0);
 
   const fetchNotifications = async () => {
     if (!isAuthenticated) return;
@@ -34,17 +32,6 @@ export const NotificationBell: React.FC = () => {
 
     return () => clearInterval(interval);
   }, [isAuthenticated]);
-
-  // Periodically refresh displayed relative timestamps while dropdown is open
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const interval = setInterval(() => {
-      setTick((t) => t + 1);
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [isOpen]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -164,9 +151,6 @@ export const NotificationBell: React.FC = () => {
                     }`}>
                       {notification.message}
                     </p>
-                    <span className="text-[10px] text-[#6B7280] block mt-1">
-                      {formatRelativeTime(notification.createdAt)}
-                    </span>
                   </div>
                 </div>
               ))

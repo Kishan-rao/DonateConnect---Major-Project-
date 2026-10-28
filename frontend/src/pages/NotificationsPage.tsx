@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getMyNotifications, markNotificationRead } from '../api/notificationApi';
 import { NotificationItem } from '../types';
-import { formatRelativeTime } from '../utils/formatters';
 import { useAuth } from '../context/AuthContext';
 import { Bell, CheckCheck, Inbox } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
@@ -11,7 +10,6 @@ export const NotificationsPage: React.FC = () => {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const { showSuccess, showError } = useToast();
-  const [, setTick] = useState(0);
 
   const fetchNotifications = async () => {
     try {
@@ -30,15 +28,6 @@ export const NotificationsPage: React.FC = () => {
       fetchNotifications();
     }
   }, [isAuthenticated]);
-
-  // Periodically refresh displayed relative timestamps while notifications page is open
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTick((t) => t + 1);
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, []);
 
   const handleMarkAllRead = async () => {
     try {
@@ -115,19 +104,16 @@ export const NotificationsPage: React.FC = () => {
                   <p className={`text-sm ${notification.read ? 'text-[#4B5563]' : 'text-[#111827] font-semibold'}`}>
                     {notification.message}
                   </p>
-                  <div className="flex items-center gap-3 mt-1.5">
-                    <span className="text-xs text-[#6B7280] font-medium">
-                      {formatRelativeTime(notification.createdAt)}
-                    </span>
-                    {!notification.read && (
+                  {!notification.read && (
+                    <div className="mt-1.5">
                       <button 
                         onClick={() => handleMarkRead(notification.id)}
                         className="text-xs text-[#7567E8] font-bold hover:underline"
                       >
                         Mark as read
                       </button>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
                 
                 {!notification.read && (
