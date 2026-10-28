@@ -123,6 +123,12 @@ export const TrackDeliveryPage: React.FC = () => {
   // Poll fallback interval
   const pollInterval = useRef<NodeJS.Timeout | null>(null);
 
+  const donationRef = useRef(donation);
+  useEffect(() => { donationRef.current = donation; }, [donation]);
+
+  const deliveryRef = useRef(delivery);
+  useEffect(() => { deliveryRef.current = delivery; }, [delivery]);
+
   useEffect(() => {
     if (!id) return;
     
@@ -155,6 +161,33 @@ export const TrackDeliveryPage: React.FC = () => {
       }
     };
     fetchLoc();
+
+    // Periodic status refresh to detect delivery stage transitions (Stage 1 -> Stage 2) without app restart
+    const statusPollInterval = setInterval(async () => {
+      if (donationRef.current?.status === 'DELIVERED' || donationRef.current?.status === 'REJECTED') {
+        return;
+      }
+      try {
+        const [dRes, delivRes] = await Promise.all([
+          getDonationById(id),
+          getDeliveryByDonationId(id),
+        ]);
+        let changed = false;
+        if (dRes && dRes.status !== donationRef.current?.status) {
+          setDonation(dRes);
+          changed = true;
+        }
+        if (delivRes && delivRes.status !== deliveryRef.current?.status) {
+          setDelivery(delivRes);
+          changed = true;
+        }
+        if (changed) {
+          fetchRouteEtaRef.current();
+        }
+      } catch (err) {
+        // quiet fallback
+      }
+    }, 10000);
 
     // Setup STOMP WebSocket
     const client = new Client({
@@ -235,6 +268,7 @@ export const TrackDeliveryPage: React.FC = () => {
     return () => {
       client.deactivate();
       if (pollInterval.current) clearInterval(pollInterval.current);
+      clearInterval(statusPollInterval);
     };
   }, [id, token]);
 
@@ -348,15 +382,16 @@ export const TrackDeliveryPage: React.FC = () => {
     );
   }
 
-  const pickupPoint: [number, number] | null = donation?.pickupLat && donation?.pickupLng
+  const pickupPoint: [number, number] | null = donation?.pickupLat != null && donation?.pickupLng != null && !isNaN(donation.pickupLat) && !isNaN(donation.pickupLng) && (donation.pickupLat !== 0 || donation.pickupLng !== 0)
     ? [donation.pickupLat, donation.pickupLng]
-    : path.length > 0 ? path[0] : null;
-  const ngoPoint: [number, number] | null = donation?.ngo?.latitude && donation?.ngo?.longitude
+    : null;
+  const ngoPoint: [number, number] | null = donation?.ngo?.latitude != null && donation?.ngo?.longitude != null && !isNaN(donation.ngo.latitude) && !isNaN(donation.ngo.longitude) && (donation.ngo.latitude !== 0 || donation.ngo.longitude !== 0)
     ? [donation.ngo.latitude, donation.ngo.longitude]
     : null;
-  const isRoutingToPickup = routeEta
-    ? routeEta.destinationType === 'PICKUP'
-    : (delivery?.status === 'ASSIGNED' || delivery?.status === 'ACCEPTED_BY_VOLUNTEER' || delivery?.status === 'EN_ROUTE_TO_PICKUP');
+
+  const isPostPickup = donation?.status === 'PICKED_UP' || delivery?.status === 'PICKED_UP' || delivery?.status === 'EN_ROUTE_TO_NGO';
+  const targetDestinationType = routeEta?.destinationType || (isPostPickup ? 'NGO_HUB' : 'PICKUP');
+  const isRoutingToPickup = targetDestinationType === 'PICKUP';
 
   const handleCompleteDelivery = async () => {
     if (submittingProofRef.current) return;
@@ -448,7 +483,9 @@ export const TrackDeliveryPage: React.FC = () => {
             <Compass className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Road distance remaining</p>
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              {routeEta?.routingStatus === 'FALLBACK_ESTIMATE' ? 'Estimated distance (approx.)' : 'Road distance remaining'}
+            </p>
             <p className="text-xl font-black text-slate-900">
               {routeEta?.roadDistanceKm !== undefined && routeEta?.roadDistanceKm !== null
                 ? `${routeEta.roadDistanceKm} km`
@@ -470,6 +507,8 @@ export const TrackDeliveryPage: React.FC = () => {
                 ? '—'
                 : routeEta?.durationMinutes !== undefined && routeEta?.durationMinutes !== null
                 ? `${routeEta.durationMinutes} min`
+                : routeEta?.routingStatus === 'FALLBACK_ESTIMATE'
+                ? 'Unavailable (Road routing offline)'
                 : etaLoading ? 'Calculating...' : '—'}
             </p>
           </div>
@@ -482,10 +521,10 @@ export const TrackDeliveryPage: React.FC = () => {
           <div className="overflow-hidden">
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Target Destination</p>
             <p className="text-sm font-bold text-slate-900 truncate">
-              {routeEta?.destinationType === 'PICKUP' ? 'Pickup Location' : (donation?.ngo?.name || 'NGO Hub')}
+              {targetDestinationType === 'PICKUP' ? 'Pickup Location' : (donation?.ngo?.name || 'NGO Hub')}
             </p>
             <p className="text-[11px] text-slate-500 truncate">
-              {routeEta?.destinationAddress || (routeEta?.destinationType === 'PICKUP' ? donation?.pickupAddress : donation?.ngo?.address) || 'Address not provided'}
+              {routeEta?.destinationAddress || (targetDestinationType === 'PICKUP' ? donation?.pickupAddress : donation?.ngo?.address) || 'Address not provided'}
             </p>
           </div>
         </div>

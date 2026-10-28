@@ -21,6 +21,7 @@ public class LocationUpdateDto {
     @DecimalMax(value = "180.0", message = "Longitude must be between -180 and 180")
     private Double lng;
 
+    private Double accuracy;
     private Double speed;
     private Double heading;
     private LocalDateTime timestamp;

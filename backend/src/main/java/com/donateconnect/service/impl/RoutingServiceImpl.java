@@ -341,10 +341,6 @@ public class RoutingServiceImpl implements RoutingService {
         double estimatedRoadDistanceKm = Math.round((straightDistanceKm * 1.3) * 10.0) / 10.0;
         double estimatedRoadDistanceMeters = estimatedRoadDistanceKm * 1000.0;
 
-        // Assume average urban delivery speed of 25 km/h (0.416 km/min)
-        int estimatedMinutes = Math.max(1, (int) Math.round((estimatedRoadDistanceKm / 25.0) * 60.0));
-        int estimatedSeconds = estimatedMinutes * 60;
-
         List<List<Double>> straightPolyline = List.of(
                 List.of(originLat, originLng),
                 List.of(destLat, destLng)
@@ -364,13 +360,13 @@ public class RoutingServiceImpl implements RoutingService {
                 .destinationLng(destLng)
                 .roadDistanceKm(estimatedRoadDistanceKm)
                 .roadDistanceMeters(estimatedRoadDistanceMeters)
-                .durationMinutes(estimatedMinutes)
-                .durationSeconds(estimatedSeconds)
+                .durationMinutes(null)
+                .durationSeconds(null)
                 .calculatedAt(now)
                 .trafficAware(false)
                 .provider("ESTIMATED_FALLBACK")
                 .routingStatus("FALLBACK_ESTIMATE")
-                .statusMessage("Road routing service is currently unavailable. Displaying estimated distance based on urban road network factor.")
+                .statusMessage("Road routing service is currently unavailable. Displaying approximate straight-line circuity distance; driving ETA is unavailable.")
                 .routeCoordinates(straightPolyline)
                 .build();
     }

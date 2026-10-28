@@ -21,13 +21,25 @@ const DeliveryTrackingContext = createContext<DeliveryTrackingContextType | unde
 const TRACKING_DELIVERY_KEY = 'active_tracking_delivery_id';
 const TRACKING_DONATION_KEY = 'active_tracking_donation_id';
 
+function calculateHaversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371e3;
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 export const DeliveryTrackingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
   const { showError } = useToast();
 
   const [activeDeliveryId, setActiveDeliveryId] = useState<string | null>(null);
   const [isTracking, setIsTracking] = useState(false);
-  const [isSimulating, setIsSimulating] = useState(false);
+  const [isSimulating] = useState(false);
   const [lastShared, setLastShared] = useState<Date | null>(null);
   const [permissionError, setPermissionError] = useState('');
 
@@ -36,6 +48,7 @@ export const DeliveryTrackingProvider: React.FC<{ children: React.ReactNode }> =
   const simulationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const latestPosRef = useRef<GeolocationPosition | null>(null);
   const lastSharedRef = useRef<Date | null>(null);
+  const lastTransmittedPosRef = useRef<{ lat: number; lng: number; time: number } | null>(null);
   const isTrackingRef = useRef(false);
   const activeDeliveryIdRef = useRef<string | null>(null);
 
@@ -63,12 +76,12 @@ export const DeliveryTrackingProvider: React.FC<{ children: React.ReactNode }> =
     }
     latestPosRef.current = null;
     lastSharedRef.current = null;
+    lastTransmittedPosRef.current = null;
   }, []);
 
   const stopTracking = useCallback(() => {
     clearTrackingWatchers();
     setIsTracking(false);
-    setIsSimulating(false);
     setActiveDeliveryId(null);
     removeStoredItem(TRACKING_DELIVERY_KEY);
     removeStoredItem(TRACKING_DONATION_KEY);
@@ -81,23 +94,57 @@ export const DeliveryTrackingProvider: React.FC<{ children: React.ReactNode }> =
       return;
     }
 
-    const now = new Date();
-    // Client-side rate throttle: avoid bursting within 2 seconds
-    if (lastSharedRef.current && now.getTime() - lastSharedRef.current.getTime() < 2000) {
+    const { latitude, longitude, speed, heading, accuracy } = pos.coords;
+
+    // Coordinate validation before submitting
+    if (
+      typeof latitude !== 'number' || typeof longitude !== 'number' ||
+      isNaN(latitude) || isNaN(longitude) ||
+      !isFinite(latitude) || !isFinite(longitude) ||
+      latitude < -90 || latitude > 90 ||
+      longitude < -180 || longitude > 180 ||
+      (Math.abs(latitude) < 1e-6 && Math.abs(longitude) < 1e-6)
+    ) {
+      console.warn('[GPS] Discarding invalid GPS coordinates:', latitude, longitude);
       return;
     }
+
+    const now = new Date();
+    const nowTime = now.getTime();
+
+    // Client-side rate throttle: avoid bursting within 2.5 seconds (prevents 429)
+    if (lastSharedRef.current && nowTime - lastSharedRef.current.getTime() < 2500) {
+      return;
+    }
+
+    // Movement threshold and duplicate avoidance:
+    // If user has not moved >= 5m AND < 15 seconds have passed, skip redundant transmission
+    if (lastTransmittedPosRef.current) {
+      const movedMeters = calculateHaversineMeters(
+        latitude,
+        longitude,
+        lastTransmittedPosRef.current.lat,
+        lastTransmittedPosRef.current.lng
+      );
+      const elapsedMs = nowTime - lastTransmittedPosRef.current.time;
+      if (movedMeters < 5 && elapsedMs < 15000) {
+        return;
+      }
+    }
+
     lastSharedRef.current = now;
 
-    const { latitude, longitude, speed, heading } = pos.coords;
     sendLocationUpdate(deliveryId, {
       deliveryId,
       lat: latitude,
       lng: longitude,
-      speed: speed || 0,
-      heading: heading || 0,
-      timestamp: now.toISOString(),
+      accuracy: accuracy && !isNaN(accuracy) ? accuracy : null,
+      speed: speed && !isNaN(speed) ? speed : 0,
+      heading: heading && !isNaN(heading) ? heading : 0,
+      timestamp: new Date(pos.timestamp || Date.now()).toISOString(),
     })
       .then(() => {
+        lastTransmittedPosRef.current = { lat: latitude, lng: longitude, time: nowTime };
         setLastShared(now);
         setPermissionError('');
       })
@@ -126,7 +173,6 @@ export const DeliveryTrackingProvider: React.FC<{ children: React.ReactNode }> =
     setPermissionError('');
     setActiveDeliveryId(deliveryId);
     setIsTracking(true);
-    setIsSimulating(false);
 
     // Persist active tracking session across navigation and app restarts
     setStoredItem(TRACKING_DELIVERY_KEY, deliveryId);
@@ -173,89 +219,18 @@ export const DeliveryTrackingProvider: React.FC<{ children: React.ReactNode }> =
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
     );
 
+    // Heartbeat: periodic refresh every 15 seconds to ensure presence without bursting
     intervalRef.current = setInterval(() => {
       if (latestPosRef.current) {
         transmitLocation(deliveryId, latestPosRef.current);
       }
-    }, 5000);
+    }, 15000);
   }, [clearTrackingWatchers, showError, stopTracking, transmitLocation]);
 
-  const simulateRoute = useCallback(async (deliveryId: string, donation?: Donation) => {
-    if (!donation) return;
-    clearTrackingWatchers();
-
-    setActiveDeliveryId(deliveryId);
-    setIsSimulating(true);
-    setIsTracking(true);
-    setStoredItem(TRACKING_DELIVERY_KEY, deliveryId);
-    setStoredItem(TRACKING_DONATION_KEY, donation.id);
-
-    const startLat = donation.pickupLat || 12.9716;
-    const startLng = donation.pickupLng || 77.5946;
-    const endLat = donation.ngo?.latitude || 28.6439;
-    const endLng = donation.ngo?.longitude || 77.2390;
-
-    const generateFallbackRoute = (sLat: number, sLng: number, eLat: number, eLng: number, steps = 50): [number, number][] => {
-      const route: [number, number][] = [];
-      for (let s = 0; s <= steps; s++) {
-        const t = s / steps;
-        route.push([sLng + (eLng - sLng) * t, sLat + (eLat - sLat) * t]);
-      }
-      return route;
-    };
-
-    let coords: [number, number][];
-    try {
-      const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson`;
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
-      const res = await fetch(osrmUrl, { signal: controller.signal });
-      clearTimeout(timeout);
-      const data = await res.json();
-
-      if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-        coords = data.routes[0].geometry.coordinates;
-      } else {
-        coords = generateFallbackRoute(startLat, startLng, endLat, endLng);
-      }
-    } catch (e) {
-      coords = generateFallbackRoute(startLat, startLng, endLat, endLng);
-    }
-
-    let i = 0;
-    simulationIntervalRef.current = setInterval(() => {
-      if (i >= coords.length) {
-        stopTracking();
-        return;
-      }
-      const [lng, lat] = coords[i];
-      let heading = 0;
-      if (i < coords.length - 1) {
-        const [nLng, nLat] = coords[i + 1];
-        heading = Math.atan2(nLng - lng, nLat - lat) * (180 / Math.PI);
-      }
-
-      const now = new Date();
-      sendLocationUpdate(deliveryId, {
-        deliveryId,
-        lat,
-        lng,
-        speed: 30,
-        heading,
-        timestamp: now.toISOString(),
-      })
-        .then(() => {
-          setLastShared(now);
-        })
-        .catch((e: any) => {
-          if (e.response?.status !== 429) {
-            console.error('Failed to send simulated location', e);
-          }
-        });
-
-      i += Math.max(1, Math.floor(coords.length / 50));
-    }, 2000);
-  }, [clearTrackingWatchers, stopTracking]);
+  // Deprecated stub: simulation is disabled to enforce real GPS coordinates
+  const simulateRoute = useCallback(async () => {
+    console.warn('[GPS] Route simulation disabled. Only genuine device GPS coordinates are accepted.');
+  }, []);
 
   // Restore tracking session on startup / authentication
   useEffect(() => {

@@ -15,12 +15,10 @@ export const LiveLocationTracker: React.FC<Props> = ({ deliveryId, status, donat
   const {
     activeDeliveryId,
     isTracking,
-    isSimulating,
     lastShared,
     permissionError,
     startTracking,
     stopTracking,
-    simulateRoute,
   } = useDeliveryTracking();
 
   const [isBackground, setIsBackground] = useState(false);
@@ -49,14 +47,6 @@ export const LiveLocationTracker: React.FC<Props> = ({ deliveryId, status, donat
       return;
     }
     startTracking(deliveryId, donation);
-  };
-
-  const handleSimulateRoute = () => {
-    if (status === 'COMPLETED' || status === 'DELIVERED' || status === 'CANCELLED' || status === 'REJECTED') {
-      showError('Simulation is disabled for inactive deliveries');
-      return;
-    }
-    simulateRoute(deliveryId, donation);
   };
 
   return (
@@ -90,20 +80,13 @@ export const LiveLocationTracker: React.FC<Props> = ({ deliveryId, status, donat
             <Navigation className="w-4 h-4" />
             Start Trip & Share Location
           </button>
-          <button
-            onClick={handleSimulateRoute}
-            disabled={status === 'COMPLETED' || status === 'DELIVERED' || status === 'CANCELLED' || status === 'REJECTED'}
-            className="w-full py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-all shadow-xs"
-          >
-            Simulate Route (Demo)
-          </button>
         </div>
       ) : (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-2 text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1.5 rounded-full border border-emerald-200">
               <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-              {isSimulating ? 'Simulating' : 'Sharing Active'}
+              Sharing Active
             </span>
             {lastShared && (
               <span className="text-xs text-[#6B7280] font-mono">

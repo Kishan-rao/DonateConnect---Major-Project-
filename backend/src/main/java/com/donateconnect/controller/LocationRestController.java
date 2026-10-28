@@ -58,6 +58,15 @@ public class LocationRestController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
+        // Coordinate sanity check: reject (0,0), NaN, or Infinite
+        if (location.getLat() == null || location.getLng() == null ||
+            (Math.abs(location.getLat()) < 1e-6 && Math.abs(location.getLng()) < 1e-6) ||
+            location.getLat().isNaN() || location.getLng().isNaN() ||
+            location.getLat().isInfinite() || location.getLng().isInfinite()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error("Invalid GPS coordinates"));
+        }
+
         // Active Delivery Check: Stop tracking location outside active delivery
         if (delivery.getStatus() == com.donateconnect.entity.DeliveryStatus.DELIVERED ||
             delivery.getDonation().getStatus() == com.donateconnect.entity.DonationStatus.DELIVERED ||

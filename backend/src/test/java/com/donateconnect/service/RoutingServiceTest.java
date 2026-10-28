@@ -230,7 +230,7 @@ class RoutingServiceTest {
         assertEquals("ESTIMATED_FALLBACK", dto.getProvider());
         assertFalse(dto.isTrafficAware());
         assertTrue(dto.getRoadDistanceKm() > 0.0);
-        assertTrue(dto.getDurationMinutes() > 0);
+        assertNull(dto.getDurationMinutes(), "When road routing is unavailable, driving ETA must be null rather than fabricated");
         assertEquals(2, dto.getRouteCoordinates().size());
     }
 
