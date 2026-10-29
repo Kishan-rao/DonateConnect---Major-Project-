@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getAdminStats, getPendingUsers, approveUser } from '../api/adminApi';
 import { AdminStats, User } from '../types';
-import { Shield, Building2, PackageCheck, Clock, CheckCircle2, RefreshCw, ArrowRight, Layers, UserCheck, Download, BarChart2, TrendingUp, PieChart as PieChartIcon } from 'lucide-react';
+import { Shield, Building2, PackageCheck, Clock, CheckCircle2, RefreshCw, ArrowRight, Layers, UserCheck, Download, BarChart2, TrendingUp, PieChart as PieChartIcon, MapPin } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell
@@ -19,14 +19,22 @@ export const AdminOverviewPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const [statsData, pendingData] = await Promise.all([
+      const [statsResult, pendingResult] = await Promise.allSettled([
         getAdminStats(),
         getPendingUsers()
       ]);
-      setStats(statsData);
-      setPendingUsers(pendingData);
+
+      if (statsResult.status === 'fulfilled') {
+        setStats(statsResult.value);
+      } else {
+        setError(statsResult.reason?.message || 'Failed to load admin statistics.');
+      }
+
+      if (pendingResult.status === 'fulfilled') {
+        setPendingUsers(pendingResult.value);
+      }
     } catch (err: any) {
-      setError(err.message || 'Failed to load admin statistics.');
+      setError(err.message || 'Failed to load admin dashboard data.');
     } finally {
       setLoading(false);
     }
@@ -59,8 +67,8 @@ export const AdminOverviewPage: React.FC = () => {
     csvContent += `Verified NGOs,${stats.verifiedNgos}\n`;
     csvContent += `Pending Requests,${stats.pendingRequests}\n`;
     csvContent += `Completed Deliveries,${stats.completedDeliveries}\n`;
-    csvContent += `Delivery Success Rate (%),${stats.deliverySuccessRate?.toFixed(2) || 0}\n`;
-    csvContent += `Avg Delivery Time (Hours),${stats.averageDeliveryTimeHours?.toFixed(2) || 0}\n\n`;
+    csvContent += `Delivery Success Rate (%),${stats.deliverySuccessRate != null ? stats.deliverySuccessRate.toFixed(1) : 0}\n`;
+    csvContent += `Avg Delivery Time (Hours),${stats.averageDeliveryTimeHours != null ? stats.averageDeliveryTimeHours.toFixed(2) : 0}\n\n`;
 
     // Donations By Category
     csvContent += "Donations By Category\nCategory,Count\n";
@@ -69,12 +77,28 @@ export const AdminOverviewPage: React.FC = () => {
         csvContent += `${category},${count}\n`;
       });
     }
+
+    // Donations By City
+    csvContent += "\nDonations By City\nCity,Count\n";
+    if (stats.donationsByCity) {
+      Object.entries(stats.donationsByCity).forEach(([city, count]) => {
+        csvContent += `${city},${count}\n`;
+      });
+    }
     
     // Top Donors
     csvContent += "\nTop Donors\nName,Donation Count\n";
     if (stats.topDonors) {
       stats.topDonors.forEach(donor => {
         csvContent += `${donor.name},${donor.donations}\n`;
+      });
+    }
+
+    // Top NGOs
+    csvContent += "\nTop NGOs\nName,Donation Count\n";
+    if (stats.topNgos) {
+      stats.topNgos.forEach(ngo => {
+        csvContent += `${ngo.name},${ngo.donations}\n`;
       });
     }
 
@@ -102,7 +126,7 @@ export const AdminOverviewPage: React.FC = () => {
   const COLORS = ['#7567E8', '#059669', '#F59E0B', '#DC2626', '#3B82F6', '#8B5CF6'];
 
   return (
-    <div className="space-y-8 py-6 max-w-6xl mx-auto">
+    <div className="space-y-8 py-6 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -218,74 +242,107 @@ export const AdminOverviewPage: React.FC = () => {
           
           {/* Top Line Analytics */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-sm">
+            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-sm min-w-0 overflow-hidden">
               <h3 className="text-sm font-bold text-[#111827] mb-6 flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-[#7567E8]" />
                 Donations Over Time
               </h3>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartDataByDate}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                    <XAxis dataKey="date" stroke="#6B7280" fontSize={12} tickFormatter={(val) => val.substring(5)} />
-                    <YAxis stroke="#6B7280" fontSize={12} allowDecimals={false} />
-                    <Tooltip contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', color: '#111827', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
-                    <Line type="monotone" dataKey="count" stroke="#7567E8" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                  </LineChart>
-                </ResponsiveContainer>
+              <div className="h-64 min-w-0">
+                {chartDataByDate.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-[#6B7280] text-xs">
+                    <TrendingUp className="w-8 h-8 text-[#9CA3AF] mb-2 opacity-50" />
+                    <p>No donation timeline data available</p>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={200}>
+                    <LineChart data={chartDataByDate}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                      <XAxis 
+                        dataKey="date" 
+                        stroke="#6B7280" 
+                        fontSize={12} 
+                        tickFormatter={(val) => (typeof val === 'string' && val.length >= 5 ? val.substring(5) : val)} 
+                      />
+                      <YAxis stroke="#6B7280" fontSize={12} allowDecimals={false} />
+                      <Tooltip contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', color: '#111827', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
+                      <Line type="monotone" dataKey="count" stroke="#7567E8" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
               </div>
             </div>
 
-            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-sm">
+            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-sm min-w-0 overflow-hidden">
               <h3 className="text-sm font-bold text-[#111827] mb-6 flex items-center gap-2">
                 <PieChartIcon className="w-4 h-4 text-emerald-600" />
                 Donations By Category
               </h3>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={chartDataByCategory}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={80}
-                      paddingAngle={5}
-                      dataKey="count"
-                    >
-                      {chartDataByCategory.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', color: '#111827', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
+              <div className="h-64 min-w-0">
+                {chartDataByCategory.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-[#6B7280] text-xs">
+                    <PieChartIcon className="w-8 h-8 text-[#9CA3AF] mb-2 opacity-50" />
+                    <p>No category donation data available</p>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={200}>
+                    <PieChart>
+                      <Pie
+                        data={chartDataByCategory}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="count"
+                      >
+                        {chartDataByCategory.map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', color: '#111827', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-sm">
+            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-sm min-w-0 overflow-hidden" data-testid="city-chart-container">
               <h3 className="text-sm font-bold text-[#111827] mb-6 flex items-center gap-2">
                 <BarChart2 className="w-4 h-4 text-amber-600" />
                 Donations by City
               </h3>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartDataByCity}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                    <XAxis dataKey="name" stroke="#6B7280" fontSize={12} />
-                    <YAxis stroke="#6B7280" fontSize={12} allowDecimals={false} />
-                    <Tooltip contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', color: '#111827', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
-                    <Bar dataKey="count" fill="#F59E0B" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+              <div className="h-64 min-w-0">
+                {chartDataByCity.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-[#6B7280] text-xs">
+                    <MapPin className="w-8 h-8 text-[#9CA3AF] mb-2 opacity-50" />
+                    <p>No city donation data available</p>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={200}>
+                    <BarChart data={chartDataByCity} margin={{ top: 5, right: 10, left: -10, bottom: 25 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                      <XAxis 
+                        dataKey="name" 
+                        stroke="#6B7280" 
+                        fontSize={11} 
+                        angle={-25} 
+                        textAnchor="end"
+                        interval={0}
+                      />
+                      <YAxis stroke="#6B7280" fontSize={12} allowDecimals={false} />
+                      <Tooltip contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', color: '#111827', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
+                      <Bar dataKey="count" fill="#F59E0B" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
               </div>
             </div>
 
             {/* Performance Metrics */}
-            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-sm space-y-6">
+            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-sm space-y-6 min-w-0 overflow-hidden">
               <h3 className="text-sm font-bold text-[#111827] mb-4 flex items-center gap-2">
                 <PackageCheck className="w-4 h-4 text-rose-500" />
                 Delivery Performance Metrics
@@ -294,36 +351,50 @@ export const AdminOverviewPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-[#F9FAFB] p-4 rounded-xl border border-[#E5E7EB]">
                   <p className="text-xs text-[#6B7280] mb-1">Success Rate</p>
-                  <p className="text-3xl font-extrabold text-emerald-600">{stats.deliverySuccessRate?.toFixed(1)}<span className="text-xl">%</span></p>
+                  <p className="text-3xl font-extrabold text-emerald-600">
+                    {stats.deliverySuccessRate != null ? stats.deliverySuccessRate.toFixed(1) : '0.0'}
+                    <span className="text-xl">%</span>
+                  </p>
                 </div>
                 <div className="bg-[#F9FAFB] p-4 rounded-xl border border-[#E5E7EB]">
                   <p className="text-xs text-[#6B7280] mb-1">Avg Delivery Time</p>
-                  <p className="text-3xl font-extrabold text-[#7567E8]">{stats.averageDeliveryTimeHours?.toFixed(1)}<span className="text-sm font-normal text-[#6B7280] ml-1">hrs</span></p>
+                  <p className="text-3xl font-extrabold text-[#7567E8]">
+                    {stats.averageDeliveryTimeHours != null ? stats.averageDeliveryTimeHours.toFixed(1) : '0.0'}
+                    <span className="text-sm font-normal text-[#6B7280] ml-1">hrs</span>
+                  </p>
                 </div>
               </div>
 
               <div className="pt-2 border-t border-[#E5E7EB] grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-xs text-[#6B7280] mb-2 font-semibold">Top Donors</p>
-                  <ul className="space-y-1">
-                    {stats.topDonors?.map((d, i) => (
-                      <li key={i} className="text-xs text-[#374151] flex justify-between">
-                        <span className="truncate pr-2">{i+1}. {d.name}</span>
-                        <span className="font-bold text-[#7567E8]">{d.donations}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  {stats.topDonors && stats.topDonors.length > 0 ? (
+                    <ul className="space-y-1">
+                      {stats.topDonors.map((d, i) => (
+                        <li key={i} className="text-xs text-[#374151] flex justify-between">
+                          <span className="truncate pr-2">{i+1}. {d.name}</span>
+                          <span className="font-bold text-[#7567E8]">{d.donations}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-xs text-[#9CA3AF] italic">No donor records</p>
+                  )}
                 </div>
                 <div>
                   <p className="text-xs text-[#6B7280] mb-2 font-semibold">Top NGOs</p>
-                  <ul className="space-y-1">
-                    {stats.topNgos?.map((n, i) => (
-                      <li key={i} className="text-xs text-[#374151] flex justify-between">
-                        <span className="truncate pr-2">{i+1}. {n.name}</span>
-                        <span className="font-bold text-emerald-600">{n.donations}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  {stats.topNgos && stats.topNgos.length > 0 ? (
+                    <ul className="space-y-1">
+                      {stats.topNgos.map((n, i) => (
+                        <li key={i} className="text-xs text-[#374151] flex justify-between">
+                          <span className="truncate pr-2">{i+1}. {n.name}</span>
+                          <span className="font-bold text-emerald-600">{n.donations}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-xs text-[#9CA3AF] italic">No NGO records</p>
+                  )}
                 </div>
               </div>
             </div>

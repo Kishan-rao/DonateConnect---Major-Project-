@@ -153,9 +153,9 @@ public class DataInitializer implements CommandLineRunner {
         );
 
         // 6. Create Sample Indian Donations
-        Donation d1 = createSampleDonation(donorUser, goonjNgo, Category.CLOTHES, "Box of 20 cotton sarees, winter shawls, and children's sweaters in pristine condition.", DonationStatus.REQUESTED, LocalDate.now().plusDays(2));
-        Donation d2 = createSampleDonation(donorUser, prathamNgo, Category.BOOKS, "Complete set of NCERT Class 6-10 science textbooks, RD Sharma Mathematics, and Panchatantra story books.", DonationStatus.ACCEPTED, LocalDate.now().plusDays(1));
-        Donation d3 = createSampleDonation(donorUser, akshayaPatraNgo, Category.FOOD, "100 kg Basmati rice bags, Toor dal, and refined sunflower oil tins for relief kitchen.", DonationStatus.DELIVERED, LocalDate.now().minusDays(3));
+        Donation d1 = createSampleDonation(donorUser, goonjNgo, Category.CLOTHES, "Box of 20 cotton sarees, winter shawls, and children's sweaters in pristine condition.", DonationStatus.REQUESTED, LocalDate.now().plusDays(2), "Indiranagar, Bengaluru, Karnataka - 560038");
+        Donation d2 = createSampleDonation(donorUser, prathamNgo, Category.BOOKS, "Complete set of NCERT Class 6-10 science textbooks, RD Sharma Mathematics, and Panchatantra story books.", DonationStatus.ACCEPTED, LocalDate.now().plusDays(1), "Andheri East, Mumbai, Maharashtra - 400069");
+        Donation d3 = createSampleDonation(donorUser, akshayaPatraNgo, Category.FOOD, "100 kg Basmati rice bags, Toor dal, and refined sunflower oil tins for relief kitchen.", DonationStatus.DELIVERED, LocalDate.now().minusDays(3), "HK Hill, Rajajinagar, Bengaluru, Karnataka - 560010");
 
         // Create Sample Deliveries
         deliveryRepository.save(Delivery.builder()
@@ -303,11 +303,20 @@ public class DataInitializer implements CommandLineRunner {
                 .build();
         User savedUser = userRepository.save(ngoUser);
 
+        String city = null;
+        if (address != null) {
+            String lower = address.toLowerCase();
+            if (lower.contains("new delhi") || lower.contains("delhi")) city = "New Delhi";
+            else if (lower.contains("bengaluru") || lower.contains("bangalore")) city = "Bengaluru";
+            else if (lower.contains("mumbai")) city = "Mumbai";
+        }
+
         NGOProfile profile = NGOProfile.builder()
                 .user(savedUser)
                 .name(ngoName)
                 .description(description)
                 .address(address)
+                .city(city)
                 .phone(phone)
                 .verified(verified)
                 .build();
@@ -315,7 +324,7 @@ public class DataInitializer implements CommandLineRunner {
         return ngoProfileRepository.save(profile);
     }
 
-    private Donation createSampleDonation(User donor, NGOProfile ngo, Category category, String description, DonationStatus status, LocalDate pickupDate) {
+    private Donation createSampleDonation(User donor, NGOProfile ngo, Category category, String description, DonationStatus status, LocalDate pickupDate, String pickupAddress) {
         Donation donation = Donation.builder()
                 .donor(donor)
                 .ngo(ngo)
@@ -324,6 +333,7 @@ public class DataInitializer implements CommandLineRunner {
                 .photoUrls(List.of())
                 .status(status)
                 .pickupDate(pickupDate)
+                .pickupAddress(pickupAddress)
                 .build();
 
         Donation saved = donationRepository.save(donation);

@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -198,8 +199,15 @@ public class NGOServiceImpl implements NGOService {
         profile.setName(dto.getName().trim());
         profile.setDescription(dto.getDescription());
         profile.setAddress(dto.getAddress().trim());
+        String lowerAddr = dto.getAddress().toLowerCase(Locale.ROOT);
+        if (lowerAddr.contains("bengaluru") || lowerAddr.contains("bangalore")) {
+            profile.setCity("Bengaluru");
+        } else if (lowerAddr.contains("new delhi") || lowerAddr.contains("delhi")) {
+            profile.setCity("New Delhi");
+        } else if (lowerAddr.contains("mumbai")) {
+            profile.setCity("Mumbai");
+        }
         profile.setPhone(dto.getPhone().trim());
-        // profile.setCity(dto.getCity().trim()); // Assuming city might be added to UpdateDto later
 
         NGOProfile updated = ngoProfileRepository.save(profile);
         return mapToDto(updated);

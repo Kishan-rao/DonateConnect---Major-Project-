@@ -146,6 +146,14 @@ public class AuthServiceImpl implements AuthService {
             ngoProfile.setName(savedUser.getFullName());
             ngoProfile.setDescription("");
             ngoProfile.setAddress(address);
+            String lowerAddr = address.toLowerCase(Locale.ROOT);
+            if (lowerAddr.contains("bengaluru") || lowerAddr.contains("bangalore")) {
+                ngoProfile.setCity("Bengaluru");
+            } else if (lowerAddr.contains("new delhi") || lowerAddr.contains("delhi")) {
+                ngoProfile.setCity("New Delhi");
+            } else if (lowerAddr.contains("mumbai")) {
+                ngoProfile.setCity("Mumbai");
+            }
             ngoProfile.setPhone(phone);
             ngoProfile.setVerified(false);
             ngoProfileRepository.save(ngoProfile);
