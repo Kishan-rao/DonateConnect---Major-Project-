@@ -173,13 +173,13 @@ export const Navbar: React.FC = () => {
               <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#7567E8] flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform duration-200">
                 <HeartHandshake className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
-              <div>
-                <span className="text-base sm:text-lg font-extrabold text-[#111827] tracking-tight">
+              <div className="flex flex-col">
+                <span className="text-base sm:text-lg font-extrabold text-[#111827] tracking-tight leading-tight">
                   DonateConnect
                 </span>
-                <span className="hidden xs:block text-[9px] uppercase tracking-wider font-bold text-[#7567E8] -mt-1">
+                <span className="block text-[9px] sm:text-[10px] uppercase tracking-wider font-bold text-[#7567E8] leading-none mt-0.5">
                   {isAdmin
-                    ? 'Admin Console'
+                    ? 'Admin Portal'
                     : isNgo
                     ? 'NGO Portal'
                     : isVolunteer
@@ -365,7 +365,7 @@ export const Navbar: React.FC = () => {
                       DonateConnect
                     </span>
                     <span className="block text-[10px] font-bold text-[#7567E8] uppercase tracking-wider">
-                      {user?.role ? `${user.role} Navigation` : 'Navigation'}
+                      {isAdmin ? 'Admin Portal' : user?.role ? `${user.role} Navigation` : 'Navigation'}
                     </span>
                   </div>
                 </div>
