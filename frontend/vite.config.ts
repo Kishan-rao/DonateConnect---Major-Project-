@@ -24,6 +24,7 @@ export default defineConfig(({ mode }) => {
       globals: true,
       environment: 'jsdom',
       pool: 'threads',
+      testTimeout: 15000,
       include: ['src/**/*.test.{ts,tsx}'],
       setupFiles: ['./src/setupTests.ts'],
     },

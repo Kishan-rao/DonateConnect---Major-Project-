@@ -3,7 +3,6 @@ name: DonateConnect OTA Release Pipeline
 on:
   push:
     branches:
-      - main
       - android-integration
     paths:
       - 'frontend/**'
@@ -60,7 +59,7 @@ jobs:
         id: release_meta
         run: |
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          DATE_TAG=$(date -u +'%Y%m%d%H%M')
+          DATE_TAG=$(date -u +'%Y%m%d%H%M%S')
           RELEASE_ID="rel-${DATE_TAG}-${SHORT_SHA}"
           echo "RELEASE_ID=${RELEASE_ID}" >> $GITHUB_ENV
           echo "SHORT_SHA=${SHORT_SHA}" >> $GITHUB_ENV
@@ -73,7 +72,7 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
 
       - name: Publish Versioned GitHub Release
-        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || inputs.publish_release == true)
+        if: github.ref == 'refs/heads/android-integration' && (github.event_name == 'push' || inputs.publish_release == true)
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ota-${{ env.RELEASE_ID }}

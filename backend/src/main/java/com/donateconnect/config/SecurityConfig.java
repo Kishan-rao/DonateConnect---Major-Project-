@@ -36,7 +36,7 @@ public class SecurityConfig {
         this.environment = environment;
     }
 
-    @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:3000}")
+    @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:3000,https://localhost,capacitor://localhost,https://donate-connect-major-project.vercel.app}")
     private String corsAllowedOrigins;
 
     @Bean
@@ -55,7 +55,8 @@ public class SecurityConfig {
         List<String> origins = Arrays.asList(corsAllowedOrigins.split(","));
         configuration.setAllowedOriginPatterns(origins.stream().map(origin -> origin.trim()).toList());
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Requested-With", "Origin"));
+        configuration.setExposedHeaders(List.of("Authorization", "Content-Disposition"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 

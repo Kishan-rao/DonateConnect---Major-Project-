@@ -15,6 +15,9 @@ export interface OtaManifest {
 const DEFAULT_MANIFEST_URL =
   'https://github.com/Kishan-rao/DonateConnect---Major-Project-/releases/latest/download/manifest.json';
 
+const CURRENT_NATIVE_VERSION = '1.0';
+let isCheckingUpdate = false;
+
 /**
  * Confirms that the current web app instance booted successfully.
  * This MUST be called on application launch to prevent the native rollback
@@ -44,9 +47,16 @@ export const notifyOtaAppReady = async (): Promise<void> => {
 /**
  * Checks for a published OTA release in the background without blocking the UI.
  * Verifies version compatibility and cryptographic signature before activation.
+ * Enforces single in-flight check, rollback safety, and downgrade prevention.
  */
 export const checkForOtaUpdate = async (options?: { manifestUrl?: string }): Promise<boolean> => {
   if (!Capacitor.isNativePlatform()) return false;
+
+  if (isCheckingUpdate) {
+    console.info('[DonateConnect OTA] Update check already in progress. Skipping redundant check.');
+    return false;
+  }
+  isCheckingUpdate = true;
 
   const manifestUrl =
     options?.manifestUrl ||
@@ -80,6 +90,31 @@ export const checkForOtaUpdate = async (options?: { manifestUrl?: string }): Pro
       return false;
     }
 
+    // Require cryptographic signature and checksum for security
+    if (!manifest.checksum || !manifest.signature) {
+      console.warn('[DonateConnect OTA] Manifest is missing security checksum or cryptographic signature. Refusing untrusted bundle.');
+      return false;
+    }
+
+    // Native compatibility check
+    if (manifest.minNativeVersion && manifest.minNativeVersion > CURRENT_NATIVE_VERSION) {
+      console.warn(
+        `[DonateConnect OTA] Bundle requires native version ${manifest.minNativeVersion}, but installed app is ${CURRENT_NATIVE_VERSION}. New APK required.`
+      );
+      return false;
+    }
+
+    // Check if bundle was previously rolled back and blocked
+    try {
+      const blocked = await LiveUpdate.getBlockedBundles();
+      if (blocked?.bundleIds?.includes(manifest.releaseId)) {
+        console.warn(`[DonateConnect OTA] Bundle ${manifest.releaseId} was previously rolled back and is blocked. Skipping.`);
+        return false;
+      }
+    } catch {
+      // Continue if blocked list retrieval is not supported
+    }
+
     // Inspect currently running bundle
     const currentBundle = await LiveUpdate.getCurrentBundle();
     const currentBundleId = currentBundle?.bundleId;
@@ -87,6 +122,18 @@ export const checkForOtaUpdate = async (options?: { manifestUrl?: string }): Pro
     if (currentBundleId === manifest.releaseId) {
       console.info('[DonateConnect OTA] Application is up to date:', currentBundleId);
       return false;
+    }
+
+    // Check if bundle has already been downloaded previously
+    try {
+      const downloaded = await LiveUpdate.getDownloadedBundles();
+      if (downloaded?.bundleIds?.includes(manifest.releaseId)) {
+        console.info(`[DonateConnect OTA] Bundle ${manifest.releaseId} already downloaded. Scheduling for next launch.`);
+        await LiveUpdate.setNextBundle({ bundleId: manifest.releaseId });
+        return true;
+      }
+    } catch {
+      // Continue with download if downloaded bundles lookup fails
     }
 
     console.info(
@@ -119,6 +166,8 @@ export const checkForOtaUpdate = async (options?: { manifestUrl?: string }): Pro
       console.warn('[DonateConnect OTA] Background update check failed (non-blocking):', error?.message || error);
     }
     return false;
+  } finally {
+    isCheckingUpdate = false;
   }
 };
 
