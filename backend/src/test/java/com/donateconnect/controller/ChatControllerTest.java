@@ -153,7 +153,7 @@ class ChatControllerTest {
                 .build();
 
         when(chatService.getConversationMessages(eq(donorUser.getId()), eq(convId), any()))
-                .thenReturn(new PageImpl<>(List.of(msgDto)));
+                .thenReturn(new PageImpl<>(List.of(msgDto), org.springframework.data.domain.PageRequest.of(0, 50), 1));
 
         mockMvc.perform(get("/api/chat/conversations/{id}/messages", convId)
                         .principal(auth))

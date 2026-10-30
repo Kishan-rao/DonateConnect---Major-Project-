@@ -182,8 +182,13 @@ class IntegrationWorkflowTest {
         com.donateconnect.entity.Delivery delivery = deliveryRepository.findById(UUID.fromString(deliveryId)).orElseThrow();
         String otp = delivery.getDeliveryOtp();
 
+        java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(1, 1, java.awt.image.BufferedImage.TYPE_INT_RGB);
+        java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+        javax.imageio.ImageIO.write(img, "png", baos);
+        byte[] validImageBytes = baos.toByteArray();
+
         mockMvc.perform(multipart("/api/volunteer/deliveries/" + deliveryId + "/complete")
-                        .file(new org.springframework.mock.web.MockMultipartFile("proofImage", "proof.png", "image/png", "dummy image content".getBytes()))
+                        .file(new org.springframework.mock.web.MockMultipartFile("proofImage", "proof.png", "image/png", validImageBytes))
                         .param("otp", otp)
                         .header("Authorization", "Bearer " + volunteerToken)
                         .with(request -> {

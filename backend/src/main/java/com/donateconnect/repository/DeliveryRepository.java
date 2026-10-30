@@ -25,7 +25,7 @@ public interface DeliveryRepository extends JpaRepository<Delivery, UUID> {
     boolean existsByVolunteerIdAndStatusIn(UUID volunteerId, List<com.donateconnect.entity.DeliveryStatus> statuses);
     void deleteByDonationId(UUID donationId);
 
-    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Modifying(clearAutomatically = true, flushAutomatically = true)
     @org.springframework.data.jpa.repository.Query("UPDATE Delivery d SET d.volunteer = null WHERE d.volunteer.id = :volunteerId")
     void clearVolunteerByVolunteerId(@org.springframework.data.repository.query.Param("volunteerId") UUID volunteerId);
 

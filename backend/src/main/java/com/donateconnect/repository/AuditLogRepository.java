@@ -14,7 +14,7 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, UUID>, JpaSp
     Page<AuditLog> findByAction(String action, Pageable pageable);
     Page<AuditLog> findByEntityType(String entityType, Pageable pageable);
 
-    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Modifying(clearAutomatically = true, flushAutomatically = true)
     @org.springframework.data.jpa.repository.Query("UPDATE AuditLog a SET a.actor = null WHERE a.actor.id = :actorId")
     void clearActorByActorId(@org.springframework.data.repository.query.Param("actorId") UUID actorId);
 }

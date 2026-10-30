@@ -41,6 +41,7 @@ public class UserServiceImpl implements UserService {
     private final NgoUrgentNeedRepository ngoUrgentNeedRepository;
     private final NgoResourceTradeRepository ngoResourceTradeRepository;
     private final com.donateconnect.service.StorageService storageService;
+    private final jakarta.persistence.EntityManager entityManager;
 
     @Override
     @Transactional(readOnly = true)
@@ -255,8 +256,14 @@ public class UserServiceImpl implements UserService {
         }
 
         // 9. Finally delete the user entity (frees up the email for reuse)
-        userRepository.delete(user);
-        userRepository.flush();
+        if (entityManager != null) {
+            entityManager.flush();
+            entityManager.clear();
+        }
+        userRepository.findById(userId).ifPresent(u -> {
+            userRepository.delete(u);
+            userRepository.flush();
+        });
 
         log.info("Successfully deleted user ID: {} and all associated personal data.", userId);
     }
