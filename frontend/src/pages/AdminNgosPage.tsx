@@ -96,11 +96,11 @@ export const AdminNgosPage: React.FC = () => {
   const safeNgos = Array.isArray(ngos) ? ngos : [];
 
   return (
-    <div className="space-y-8 py-6 max-w-6xl mx-auto">
+    <div className="space-y-6 sm:space-y-8 py-6 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-[#111827] tracking-tight flex items-center gap-3">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#111827] tracking-tight flex items-center gap-3">
             <Building2 className="w-8 h-8 text-[#7567E8]" />
             Manage NGO Partners
           </h1>
@@ -113,14 +113,14 @@ export const AdminNgosPage: React.FC = () => {
           <button
             onClick={fetchNgos}
             disabled={loading}
-            className="p-2.5 rounded-xl bg-white text-[#4B5563] hover:text-[#111827] hover:bg-[#F4F2FA] transition-colors border border-[#E5E7EB] shadow-xs"
+            className="p-2.5 rounded-xl bg-white text-[#4B5563] hover:text-[#111827] hover:bg-[#F4F2FA] transition-colors border border-[#E5E7EB] shadow-xs min-h-[40px]"
             title="Refresh NGO list"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="px-4 py-2.5 rounded-xl bg-[#7567E8] hover:bg-[#7567E8]/90 text-white font-semibold text-sm transition-all flex items-center gap-2 shadow-xs"
+            className="px-4 py-2.5 rounded-xl bg-[#7567E8] hover:bg-[#7567E8]/90 text-white font-semibold text-sm transition-all flex items-center gap-2 shadow-xs min-h-[40px]"
           >
             <Plus className="w-4 h-4" />
             Add NGO Partner
@@ -159,15 +159,15 @@ export const AdminNgosPage: React.FC = () => {
         </div>
       ) : (
         <div className="bg-white border border-[#E5E7EB] rounded-2xl overflow-hidden shadow-xs">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-[#374151]">
+          <div className="overflow-x-auto scrollbar-thin">
+            <table className="w-full text-left text-sm text-[#374151] min-w-[640px]">
               <thead className="bg-[#F9FAFB] text-xs font-bold text-[#4B5563] uppercase tracking-wider border-b border-[#E5E7EB]">
                 <tr>
-                  <th className="px-6 py-4">NGO Name</th>
-                  <th className="px-6 py-4">Account Email</th>
-                  <th className="px-6 py-4">Address / Phone</th>
-                  <th className="px-6 py-4">Verified Status</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
+                  <th className="px-4 sm:px-6 py-3.5 sm:py-4">NGO Name</th>
+                  <th className="px-4 sm:px-6 py-3.5 sm:py-4">Account Email</th>
+                  <th className="px-4 sm:px-6 py-3.5 sm:py-4">Address / Phone</th>
+                  <th className="px-4 sm:px-6 py-3.5 sm:py-4">Verified Status</th>
+                  <th className="px-4 sm:px-6 py-3.5 sm:py-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E5E7EB]">
@@ -175,33 +175,33 @@ export const AdminNgosPage: React.FC = () => {
                   const isVerified = isNgoVerified(ngo);
                   return (
                     <tr key={ngo.id} className="hover:bg-[#F4F2FA] transition-colors">
-                      <td className="px-6 py-4 font-semibold text-[#111827]">
+                      <td className="px-4 sm:px-6 py-3.5 sm:py-4 font-semibold text-[#111827]">
                         <div className="flex items-center gap-2">
-                          <Building2 className="w-4 h-4 text-[#7567E8]" />
+                          <Building2 className="w-4 h-4 text-[#7567E8] shrink-0" />
                           <span>{ngo.name}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-[#6B7280] font-mono text-xs">{ngo.user?.email || 'N/A'}</td>
-                      <td className="px-6 py-4 text-xs text-[#4B5563]">
+                      <td className="px-4 sm:px-6 py-3.5 sm:py-4 text-[#6B7280] font-mono text-xs">{ngo.user?.email || 'N/A'}</td>
+                      <td className="px-4 sm:px-6 py-3.5 sm:py-4 text-xs text-[#4B5563]">
                         <div>{ngo.address}</div>
                         <div className="text-[11px] text-[#6B7280]">{ngo.phone}</div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 sm:px-6 py-3.5 sm:py-4">
                         {isVerified ? (
                           <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            <ShieldCheck className="w-3.5 h-3.5" /> Verified
+                            <ShieldCheck className="w-3.5 h-3.5 shrink-0" /> Verified
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-                            <ShieldAlert className="w-3.5 h-3.5" /> Unverified
+                            <ShieldAlert className="w-3.5 h-3.5 shrink-0" /> Unverified
                           </span>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-4 sm:px-6 py-3.5 sm:py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => handleVerifyToggle(ngo.id, isVerified)}
-                            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors border flex items-center gap-1 ${
+                            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors border flex items-center gap-1 min-h-[36px] ${
                               isVerified
                                 ? 'bg-white hover:bg-[#F4F2FA] text-[#374151] border-[#E5E7EB]'
                                 : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200'
@@ -212,7 +212,7 @@ export const AdminNgosPage: React.FC = () => {
                           </button>
                           <button
                             onClick={() => setDeleteTarget(ngo)}
-                            className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition-colors"
+                            className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
                             title="Remove NGO"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -231,7 +231,7 @@ export const AdminNgosPage: React.FC = () => {
       {/* ADD NGO MODAL */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border border-[#E5E7EB] rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-6">
+          <div className="bg-white border border-[#E5E7EB] rounded-3xl p-5 sm:p-8 max-w-lg w-full max-h-[90dvh] overflow-y-auto shadow-2xl space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold text-[#111827] flex items-center gap-2">
                 <Building2 className="w-5 h-5 text-[#7567E8]" />

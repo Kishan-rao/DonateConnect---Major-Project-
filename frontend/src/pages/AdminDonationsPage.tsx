@@ -62,11 +62,11 @@ export const AdminDonationsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 py-6 max-w-6xl mx-auto">
+    <div className="space-y-6 sm:space-y-8 py-6 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-[#111827] tracking-tight flex items-center gap-3">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#111827] tracking-tight flex items-center gap-3">
             <PackageCheck className="w-8 h-8 text-[#7567E8]" />
             All Donations Audit
           </h1>
@@ -78,7 +78,7 @@ export const AdminDonationsPage: React.FC = () => {
         <button
           onClick={fetchDonations}
           disabled={loading}
-          className="p-2.5 rounded-xl bg-white text-[#4B5563] hover:text-[#111827] hover:bg-[#F4F2FA] transition-colors border border-[#E5E7EB] flex items-center gap-2 text-xs font-semibold self-start md:self-auto shadow-xs"
+          className="p-2.5 rounded-xl bg-white text-[#4B5563] hover:text-[#111827] hover:bg-[#F4F2FA] transition-colors border border-[#E5E7EB] flex items-center gap-2 text-xs font-semibold self-start md:self-auto shadow-xs min-h-[40px]"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           Refresh Table
@@ -86,7 +86,7 @@ export const AdminDonationsPage: React.FC = () => {
       </div>
 
       {/* Filter Toolbar */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white p-4 rounded-2xl border border-[#E5E7EB] shadow-xs">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 bg-white p-4 rounded-2xl border border-[#E5E7EB] shadow-xs">
         {/* Status Filter */}
         <div>
           <label className="block text-[10px] font-bold uppercase text-[#4B5563] mb-1">Status Filter</label>
@@ -96,7 +96,7 @@ export const AdminDonationsPage: React.FC = () => {
               setSelectedStatus(e.target.value);
               setPage(0);
             }}
-            className="w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-3 py-2 text-xs text-[#111827] focus:outline-none focus:border-[#7567E8]"
+            className="w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-3 py-2 text-xs text-[#111827] focus:outline-none focus:border-[#7567E8] min-h-[38px]"
           >
             <option value="">All Statuses</option>
             <option value="REQUESTED">REQUESTED</option>
@@ -116,7 +116,7 @@ export const AdminDonationsPage: React.FC = () => {
               setSelectedCategory(e.target.value);
               setPage(0);
             }}
-            className="w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-3 py-2 text-xs text-[#111827] focus:outline-none focus:border-[#7567E8]"
+            className="w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-3 py-2 text-xs text-[#111827] focus:outline-none focus:border-[#7567E8] min-h-[38px]"
           >
             <option value="">All Categories</option>
             <option value="CLOTHES">CLOTHES</option>
@@ -137,7 +137,7 @@ export const AdminDonationsPage: React.FC = () => {
               setSelectedNgoId(e.target.value);
               setPage(0);
             }}
-            className="w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-3 py-2 text-xs text-[#111827] focus:outline-none focus:border-[#7567E8]"
+            className="w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-3 py-2 text-xs text-[#111827] focus:outline-none focus:border-[#7567E8] min-h-[38px]"
           >
             <option value="">All NGOs</option>
             {ngos.map((ngo) => (
@@ -175,7 +175,48 @@ export const AdminDonationsPage: React.FC = () => {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="bg-white border border-[#E5E7EB] rounded-2xl overflow-hidden shadow-xs">
+          {/* Mobile Card Layout */}
+          <div className="block md:hidden space-y-3">
+            {pageData.content.map((donation) => (
+              <div
+                key={donation.id}
+                className="bg-white border border-[#E5E7EB] rounded-2xl p-4 space-y-3 shadow-xs"
+              >
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#7567E8]/10 text-[#7567E8] border border-[#7567E8]/20">
+                    <Tag className="w-3 h-3" />
+                    {donation.category}
+                  </span>
+                  <span
+                    className={`text-[11px] font-bold tracking-wider px-2.5 py-0.5 rounded border ${getStatusBadgeStyle(
+                      donation.status
+                    )}`}
+                  >
+                    {donation.status}
+                  </span>
+                </div>
+
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex items-center gap-2 text-[#111827] font-semibold min-w-0">
+                    <User className="w-3.5 h-3.5 text-[#7567E8] shrink-0" />
+                    <span className="truncate">Donor: {donation.donor?.fullName || 'Anonymous'}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[#4B5563] min-w-0">
+                    <Building2 className="w-3.5 h-3.5 text-[#7567E8] shrink-0" />
+                    <span className="truncate">Target NGO: {donation.ngo?.name || 'NGO Partner'}</span>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-[#F3F4F6] flex items-center justify-between text-[11px] text-[#6B7280]">
+                  <span>Pickup: {donation.pickupDate || 'N/A'}</span>
+                  <span>Created: {formatDate(donation.createdAt)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block bg-white border border-[#E5E7EB] rounded-2xl overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm text-[#374151]">
                 <thead className="bg-[#F9FAFB] text-xs font-bold text-[#4B5563] uppercase tracking-wider border-b border-[#E5E7EB]">
@@ -232,7 +273,7 @@ export const AdminDonationsPage: React.FC = () => {
           </div>
 
           {/* Pagination Controls */}
-          <div className="flex items-center justify-between px-2 text-xs text-[#4B5563]">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-2 text-xs text-[#4B5563]">
             <div>
               Showing Page <span className="font-semibold text-[#111827]">{pageData.number + 1}</span> of{' '}
               <span className="font-semibold text-[#111827]">{pageData.totalPages}</span> ({pageData.totalElements} total entries)
@@ -242,14 +283,14 @@ export const AdminDonationsPage: React.FC = () => {
               <button
                 onClick={() => setPage((prev) => Math.max(0, prev - 1))}
                 disabled={pageData.number === 0}
-                className="px-3 py-1.5 rounded-lg bg-white border border-[#E5E7EB] text-[#374151] hover:bg-[#F4F2FA] hover:text-[#111827] disabled:opacity-40 transition-colors flex items-center gap-1 shadow-xs"
+                className="px-3.5 py-2 rounded-xl bg-white border border-[#E5E7EB] text-[#374151] hover:bg-[#F4F2FA] hover:text-[#111827] disabled:opacity-40 transition-colors flex items-center gap-1 shadow-xs min-h-[36px]"
               >
                 <ChevronLeft className="w-4 h-4" /> Previous
               </button>
               <button
                 onClick={() => setPage((prev) => Math.min(pageData.totalPages - 1, prev + 1))}
                 disabled={pageData.number >= pageData.totalPages - 1}
-                className="px-3 py-1.5 rounded-lg bg-white border border-[#E5E7EB] text-[#374151] hover:bg-[#F4F2FA] hover:text-[#111827] disabled:opacity-40 transition-colors flex items-center gap-1 shadow-xs"
+                className="px-3.5 py-2 rounded-xl bg-white border border-[#E5E7EB] text-[#374151] hover:bg-[#F4F2FA] hover:text-[#111827] disabled:opacity-40 transition-colors flex items-center gap-1 shadow-xs min-h-[36px]"
               >
                 Next <ChevronRight className="w-4 h-4" />
               </button>

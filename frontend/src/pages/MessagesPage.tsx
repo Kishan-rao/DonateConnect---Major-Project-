@@ -329,7 +329,7 @@ export const MessagesPage: React.FC = () => {
   );
 
   return (
-    <div className="py-4 sm:py-6 max-w-6xl mx-auto safe-pt safe-pb">
+    <div className="py-3 sm:py-6 px-2 sm:px-4 lg:px-8 max-w-6xl mx-auto safe-pt safe-pb">
       {/* Full-size Photo Viewer Modal */}
       <PhotoViewerModal
         isOpen={Boolean(viewerPhotoUrl)}
@@ -339,7 +339,7 @@ export const MessagesPage: React.FC = () => {
       />
 
       {/* Main Container */}
-      <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#E5E7EB] shadow-sm overflow-hidden flex flex-col md:flex-row h-[calc(100vh-140px)] min-h-[500px]">
+      <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#E5E7EB] shadow-sm overflow-hidden flex flex-col md:flex-row h-[calc(100dvh-130px)] min-h-[450px]">
         {/* ==================== LEFT COLUMN: Conversation List ==================== */}
         <div
           className={`w-full md:w-80 lg:w-96 border-r border-[#E5E7EB] flex flex-col shrink-0 ${

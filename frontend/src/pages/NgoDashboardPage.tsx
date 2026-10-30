@@ -134,7 +134,7 @@ export const NgoDashboardPage: React.FC = () => {
   );
 
   return (
-    <div className="space-y-8 py-6">
+    <div className="space-y-6 sm:space-y-8 py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -351,25 +351,25 @@ export const NgoDashboardPage: React.FC = () => {
 
                 {/* OTP Viewer */}
                 {donation.status === 'PICKED_UP' && (
-                  <div className="bg-[#F9FAFB] p-3 rounded-xl border border-[#E5E7EB] flex items-center justify-between">
+                  <div className="bg-[#F9FAFB] p-3 rounded-xl border border-[#E5E7EB] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="flex items-center gap-2 text-[#111827] text-xs font-medium">
-                      <KeyRound className="w-4 h-4 text-amber-600" />
-                      Verification OTP for Volunteer:
+                      <KeyRound className="w-4 h-4 text-amber-600 shrink-0" />
+                      <span>Verification OTP for Volunteer:</span>
                     </div>
                     {otpLoadingId === donation.id ? (
                       <RefreshCw className="w-4 h-4 animate-spin text-[#6B7280]" />
                     ) : otpData[donation.id] ? (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 self-end sm:self-auto">
                         <span data-testid="delivery-otp" className="font-mono text-lg font-bold text-amber-700 tracking-widest">{otpData[donation.id]}</span>
-                        <button onClick={() => handleRegenerateOtp(donation.id)} title="Regenerate OTP" className="text-amber-600 hover:text-amber-700">
+                        <button onClick={() => handleRegenerateOtp(donation.id)} title="Regenerate OTP" className="text-amber-600 hover:text-amber-700 p-1 min-h-[36px] min-w-[36px] flex items-center justify-center">
                           <RotateCcw className="w-4 h-4" />
                         </button>
-                        <button onClick={() => handleFetchOtp(donation.id)} className="text-[#6B7280] hover:text-[#111827]">
+                        <button onClick={() => handleFetchOtp(donation.id)} className="text-[#6B7280] hover:text-[#111827] p-1 min-h-[36px] min-w-[36px] flex items-center justify-center">
                           <EyeOff className="w-4 h-4" />
                         </button>
                       </div>
                     ) : (
-                      <button onClick={() => handleFetchOtp(donation.id)} className="text-xs font-semibold text-[#7567E8] hover:text-[#7567E8]/80 flex items-center gap-1">
+                      <button onClick={() => handleFetchOtp(donation.id)} className="text-xs font-semibold text-[#7567E8] hover:text-[#7567E8]/80 flex items-center gap-1 min-h-[36px]">
                         <Eye className="w-3.5 h-3.5" />
                         Show OTP
                       </button>
@@ -380,7 +380,7 @@ export const NgoDashboardPage: React.FC = () => {
                 {/* Workflow Actions */}
                 <div className="pt-2 border-t border-[#E5E7EB] flex items-center gap-2">
                   {actionLoadingId === donation.id ? (
-                    <div className="w-full py-2 text-center text-xs text-[#7567E8] font-semibold flex items-center justify-center gap-2">
+                    <div className="w-full py-2.5 text-center text-xs text-[#7567E8] font-semibold flex items-center justify-center gap-2 min-h-[40px]">
                       <div className="w-4 h-4 border-2 border-[#7567E8] border-t-transparent rounded-full animate-spin" />
                       Updating status...
                     </div>
@@ -388,14 +388,14 @@ export const NgoDashboardPage: React.FC = () => {
                     <>
                       <button
                         onClick={() => handleStatusUpdate(donation.id, 'ACCEPTED')}
-                        className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-xs"
+                        className="flex-1 min-h-[40px] py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-xs"
                       >
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         Accept
                       </button>
                       <button
                         onClick={() => handleStatusUpdate(donation.id, 'REJECTED')}
-                        className="flex-1 py-2 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-xs"
+                        className="flex-1 min-h-[40px] py-2 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-xs"
                       >
                         <XCircle className="w-3.5 h-3.5" />
                         Reject
@@ -404,21 +404,21 @@ export const NgoDashboardPage: React.FC = () => {
                   ) : donation.status === 'ACCEPTED' ? (
                     <button
                       onClick={() => handleStatusUpdate(donation.id, 'PICKED_UP')}
-                      className="w-full py-2 px-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-2 shadow-xs"
+                      className="w-full min-h-[40px] py-2 px-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-2 shadow-xs"
                     >
                       <Truck className="w-4 h-4" />
                       Mark Picked Up
                     </button>
                   ) : donation.status === 'PICKED_UP' ? (
-                    <div className="w-full py-1.5 text-center text-xs font-semibold text-indigo-700 bg-indigo-50 rounded-xl border border-indigo-200">
+                    <div className="w-full py-2 text-center text-xs font-semibold text-indigo-700 bg-indigo-50 rounded-xl border border-indigo-200">
                       In Transit - Awaiting Volunteer Delivery
                     </div>
                   ) : donation.status === 'DELIVERED' ? (
-                    <div className="w-full py-1.5 text-center text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-xl border border-emerald-200">
+                    <div className="w-full py-2 text-center text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-xl border border-emerald-200">
                       ✓ Complete & Delivered
                     </div>
                   ) : (
-                    <div className="w-full py-1.5 text-center text-xs font-semibold text-rose-700 bg-rose-50 rounded-xl border border-rose-200">
+                    <div className="w-full py-2 text-center text-xs font-semibold text-rose-700 bg-rose-50 rounded-xl border border-rose-200">
                       ✗ Donation Rejected
                     </div>
                   )}

@@ -480,10 +480,10 @@ export const MyDonationsPage: React.FC = () => {
                   )}
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 pt-1">
+                <div className="flex flex-wrap gap-2 pt-1">
                   <button
                     onClick={() => setDetailDonationId(donation.id)}
-                    className="flex items-center justify-center gap-1 py-2 px-2 rounded-xl text-xs font-bold border bg-white hover:bg-[#F4F2FA] text-[#111827] border-[#E5E7EB] shadow-sm"
+                    className="flex-1 min-w-[90px] min-h-[40px] flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold border bg-white hover:bg-[#F4F2FA] text-[#111827] border-[#E5E7EB] shadow-xs active:scale-[0.98] transition-all"
                   >
                     <Eye className="w-3.5 h-3.5 text-[#7567E8]" />
                     Inspect
@@ -492,7 +492,7 @@ export const MyDonationsPage: React.FC = () => {
                     <button
                       data-testid={`track-donation-mobile-${donation.id}`}
                       onClick={() => navigate(`/donations/${donation.id}/track`)}
-                      className="flex items-center justify-center gap-1 py-2 px-2 rounded-xl text-xs font-bold border bg-[#7567E8]/10 hover:bg-[#7567E8]/20 text-[#7567E8] border-[#7567E8]/20"
+                      className="flex-1 min-w-[90px] min-h-[40px] flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold border bg-[#7567E8]/10 hover:bg-[#7567E8]/20 text-[#7567E8] border-[#7567E8]/20 active:scale-[0.98] transition-all"
                     >
                       <Navigation className="w-3.5 h-3.5 text-[#7567E8]" />
                       Track
@@ -500,25 +500,25 @@ export const MyDonationsPage: React.FC = () => {
                   )}
                   <button
                     onClick={() => handleOpenChat(donation)}
-                    className="flex items-center justify-center gap-1 py-2 px-2 rounded-xl text-xs font-bold border bg-white hover:bg-[#F4F2FA] text-[#111827] border-[#E5E7EB] shadow-sm"
+                    className="flex-1 min-w-[90px] min-h-[40px] flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold border bg-white hover:bg-[#F4F2FA] text-[#111827] border-[#E5E7EB] shadow-xs active:scale-[0.98] transition-all"
                   >
                     <MessageSquare className="w-3.5 h-3.5 text-[#4B5563]" />
                     Chat
                   </button>
                   {donation.status === 'DELIVERED' && (
-                    <div className="col-span-full grid grid-cols-2 gap-2 mt-1">
+                    <div className="w-full flex gap-2 pt-1">
                       <button
                         onClick={() => setActiveCertDonation(donation)}
-                        className="flex items-center justify-center gap-1 py-2 px-2 rounded-xl text-xs font-bold border bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border-emerald-200 shadow-sm"
+                        className="flex-1 min-h-[40px] flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold border bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200 shadow-xs active:scale-[0.98] transition-all"
                       >
                         <Download className="w-3.5 h-3.5 text-emerald-600" />
                         Certificate
                       </button>
                       <button
                         onClick={() => setActiveRatingDonation(donation)}
-                        className="flex items-center justify-center gap-1 py-2 px-2 rounded-xl text-xs font-bold border bg-amber-50 hover:bg-amber-100 text-amber-600 border-amber-200 shadow-sm"
+                        className="flex-1 min-h-[40px] flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold border bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200 shadow-xs active:scale-[0.98] transition-all"
                       >
-                        <Star className="w-3.5 h-3.5 text-amber-600" />
+                        <Star className="w-3.5 h-3.5 text-amber-500" />
                         Rate
                       </button>
                     </div>

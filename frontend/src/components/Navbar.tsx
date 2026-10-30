@@ -147,6 +147,7 @@ export const Navbar: React.FC = () => {
       case 'ADMIN':
         return [
           { path: '/admin', label: 'Overview', icon: Shield },
+          { path: '/admin/urgent-needs', label: 'Urgent', icon: AlertCircle },
           { path: '/admin/ngos', label: 'NGOs', icon: Building2 },
           { path: '/admin/donations', label: 'Audit', icon: PackageCheck },
           { path: '/admin/profile', label: 'Profile', icon: User },

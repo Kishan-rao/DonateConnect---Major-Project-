@@ -332,7 +332,7 @@ export const CreateDonationPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto py-8">
+    <div className="max-w-2xl mx-auto py-6 sm:py-8 px-4 sm:px-6">
       <button
         onClick={() => navigate(-1)}
         className="inline-flex items-center gap-2 text-xs font-semibold text-[#6B7280] hover:text-[#111827] mb-6 transition-colors"

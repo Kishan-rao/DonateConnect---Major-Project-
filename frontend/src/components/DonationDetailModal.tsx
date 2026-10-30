@@ -130,11 +130,11 @@ export const DonationDetailModal: React.FC<DonationDetailModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-[#111827]/40 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+      className="fixed inset-0 z-50 bg-[#111827]/40 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className="bg-white border border-[#E5E7EB] rounded-2xl max-w-2xl w-full p-6 relative flex flex-col space-y-6 my-auto shadow-2xl"
+        className="bg-white border border-[#E5E7EB] rounded-2xl max-w-2xl w-full max-h-[90dvh] overflow-y-auto p-4 sm:p-6 relative flex flex-col space-y-5 sm:space-y-6 my-auto shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}

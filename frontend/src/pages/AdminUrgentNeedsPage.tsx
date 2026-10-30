@@ -126,12 +126,12 @@ export const AdminUrgentNeedsPage: React.FC = () => {
       </div>
 
       {/* Filters and Search Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-[#E5E7EB] shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="bg-white p-4 rounded-2xl border border-[#E5E7EB] shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
         {/* Status Tabs */}
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 w-full sm:w-auto shrink-0">
           <button
             onClick={() => setFilterStatus('ALL')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap min-h-[36px] ${
               filterStatus === 'ALL'
                 ? 'bg-[#111827] text-white'
                 : 'bg-[#F3F4F6] text-[#4B5563] hover:bg-[#E5E7EB]'
@@ -141,7 +141,7 @@ export const AdminUrgentNeedsPage: React.FC = () => {
           </button>
           <button
             onClick={() => setFilterStatus('ACTIVE')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap min-h-[36px] ${
               filterStatus === 'ACTIVE'
                 ? 'bg-rose-600 text-white'
                 : 'bg-[#F3F4F6] text-[#4B5563] hover:bg-[#E5E7EB]'
@@ -151,7 +151,7 @@ export const AdminUrgentNeedsPage: React.FC = () => {
           </button>
           <button
             onClick={() => setFilterStatus('COMPLETED')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap min-h-[36px] ${
               filterStatus === 'COMPLETED'
                 ? 'bg-emerald-600 text-white'
                 : 'bg-[#F3F4F6] text-[#4B5563] hover:bg-[#E5E7EB]'
@@ -163,13 +163,13 @@ export const AdminUrgentNeedsPage: React.FC = () => {
 
         {/* Search Input */}
         <div className="relative w-full sm:w-72">
-          <Search className="w-4 h-4 text-[#9CA3AF] absolute left-3 top-2.5" />
+          <Search className="w-4 h-4 text-[#9CA3AF] absolute left-3 top-3" />
           <input
             type="text"
             placeholder="Search by item, NGO, category..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl text-xs text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#7567E8]"
+            className="w-full pl-9 pr-4 py-2.5 bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl text-xs text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#7567E8]"
           />
         </div>
       </div>
@@ -216,9 +216,9 @@ export const AdminUrgentNeedsPage: React.FC = () => {
                 }`}
               >
                 {/* Main Card Header */}
-                <div className="p-5 sm:p-6 space-y-4">
+                <div className="p-4 sm:p-6 space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                    <div className="space-y-1">
+                    <div className="space-y-1.5 flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span
                           className={`text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-md border ${
@@ -232,17 +232,25 @@ export const AdminUrgentNeedsPage: React.FC = () => {
                         <span className="text-[10px] font-bold uppercase tracking-wider bg-indigo-50 text-[#7567E8] border border-indigo-200 px-2 py-0.5 rounded-md">
                           {req.category}
                         </span>
-                        <span className="text-xs text-[#6B7280]">ID: {req.id.substring(0, 8)}...</span>
+                        <span className="text-xs text-[#6B7280] font-mono">
+                          ID: {req.id.substring(0, 8)}...
+                        </span>
                       </div>
-                      <h2 className="text-lg font-bold text-[#111827]">{req.title}</h2>
-                      <p className="text-xs text-[#4B5563] line-clamp-2">{req.description}</p>
+                      <h2 className="text-base sm:text-lg font-bold text-[#111827] break-words">
+                        {req.title}
+                      </h2>
+                      <p className="text-xs text-[#4B5563] line-clamp-2 leading-relaxed">
+                        {req.description}
+                      </p>
                     </div>
 
-                    <div className="flex sm:flex-col items-end gap-1.5 shrink-0">
-                      <div className="text-right">
-                        <span className="text-xs text-[#6B7280] font-medium">NGO: </span>
-                        <strong className="text-xs text-[#111827]">{req.ngoName}</strong>
-                        {req.ngoCity && <span className="text-[11px] text-[#6B7280]"> ({req.ngoCity})</span>}
+                    <div className="flex flex-col sm:items-end justify-start gap-1 shrink-0 text-left sm:text-right pt-2 sm:pt-0 border-t sm:border-0 border-[#F3F4F6]">
+                      <div className="text-xs">
+                        <span className="text-[#6B7280] font-medium">NGO: </span>
+                        <strong className="text-[#111827]">{req.ngoName}</strong>
+                        {req.ngoCity && (
+                          <span className="text-[11px] text-[#6B7280]"> ({req.ngoCity})</span>
+                        )}
                       </div>
                       <span className="text-[11px] text-[#9CA3AF]">
                         Created: {formatDate(req.createdAt)}
@@ -256,20 +264,26 @@ export const AdminUrgentNeedsPage: React.FC = () => {
                   </div>
 
                   {/* Fulfillment Metric Bar */}
-                  <div className="bg-[#F9FAFB] p-4 rounded-xl border border-[#E5E7EB] space-y-2">
-                    <div className="flex justify-between items-center text-xs">
-                      <div className="flex items-center gap-4">
-                        <span>
-                          Requested: <strong className="text-[#111827]">{req.requestedQuantity}</strong>
-                        </span>
-                        <span>
-                          Fulfilled: <strong className="text-emerald-700">{req.fulfilledQuantity}</strong>
-                        </span>
-                        <span>
-                          Remaining: <strong className="text-rose-700">{req.remainingQuantity}</strong>
-                        </span>
+                  <div className="bg-[#F9FAFB] p-3.5 sm:p-4 rounded-xl border border-[#E5E7EB] space-y-2">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                      <div className="grid grid-cols-3 gap-2 sm:flex sm:items-center sm:gap-4 text-xs">
+                        <div className="bg-white sm:bg-transparent px-2 py-1 sm:p-0 rounded-md border sm:border-0 border-[#E5E7EB] text-center sm:text-left">
+                          <span className="text-[#6B7280]">Req: </span>
+                          <strong className="text-[#111827]">{req.requestedQuantity}</strong>
+                        </div>
+                        <div className="bg-white sm:bg-transparent px-2 py-1 sm:p-0 rounded-md border sm:border-0 border-[#E5E7EB] text-center sm:text-left">
+                          <span className="text-[#6B7280]">Done: </span>
+                          <strong className="text-emerald-700">{req.fulfilledQuantity}</strong>
+                        </div>
+                        <div className="bg-white sm:bg-transparent px-2 py-1 sm:p-0 rounded-md border sm:border-0 border-[#E5E7EB] text-center sm:text-left">
+                          <span className="text-[#6B7280]">Left: </span>
+                          <strong className="text-rose-700">{req.remainingQuantity}</strong>
+                        </div>
                       </div>
-                      <span className="font-bold text-xs text-[#111827]">{percent}% Fulfilled</span>
+                      <div className="flex items-center justify-between sm:justify-end gap-2 text-xs">
+                        <span className="text-[#6B7280] sm:hidden">Fulfillment:</span>
+                        <span className="font-bold text-[#111827]">{percent}% Fulfilled</span>
+                      </div>
                     </div>
                     <div className="w-full bg-[#E5E7EB] rounded-full h-2 overflow-hidden">
                       <div
@@ -289,7 +303,7 @@ export const AdminUrgentNeedsPage: React.FC = () => {
                     </span>
                     <button
                       onClick={() => toggleExpand(req.id)}
-                      className="inline-flex items-center gap-1 text-xs font-bold text-[#7567E8] hover:text-[#5844e0] px-3 py-1 rounded-lg hover:bg-[#F4F2FA] transition-colors"
+                      className="inline-flex items-center gap-1 text-xs font-bold text-[#7567E8] hover:text-[#5844e0] px-3 py-1.5 rounded-lg hover:bg-[#F4F2FA] transition-colors min-h-[36px]"
                     >
                       {isExpanded ? (
                         <>Hide Donations <ChevronUp className="w-4 h-4" /></>
@@ -302,7 +316,7 @@ export const AdminUrgentNeedsPage: React.FC = () => {
 
                 {/* Collapsible Donations Sub-Table */}
                 {isExpanded && (
-                  <div className="bg-[#FAF8F5] border-t border-[#E5E7EB] p-5 space-y-3">
+                  <div className="bg-[#FAF8F5] border-t border-[#E5E7EB] p-3.5 sm:p-5 space-y-3">
                     <h4 className="text-xs font-bold text-[#111827] uppercase tracking-wider">
                       Fulfillment Donations Log
                     </h4>
@@ -316,27 +330,40 @@ export const AdminUrgentNeedsPage: React.FC = () => {
                         {req.associatedDonations.map((d) => (
                           <div
                             key={d.donationId}
-                            className="bg-white p-4 rounded-xl border border-[#E5E7EB] flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-xs"
+                            className="bg-white p-3.5 sm:p-4 rounded-xl border border-[#E5E7EB] space-y-2.5 shadow-xs"
                           >
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-[#111827]">
-                                  {d.donorName}
-                                </span>
-                                {d.donorEmail && (
-                                  <span className="text-[11px] text-[#6B7280]">({d.donorEmail})</span>
-                                )}
-                                <span className="text-[10px] font-bold bg-[#F3F4F6] text-[#374151] px-2 py-0.5 rounded border border-[#E5E7EB]">
-                                  Qty: {d.quantity}
-                                </span>
+                            {/* Top Row: Donor Name + Qty Badge */}
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-xs sm:text-sm font-bold text-[#111827]">
+                                    {d.donorName}
+                                  </span>
+                                  {d.donorEmail && (
+                                    <span className="text-[11px] text-[#6B7280] truncate max-w-[200px] sm:max-w-none">
+                                      ({d.donorEmail})
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mt-1 text-[11px] text-[#6B7280]">
+                                  <span className="font-mono bg-[#F9FAFB] px-1.5 py-0.5 rounded border border-[#E5E7EB] w-fit">
+                                    ID: {d.donationId.substring(0, 8)}...
+                                  </span>
+                                  {d.pickupAddress && (
+                                    <span className="flex items-start gap-1 break-words line-clamp-2 text-[#4B5563]">
+                                      <MapPin className="w-3.5 h-3.5 text-[#9CA3AF] shrink-0 mt-0.5" />
+                                      <span>{d.pickupAddress}</span>
+                                    </span>
+                                  )}
+                                </div>
                               </div>
-                              <div className="flex items-center gap-2 text-[11px] text-[#6B7280]">
-                                <span>Donation ID: {d.donationId.substring(0, 8)}...</span>
-                                {d.pickupAddress && <span>• 📍 {d.pickupAddress}</span>}
-                              </div>
+                              <span className="shrink-0 text-[11px] font-bold bg-[#F3F4F6] text-[#374151] px-2.5 py-1 rounded-lg border border-[#E5E7EB]">
+                                Qty: {d.quantity}
+                              </span>
                             </div>
 
-                            <div className="flex flex-wrap items-center gap-2">
+                            {/* Status Badges Row */}
+                            <div className="pt-2 border-t border-[#F3F4F6] flex flex-wrap items-center gap-1.5 sm:gap-2">
                               {/* Donation Status */}
                               <span
                                 className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${
@@ -353,16 +380,19 @@ export const AdminUrgentNeedsPage: React.FC = () => {
                               {/* Delivery Status */}
                               {d.deliveryStatus ? (
                                 <span className="text-[10px] font-bold uppercase tracking-wider bg-indigo-50 text-[#7567E8] border border-indigo-200 px-2 py-0.5 rounded flex items-center gap-1">
-                                  <Truck className="w-3 h-3" />
+                                  <Truck className="w-3 h-3 shrink-0" />
                                   {d.deliveryStatus}
                                 </span>
                               ) : (
-                                <span className="text-[10px] text-[#9CA3AF]">No courier assigned</span>
+                                <span className="text-[10px] text-[#9CA3AF] bg-[#F9FAFB] px-2 py-0.5 rounded border border-[#E5E7EB]">
+                                  No courier assigned
+                                </span>
                               )}
 
                               {/* Verified indicator */}
                               {d.deliveredAt && (
-                                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-1">
+                                  <CheckCircle2 className="w-3 h-3 shrink-0" />
                                   Verified OTP: {formatDate(d.deliveredAt)}
                                 </span>
                               )}

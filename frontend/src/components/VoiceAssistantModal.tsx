@@ -110,8 +110,8 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({ onClos
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white border border-[#E5E7EB] rounded-3xl max-w-md w-full p-6 text-center space-y-6 relative shadow-2xl text-[#111827]">
+    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+      <div className="bg-white border border-[#E5E7EB] rounded-3xl max-w-md w-full max-h-[90dvh] overflow-y-auto p-5 sm:p-6 text-center space-y-6 relative shadow-2xl text-[#111827]">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-1.5 rounded-lg bg-[#F3F4F6] text-[#4B5563] hover:text-[#111827] transition-colors"

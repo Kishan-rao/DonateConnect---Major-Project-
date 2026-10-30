@@ -19,8 +19,8 @@ export const DonationReceiptModal: React.FC<DonationReceiptModalProps> = ({ dona
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white border border-[#E5E7EB] rounded-3xl max-w-2xl w-full p-8 relative shadow-2xl space-y-6 text-[#111827]">
+    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+      <div className="bg-white border border-[#E5E7EB] rounded-3xl max-w-2xl w-full max-h-[90dvh] overflow-y-auto p-5 sm:p-8 relative shadow-2xl space-y-6 text-[#111827]">
         {/* Printable Section */}
         <div id="printable-receipt" className="space-y-6">
           {/* Receipt Header */}
