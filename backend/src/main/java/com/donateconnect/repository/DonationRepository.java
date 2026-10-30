@@ -42,6 +42,15 @@ public interface DonationRepository extends JpaRepository<Donation, UUID>, JpaSp
     boolean existsByDonorIdAndStatusIn(UUID donorId, List<DonationStatus> statuses);
     boolean existsByNgoIdAndStatusIn(UUID ngoId, List<DonationStatus> statuses);
 
+    @EntityGraph(attributePaths = {"donor", "ngo"})
+    List<Donation> findByUrgentNeedIdOrderByCreatedAtDesc(UUID urgentNeedId);
+
+    @Query("SELECT COALESCE(SUM(COALESCE(d.quantity, 1)), 0) FROM Donation d WHERE d.urgentNeed.id = :urgentNeedId AND d.status = :status")
+    int sumQuantityByUrgentNeedIdAndStatus(
+            @org.springframework.data.repository.query.Param("urgentNeedId") UUID urgentNeedId,
+            @org.springframework.data.repository.query.Param("status") DonationStatus status
+    );
+
     /**
      * Find ACCEPTED donations that have NOT been claimed by any volunteer yet.
      * Used for the volunteer "available pickups" endpoint.

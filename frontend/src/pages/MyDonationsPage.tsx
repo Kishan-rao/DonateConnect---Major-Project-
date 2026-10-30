@@ -313,10 +313,17 @@ export const MyDonationsPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="py-4 px-4 whitespace-nowrap">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#7567E8]/10 text-[#7567E8] border border-[#7567E8]/20">
-                        <Tag className="w-3 h-3" />
-                        {donation.category}
-                      </span>
+                      <div className="flex flex-col gap-1 items-start">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#7567E8]/10 text-[#7567E8] border border-[#7567E8]/20">
+                          <Tag className="w-3 h-3" />
+                          {donation.category}
+                        </span>
+                        {donation.urgentNeedId && (
+                          <span className="text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
+                            🚨 Urgent Appeal {donation.quantity ? `(${donation.quantity} units)` : ''}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-4 px-4 text-xs max-w-xs break-words line-clamp-2 text-[#4B5563]">
                       {donation.description || 'No description provided.'}
@@ -400,10 +407,17 @@ export const MyDonationsPage: React.FC = () => {
                 className="border border-[#E5E7EB] rounded-2xl p-5 space-y-4 bg-white shadow-[0_10px_15px_-3px_rgba(17,24,39,0.04)]"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full border flex items-center gap-1 bg-[#7567E8]/10 text-[#7567E8] border-[#7567E8]/20">
-                    <Tag className="w-3 h-3" />
-                    {donation.category}
-                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full border flex items-center gap-1 bg-[#7567E8]/10 text-[#7567E8] border-[#7567E8]/20">
+                      <Tag className="w-3 h-3" />
+                      {donation.category}
+                    </span>
+                    {donation.urgentNeedId && (
+                      <span className="text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-md">
+                        🚨 Urgent {donation.quantity ? `(${donation.quantity})` : ''}
+                      </span>
+                    )}
+                  </div>
                   <span
                     className={`text-[11px] font-bold tracking-wider px-2.5 py-0.5 rounded border ${getStatusBadgeStyle(
                       donation.status

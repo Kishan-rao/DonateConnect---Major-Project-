@@ -36,12 +36,24 @@ public class NgoUrgentNeed {
     @Column(nullable = false, length = 30)
     private Category category;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    @Builder.Default
+    private UrgentNeedStatus status = UrgentNeedStatus.ACTIVE;
+
     @Builder.Default
     @Column(nullable = false)
     private boolean active = true;
 
     @Column(name = "quantity")
     private Integer quantity;
+
+    @Column(name = "fulfilled_quantity")
+    @Builder.Default
+    private Integer fulfilledQuantity = 0;
+
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

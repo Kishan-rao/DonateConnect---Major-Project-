@@ -1,5 +1,6 @@
 package com.donateconnect.service;
 
+import com.donateconnect.dto.AdminUrgentNeedTrackingDto;
 import com.donateconnect.dto.CreateUrgentNeedRequest;
 import com.donateconnect.dto.NgoUrgentNeedDto;
 
@@ -11,4 +12,6 @@ public interface NgoUrgentNeedService {
     List<NgoUrgentNeedDto> getUrgentNeedsByNgoUser(UUID ngoUserId);
     NgoUrgentNeedDto createUrgentNeed(UUID ngoUserId, CreateUrgentNeedRequest request);
     NgoUrgentNeedDto toggleUrgentNeed(UUID ngoUserId, UUID urgentNeedId);
+    List<AdminUrgentNeedTrackingDto> getAllUrgentNeedsForAdmin();
+    void updateFulfilmentProgress(UUID urgentNeedId);
 }

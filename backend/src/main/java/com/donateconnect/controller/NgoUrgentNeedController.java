@@ -31,6 +31,7 @@ public class NgoUrgentNeedController {
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<NgoUrgentNeedDto>>> getOwnUrgentNeeds(Authentication authentication) {
         UUID ngoUserId = getUserIdFromAuth(authentication);
         List<NgoUrgentNeedDto> needs = urgentNeedService.getUrgentNeedsByNgoUser(ngoUserId);

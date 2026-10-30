@@ -36,6 +36,13 @@ public class Donation {
     @JoinColumn(name = "ngo_id", nullable = false)
     private NGOProfile ngo;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "urgent_need_id")
+    private NgoUrgentNeed urgentNeed;
+
+    @Column(name = "quantity")
+    private Integer quantity;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private Category category;

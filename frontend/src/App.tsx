@@ -25,6 +25,7 @@ import { AdminNgosPage } from './pages/AdminNgosPage';
 import { AdminDonationsPage } from './pages/AdminDonationsPage';
 import { AdminProfilePage } from './pages/AdminProfilePage';
 import { AdminAuditLogPage } from './pages/AdminAuditLogPage';
+import { AdminUrgentNeedsPage } from './pages/AdminUrgentNeedsPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { DonorProfilePage } from './pages/DonorProfilePage';
@@ -122,6 +123,7 @@ const AppContent: React.FC<{ apiConfigError: Error | null }> = ({ apiConfigError
             <Route path="/admin/profile" element={<AdminProfilePage />} />
             <Route path="/admin/ngos" element={<AdminNgosPage />} />
             <Route path="/admin/donations" element={<AdminDonationsPage />} />
+            <Route path="/admin/urgent-needs" element={<AdminUrgentNeedsPage />} />
             <Route path="/admin/audit" element={<AdminAuditLogPage />} />
           </Route>
         </Routes>

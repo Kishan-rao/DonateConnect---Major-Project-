@@ -26,6 +26,7 @@ import {
   Settings,
   LogOut,
   FileText,
+  AlertCircle,
 } from 'lucide-react';
 import { HealthBadge } from './HealthBadge';
 import { NotificationBell } from './NotificationBell';
@@ -246,9 +247,14 @@ export const Navbar: React.FC = () => {
                 </Link>
               )}
               {isAdmin && (
-                <Link to="/admin" className={navLinkClass('/admin')}>
-                  <Shield className="w-3.5 h-3.5" /> Admin
-                </Link>
+                <>
+                  <Link to="/admin" className={navLinkClass('/admin')}>
+                    <Shield className="w-3.5 h-3.5" /> Admin
+                  </Link>
+                  <Link to="/admin/urgent-needs" className={navLinkClass('/admin/urgent-needs')}>
+                    <AlertCircle className="w-3.5 h-3.5 text-rose-500" /> Urgent Needs
+                  </Link>
+                </>
               )}
             </nav>
 
@@ -481,6 +487,9 @@ export const Navbar: React.FC = () => {
                       <>
                         <Link to="/admin" className={drawerLinkClass('/admin')}>
                           <Shield className="w-4 h-4 text-[#7567E8]" /> Admin Overview
+                        </Link>
+                        <Link to="/admin/urgent-needs" className={drawerLinkClass('/admin/urgent-needs')}>
+                          <AlertCircle className="w-4 h-4 text-rose-500" /> Urgent Requirements
                         </Link>
                         <Link to="/admin/ngos" className={drawerLinkClass('/admin/ngos')}>
                           <Building2 className="w-4 h-4 text-[#7567E8]" /> Manage NGO Partners

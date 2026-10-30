@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getAdminStats, getPendingUsers, approveUser } from '../api/adminApi';
 import { AdminStats, User } from '../types';
-import { Shield, Building2, PackageCheck, Clock, CheckCircle2, RefreshCw, ArrowRight, Layers, UserCheck, Download, BarChart2, TrendingUp, PieChart as PieChartIcon, MapPin } from 'lucide-react';
+import { Shield, Building2, PackageCheck, Clock, CheckCircle2, RefreshCw, ArrowRight, Layers, UserCheck, Download, BarChart2, TrendingUp, PieChart as PieChartIcon, MapPin, AlertCircle } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell
@@ -139,7 +139,14 @@ export const AdminOverviewPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3 self-start md:self-auto">
+        <div className="flex items-center gap-3 self-start md:self-auto flex-wrap">
+          <Link
+            to="/admin/urgent-needs"
+            className="p-2.5 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 transition-colors border border-rose-200 flex items-center gap-2 text-xs font-semibold shadow-xs"
+          >
+            <AlertCircle className="w-4 h-4 text-rose-600" />
+            Urgent Requirements
+          </Link>
           <button
             onClick={downloadCSV}
             disabled={loading || !stats}

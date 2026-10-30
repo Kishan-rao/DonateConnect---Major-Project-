@@ -246,19 +246,36 @@ public class NGOServiceImpl implements NGOService {
                 .verified(ngo.isVerified())
                 .averageRating(ngo.getAverageRating())
                 .ratingCount(ngo.getRatingCount())
-                .urgentNeeds(ngo.getUrgentNeeds() != null ? ngo.getUrgentNeeds().stream()
-                        .filter(NgoUrgentNeed::isActive)
-                        .map(n -> NgoUrgentNeedDto.builder()
-                                .id(n.getId())
-                                .title(n.getTitle())
-                                .description(n.getDescription())
-                                .category(n.getCategory())
-                                .quantity(n.getQuantity())
-                                .active(n.isActive())
-                                .createdAt(n.getCreatedAt())
-                                .build())
+                .urgentNeeds(shouldIncludeUrgentNeeds() && ngo.getUrgentNeeds() != null ? ngo.getUrgentNeeds().stream()
+                        .filter(n -> n.isActive() && n.getStatus() == com.donateconnect.entity.UrgentNeedStatus.ACTIVE)
+                        .map(n -> {
+                            int reqQty = n.getQuantity() != null ? n.getQuantity() : 0;
+                            int fulQty = n.getFulfilledQuantity() != null ? n.getFulfilledQuantity() : 0;
+                            int remQty = Math.max(0, reqQty - fulQty);
+                            return NgoUrgentNeedDto.builder()
+                                    .id(n.getId())
+                                    .title(n.getTitle())
+                                    .description(n.getDescription())
+                                    .category(n.getCategory())
+                                    .quantity(reqQty)
+                                    .fulfilledQuantity(fulQty)
+                                    .remainingQuantity(remQty)
+                                    .status(n.getStatus())
+                                    .active(n.isActive())
+                                    .createdAt(n.getCreatedAt())
+                                    .completedAt(n.getCompletedAt())
+                                    .build();
+                        })
                         .collect(Collectors.toList()) : new java.util.ArrayList<>())
                 .createdAt(ngo.getCreatedAt())
                 .build();
+    }
+
+    private boolean shouldIncludeUrgentNeeds() {
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) return false;
+        return auth.getAuthorities().stream().noneMatch(a ->
+                a.getAuthority().equals("ROLE_NGO") || a.getAuthority().equals("ROLE_VOLUNTEER")
+        );
     }
 }

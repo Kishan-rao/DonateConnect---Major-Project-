@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { getOwnNgoProfile, updateOwnNgoProfile, getOwnUrgentNeeds, createUrgentNeed, toggleUrgentNeed } from '../api/ngoApi';
-import { NGOProfile, UpdateNgoProfileDto, NgoUrgentNeed, CreateUrgentNeedRequest, Category } from '../types';
-import { Building2, ShieldCheck, MapPin, Phone, Save, CheckCircle2, Plus, AlertCircle } from 'lucide-react';
+import { getOwnNgoProfile, updateOwnNgoProfile, createUrgentNeed } from '../api/ngoApi';
+import { NGOProfile, UpdateNgoProfileDto, CreateUrgentNeedRequest, Category } from '../types';
+import { Building2, ShieldCheck, MapPin, Phone, Save, CheckCircle2, Plus, AlertCircle, Info } from 'lucide-react';
 import { formatDate } from '../utils/formatters';
 
 const CATEGORIES: Category[] = ['FOOD', 'CLOTHES', 'BOOKS', 'STATIONERY', 'TOYS', 'OTHER'];
@@ -14,7 +14,6 @@ export const NgoProfilePage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const [urgentNeeds, setUrgentNeeds] = useState<NgoUrgentNeed[]>([]);
   const [newNeedTitle, setNewNeedTitle] = useState('');
   const [newNeedDesc, setNewNeedDesc] = useState('');
   const [newNeedCategory, setNewNeedCategory] = useState<Category>('FOOD');
@@ -45,18 +44,8 @@ export const NgoProfilePage: React.FC = () => {
     }
   };
 
-  const fetchUrgentNeeds = async () => {
-    try {
-      const needs = await getOwnUrgentNeeds();
-      setUrgentNeeds(needs);
-    } catch (err) {
-      console.error("Failed to load urgent needs", err);
-    }
-  };
-
   useEffect(() => {
     fetchProfile();
-    fetchUrgentNeeds();
   }, []);
 
   const onSubmit = async (data: UpdateNgoProfileDto) => {
@@ -80,6 +69,7 @@ export const NgoProfilePage: React.FC = () => {
     if (!newNeedTitle) return;
     
     setAddingNeed(true);
+    setError(null);
     try {
       const dto: CreateUrgentNeedRequest = {
         title: newNeedTitle,
@@ -87,24 +77,16 @@ export const NgoProfilePage: React.FC = () => {
         category: newNeedCategory,
         quantity: newNeedQty ? parseInt(newNeedQty, 10) : undefined
       };
-      const created = await createUrgentNeed(dto);
-      setUrgentNeeds([created, ...urgentNeeds]);
+      await createUrgentNeed(dto);
       setNewNeedTitle('');
       setNewNeedDesc('');
       setNewNeedQty('');
+      setSuccessMessage('Urgent donation requirement published successfully! Active requirements are published directly to Donors and Administrators.');
+      setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err: any) {
-      setError(err.message || 'Failed to add need');
+      setError(err.message || 'Failed to publish urgent requirement');
     } finally {
       setAddingNeed(false);
-    }
-  };
-
-  const handleToggleNeed = async (id: string) => {
-    try {
-      const updated = await toggleUrgentNeed(id);
-      setUrgentNeeds(urgentNeeds.map(n => n.id === id ? updated : n));
-    } catch (err: any) {
-      setError(err.message || 'Failed to toggle need');
     }
   };
 
@@ -239,25 +221,34 @@ export const NgoProfilePage: React.FC = () => {
         </form>
       </div>
 
-      {/* Urgent Needs Management Section */}
+      {/* Publish Urgent Needs Section */}
       <div className="bg-white border border-[#E5E7EB] rounded-3xl p-6 sm:p-10 shadow-sm space-y-6">
-        <h2 className="text-xl font-bold text-[#111827] flex items-center gap-2">
-          <AlertCircle className="w-5 h-5 text-rose-500" />
-          Manage Urgent Needs
-        </h2>
-        <p className="text-sm text-[#4B5563]">
-          List items you currently need right now. These will be highlighted to donors searching in your area.
-        </p>
+        <div>
+          <h2 className="text-xl font-bold text-[#111827] flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-rose-500" />
+            Publish Urgent Donation Requirement
+          </h2>
+          <p className="text-sm text-[#4B5563] mt-1">
+            Specify critical relief items and quantities needed immediately. Published requirements are broadcasted across the donor portal and monitored by administrators until fulfilled.
+          </p>
+        </div>
 
-        <form onSubmit={handleAddNeed} className="bg-[#F9FAFB] p-4 rounded-xl border border-[#E5E7EB] flex flex-col md:flex-row gap-4">
+        <form onSubmit={handleAddNeed} className="bg-[#F9FAFB] p-5 rounded-2xl border border-[#E5E7EB] flex flex-col md:flex-row gap-4">
           <div className="flex-1 space-y-3">
             <input
               type="text"
-              placeholder="What do you need? (e.g., Blankets, Rice)"
+              placeholder="What do you urgently need? (e.g., 100 Blankets, 50 kg Rice)"
               value={newNeedTitle}
               onChange={e => setNewNeedTitle(e.target.value)}
               className="w-full bg-white border border-[#E5E7EB] rounded-xl px-3 py-2 text-sm text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#7567E8]"
               required
+            />
+            <input
+              type="text"
+              placeholder="Detailed description / notes (optional)"
+              value={newNeedDesc}
+              onChange={e => setNewNeedDesc(e.target.value)}
+              className="w-full bg-white border border-[#E5E7EB] rounded-xl px-3 py-2 text-xs text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#7567E8]"
             />
             <div className="flex gap-3">
               <select
@@ -269,54 +260,29 @@ export const NgoProfilePage: React.FC = () => {
               </select>
               <input
                 type="number"
-                placeholder="Qty (optional)"
+                min="1"
+                placeholder="Requested Qty"
                 value={newNeedQty}
                 onChange={e => setNewNeedQty(e.target.value)}
-                className="w-32 bg-white border border-[#E5E7EB] rounded-xl px-3 py-2 text-sm text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#7567E8]"
+                className="w-36 bg-white border border-[#E5E7EB] rounded-xl px-3 py-2 text-sm text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#7567E8]"
+                required
               />
             </div>
           </div>
           <button
             type="submit"
             disabled={addingNeed || !newNeedTitle}
-            className="md:self-start px-4 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold transition-all shadow-xs flex items-center gap-2 disabled:opacity-50"
+            className="md:self-start px-5 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold transition-all shadow-xs flex items-center gap-2 disabled:opacity-50 shrink-0"
           >
-            {addingNeed ? 'Adding...' : <><Plus className="w-4 h-4" /> Add Need</>}
+            {addingNeed ? 'Publishing...' : <><Plus className="w-4 h-4" /> Publish Requirement</>}
           </button>
         </form>
 
-        <div className="space-y-3">
-          {urgentNeeds.length === 0 ? (
-            <div className="text-center py-6 text-[#6B7280] text-sm border border-dashed border-[#E5E7EB] rounded-xl">
-              No urgent needs listed.
-            </div>
-          ) : (
-            urgentNeeds.map(need => (
-              <div key={need.id} className={`flex items-center justify-between p-4 rounded-xl border ${need.active ? 'bg-rose-50/50 border-rose-200' : 'bg-gray-50 border-[#E5E7EB] opacity-60'}`}>
-                <div>
-                  <h4 className="text-sm font-bold text-[#111827] flex items-center gap-2">
-                    {need.title}
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-white text-[#4B5563] border border-[#E5E7EB]">
-                      {need.category}
-                    </span>
-                  </h4>
-                  <p className="text-xs text-[#6B7280] mt-1">
-                    Added: {formatDate(need.createdAt)} {need.quantity ? `• Qty: ${need.quantity}` : ''}
-                  </p>
-                </div>
-                <button
-                  onClick={() => handleToggleNeed(need.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
-                    need.active 
-                    ? 'bg-rose-100 text-rose-700 border-rose-200 hover:bg-rose-200'
-                    : 'bg-white text-[#4B5563] border-[#E5E7EB] hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200'
-                  }`}
-                >
-                  {need.active ? 'Deactivate' : 'Reactivate'}
-                </button>
-              </div>
-            ))
-          )}
+        <div className="flex items-start gap-3 p-4 rounded-2xl bg-amber-50/70 border border-amber-200 text-amber-800 text-xs leading-relaxed">
+          <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+          <p>
+            <strong>Note on Urgent Requirements:</strong> Once published, requirements appear in the Donor Portal and Admin Monitoring Dashboard. Donors donate directly toward the required quantity through the standard verified delivery and OTP receipt workflow.
+          </p>
         </div>
       </div>
     </div>

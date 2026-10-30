@@ -144,6 +144,8 @@ export interface Donation {
   id: string;
   donor: User;
   ngo: NGOProfile;
+  urgentNeedId?: string;
+  quantity?: number;
   category: Category;
   description?: string;
   photoUrls: string[];
@@ -159,6 +161,8 @@ export interface Donation {
 
 export interface CreateDonationRequest {
   ngoId: string;
+  urgentNeedId?: string;
+  quantity?: number;
   category: Category;
   description?: string;
   photoUrls?: string[];
@@ -235,12 +239,53 @@ export interface NgoUrgentNeed {
   ngoId?: string;
   ngoName?: string;
   ngoCity?: string;
+  ngoVerified?: boolean;
   title: string;
   description: string;
   category: Category;
   quantity?: number;
+  fulfilledQuantity?: number;
+  remainingQuantity?: number;
+  status?: 'ACTIVE' | 'COMPLETED';
   active: boolean;
   createdAt: string;
+  completedAt?: string;
+}
+
+export interface UrgentNeedDonationTracking {
+  donationId: string;
+  donorId?: string;
+  donorName: string;
+  donorEmail: string;
+  quantity: number;
+  donationStatus: DonationStatus;
+  deliveryStatus?: DeliveryStatus;
+  pickupAddress?: string;
+  pickupDate?: string;
+  pickupTimeSlot?: string;
+  assignedAt?: string;
+  pickedUpAt?: string;
+  deliveredAt?: string;
+  createdAt: string;
+}
+
+export interface AdminUrgentNeedTracking {
+  id: string;
+  ngoId?: string;
+  ngoName: string;
+  ngoCity?: string;
+  ngoVerified?: boolean;
+  title: string;
+  description: string;
+  category: Category;
+  requestedQuantity: number;
+  fulfilledQuantity: number;
+  remainingQuantity: number;
+  status: 'ACTIVE' | 'COMPLETED';
+  active: boolean;
+  createdAt: string;
+  completedAt?: string;
+  associatedDonations: UrgentNeedDonationTracking[];
 }
 
 export interface CreateUrgentNeedRequest {

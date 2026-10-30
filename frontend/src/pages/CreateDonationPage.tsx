@@ -56,6 +56,11 @@ export const CreateDonationPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const preselectedNgoId = searchParams.get('ngoId') || '';
+  const urgentNeedId = searchParams.get('urgentNeedId') || '';
+  const urgentItem = searchParams.get('item') || '';
+  const urgentCategory = searchParams.get('category') || '';
+  const urgentRemaining = searchParams.get('remaining') ? parseInt(searchParams.get('remaining')!, 10) : undefined;
+
   const { showSuccess, showError } = useToast();
 
   const [ngos, setNgos] = useState<NGOProfile[]>([]);
@@ -97,7 +102,9 @@ export const CreateDonationPage: React.FC = () => {
   } = useForm<CreateDonationRequest>({
     defaultValues: {
       ngoId: preselectedNgoId,
-      category: 'CLOTHES',
+      urgentNeedId: urgentNeedId || undefined,
+      category: (urgentCategory as any) || 'CLOTHES',
+      quantity: urgentNeedId ? 1 : undefined,
     },
   });
 
@@ -306,6 +313,8 @@ export const CreateDonationPage: React.FC = () => {
     try {
       await createDonation({
         ...data,
+        urgentNeedId: urgentNeedId || data.urgentNeedId || undefined,
+        quantity: data.quantity ? Number(data.quantity) : (urgentNeedId ? 1 : undefined),
         description: data.description?.trim(),
         photoUrls: photos.map((p) => p.serverUrl),
         pickupLat: mapPosition.lat,
@@ -348,6 +357,28 @@ export const CreateDonationPage: React.FC = () => {
         {serverError && (
           <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm">
             {serverError}
+          </div>
+        )}
+
+        {/* Urgent Requirement Banner */}
+        {urgentNeedId && (
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-rose-50 via-amber-50 to-purple-50 border border-rose-200 space-y-1.5 shadow-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider bg-rose-600 text-white px-2 py-0.5 rounded">
+                🚨 Fulfilling Urgent Appeal
+              </span>
+              <span className="text-xs font-bold text-rose-900 truncate">
+                {urgentItem || 'Critical NGO Need'}
+              </span>
+            </div>
+            <p className="text-xs text-[#4B5563]">
+              {urgentRemaining ? (
+                <>Remaining quantity needed: <strong className="text-rose-700">{urgentRemaining} units</strong>.</>
+              ) : (
+                <>Urgent requirement active.</>
+              )}{' '}
+              Please specify the quantity you are contributing below.
+            </p>
           </div>
         )}
 
@@ -443,6 +474,39 @@ export const CreateDonationPage: React.FC = () => {
                 <p className="text-rose-600 text-xs mt-1">{errors.pickupTimeSlot.message}</p>
               )}
             </div>
+          </div>
+
+          {/* Donation Quantity (Required for urgent requirements, optional for standard donations) */}
+          <div>
+            <label htmlFor="quantity-input" className="block text-xs font-semibold text-[#374151] uppercase tracking-wider mb-2">
+              Quantity {urgentNeedId ? '* (Units)' : '(Optional Units)'}
+            </label>
+            <input
+              id="quantity-input"
+              type="number"
+              min="1"
+              max={urgentRemaining || undefined}
+              placeholder={urgentNeedId ? `Enter quantity (1 - ${urgentRemaining || 'remaining'})` : 'e.g. 10'}
+              {...register('quantity', {
+                required: urgentNeedId ? 'Quantity is required for urgent requirements' : false,
+                min: { value: 1, message: 'Quantity must be at least 1' },
+                validate: (val) => {
+                  if (urgentNeedId && urgentRemaining && val && Number(val) > urgentRemaining) {
+                    return `Quantity cannot exceed remaining requested (${urgentRemaining})`;
+                  }
+                  return true;
+                },
+              })}
+              className="w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-4 py-2.5 text-sm text-[#111827] focus:outline-none focus:border-[#7567E8] transition-colors"
+            />
+            {errors.quantity && (
+              <p className="text-rose-600 text-xs mt-1">{errors.quantity.message}</p>
+            )}
+            {urgentNeedId && urgentRemaining && (
+              <p className="text-[11px] text-[#6B7280] mt-1">
+                Max available for this requirement: {urgentRemaining} units
+              </p>
+            )}
           </div>
 
           {/* Pickup Address & Location */}

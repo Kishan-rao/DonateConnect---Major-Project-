@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import { ApiResponse, CreateNgoRequest, CreateRatingRequest, CreateUrgentNeedRequest, ImpactMetrics, NGOProfile, NgoRating, NgoUrgentNeed, PageResponse, UpdateNgoProfileDto } from '../types';
+import { ApiResponse, CreateNgoRequest, CreateRatingRequest, CreateUrgentNeedRequest, ImpactMetrics, NGOProfile, NgoRating, NgoUrgentNeed, AdminUrgentNeedTracking, PageResponse, UpdateNgoProfileDto } from '../types';
 
 // Public / Donor APIs
 export const getVerifiedNgos = async (params?: {
@@ -111,4 +111,10 @@ export const verifyNgoByAdmin = async (id: string, verified: boolean): Promise<N
 
 export const deleteNgoByAdmin = async (id: string): Promise<void> => {
   await apiClient.delete(`/admin/ngo/${id}`);
+};
+
+export const getAdminUrgentNeeds = async (): Promise<AdminUrgentNeedTracking[]> => {
+  const response = await apiClient.get<ApiResponse<AdminUrgentNeedTracking[]>>('/admin/urgent-needs');
+  const data = response.data?.data;
+  return Array.isArray(data) ? data : [];
 };

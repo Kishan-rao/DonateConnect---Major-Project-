@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { getVerifiedNgos } from '../api/ngoApi';
 import { NGOProfile } from '../types';
 import { Building2, Search, ShieldCheck, MapPin, Phone, ArrowRight, HeartHandshake, Filter, Navigation, Compass, Star } from 'lucide-react';
@@ -10,6 +11,10 @@ const CATEGORIES = [
 
 export const NgoListPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const normalizedRole = user?.role ? (user.role as string).replace(/^ROLE_/, '').toUpperCase() : null;
+  const canViewUrgentNeeds = normalizedRole !== 'NGO' && normalizedRole !== 'VOLUNTEER';
+
   const [ngos, setNgos] = useState<NGOProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -200,7 +205,7 @@ export const NgoListPage: React.FC = () => {
                   {ngo.description || 'Verified non-profit partner committed to community support.'}
                 </p>
 
-                {ngo.urgentNeeds && ngo.urgentNeeds.length > 0 && (
+                {canViewUrgentNeeds && ngo.urgentNeeds && ngo.urgentNeeds.length > 0 && (
                   <div className="mb-4 space-y-2">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600">Urgent Needs:</span>
                     <div className="flex flex-wrap gap-2">

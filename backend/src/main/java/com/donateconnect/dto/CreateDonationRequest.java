@@ -43,4 +43,8 @@ public class CreateDonationRequest {
     
     @NotNull(message = "Pickup longitude is required")
     private Double pickupLng;
+
+    private UUID urgentNeedId;
+
+    private Integer quantity;
 }

@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 public class DeliveryServiceImpl implements DeliveryService {
 
     private static final long MAX_PROOF_IMAGE_SIZE = 10 * 1024 * 1024;
@@ -40,6 +39,37 @@ public class DeliveryServiceImpl implements DeliveryService {
     private final com.donateconnect.service.StorageService storageService;
     private final com.donateconnect.service.NotificationService notificationService;
     private final StatusHistoryRepository statusHistoryRepository;
+    private final com.donateconnect.service.NgoUrgentNeedService urgentNeedService;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public DeliveryServiceImpl(
+            DeliveryRepository deliveryRepository,
+            DonationRepository donationRepository,
+            VolunteerTaskRepository volunteerTaskRepository,
+            com.donateconnect.service.StorageService storageService,
+            com.donateconnect.service.NotificationService notificationService,
+            StatusHistoryRepository statusHistoryRepository,
+            com.donateconnect.service.NgoUrgentNeedService urgentNeedService
+    ) {
+        this.deliveryRepository = deliveryRepository;
+        this.donationRepository = donationRepository;
+        this.volunteerTaskRepository = volunteerTaskRepository;
+        this.storageService = storageService;
+        this.notificationService = notificationService;
+        this.statusHistoryRepository = statusHistoryRepository;
+        this.urgentNeedService = urgentNeedService;
+    }
+
+    public DeliveryServiceImpl(
+            DeliveryRepository deliveryRepository,
+            DonationRepository donationRepository,
+            VolunteerTaskRepository volunteerTaskRepository,
+            com.donateconnect.service.StorageService storageService,
+            com.donateconnect.service.NotificationService notificationService,
+            StatusHistoryRepository statusHistoryRepository
+    ) {
+        this(deliveryRepository, donationRepository, volunteerTaskRepository, storageService, notificationService, statusHistoryRepository, null);
+    }
 
     @Override
     @Transactional
@@ -214,6 +244,11 @@ public class DeliveryServiceImpl implements DeliveryService {
 
         // Send notifications
         notifyStatusChange(delivery, DeliveryStatus.DELIVERED);
+
+        // Update urgent requirement fulfilment if applicable
+        if (donation.getUrgentNeed() != null && urgentNeedService != null) {
+            urgentNeedService.updateFulfilmentProgress(donation.getUrgentNeed().getId());
+        }
 
         return mapToDto(deliveryRepository.save(delivery));
     }

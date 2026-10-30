@@ -209,6 +209,9 @@ public class DataInitializer implements CommandLineRunner {
                 .title("Urgent Appeal: 200 Woolen Blankets & Tarpaulins for Himachal Hill Shelter Drive")
                 .description("Severe winter frost has affected elderly residents in Himachal shelters. We urgently need thermal blankets, shawls, and tarps.")
                 .category(Category.CLOTHES)
+                .quantity(200)
+                .fulfilledQuantity(0)
+                .status(com.donateconnect.entity.UrgentNeedStatus.ACTIVE)
                 .active(true)
                 .build());
 
@@ -217,6 +220,9 @@ public class DataInitializer implements CommandLineRunner {
                 .title("Emergency Relief Drive: Basmati Rice, Wheat Flour & Lentils Needed for Wayanad Relief Camps")
                 .description("Our community kitchens are preparing 5,000 daily hot meals for flood displaced families. Contributions of staple grains requested urgently.")
                 .category(Category.FOOD)
+                .quantity(500)
+                .fulfilledQuantity(0)
+                .status(com.donateconnect.entity.UrgentNeedStatus.ACTIVE)
                 .active(true)
                 .build());
 

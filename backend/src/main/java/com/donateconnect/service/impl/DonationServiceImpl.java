@@ -38,6 +38,7 @@ public class DonationServiceImpl implements DonationService {
     private final NotificationService notificationService;
     private final GeocodingService geocodingService;
     private final DeliveryRepository deliveryRepository;
+    private final com.donateconnect.repository.NgoUrgentNeedRepository urgentNeedRepository;
 
     @Override
     @Transactional
@@ -57,9 +58,39 @@ public class DonationServiceImpl implements DonationService {
             throw new IllegalArgumentException("We currently only accept donations originating from the Bengaluru region.");
         }
 
+        NgoUrgentNeed linkedUrgentNeed = null;
+        Integer donationQty = request.getQuantity();
+
+        if (request.getUrgentNeedId() != null) {
+            linkedUrgentNeed = urgentNeedRepository.findByIdWithLock(request.getUrgentNeedId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Urgent requirement not found with id: " + request.getUrgentNeedId()));
+
+            if (linkedUrgentNeed.getStatus() == UrgentNeedStatus.COMPLETED || !linkedUrgentNeed.isActive()) {
+                throw new IllegalArgumentException("This urgent requirement has already been completed and can no longer accept donations.");
+            }
+
+            if (donationQty == null || donationQty <= 0) {
+                throw new IllegalArgumentException("Donation quantity must be greater than zero for urgent requirements.");
+            }
+
+            if (!linkedUrgentNeed.getNgo().getId().equals(request.getNgoId())) {
+                throw new IllegalArgumentException("Target NGO does not match the urgent requirement's NGO.");
+            }
+
+            int reqQty = linkedUrgentNeed.getQuantity() != null ? linkedUrgentNeed.getQuantity() : 0;
+            int fulQty = linkedUrgentNeed.getFulfilledQuantity() != null ? linkedUrgentNeed.getFulfilledQuantity() : 0;
+            int remQty = Math.max(0, reqQty - fulQty);
+
+            if (reqQty > 0 && donationQty > remQty) {
+                throw new IllegalArgumentException("Submitted quantity (" + donationQty + ") exceeds the remaining requested quantity (" + remQty + ").");
+            }
+        }
+
         Donation donation = Donation.builder()
                 .donor(donor)
                 .ngo(ngo)
+                .urgentNeed(linkedUrgentNeed)
+                .quantity(donationQty != null && donationQty > 0 ? donationQty : (linkedUrgentNeed != null ? 1 : null))
                 .category(request.getCategory())
                 .description(request.getDescription())
                 .photoUrls(request.getPhotoUrls() != null ? request.getPhotoUrls() : List.of())
@@ -296,6 +327,8 @@ public class DonationServiceImpl implements DonationService {
                 .pickupAddress(d.getPickupAddress())
                 .pickupLat(d.getPickupLat())
                 .pickupLng(d.getPickupLng())
+                .urgentNeedId(d.getUrgentNeed() != null ? d.getUrgentNeed().getId() : null)
+                .quantity(d.getQuantity())
                 .createdAt(d.getCreatedAt())
                 .updatedAt(d.getUpdatedAt())
                 .build();

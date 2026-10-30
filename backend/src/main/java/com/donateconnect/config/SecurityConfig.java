@@ -90,7 +90,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/verify-otp", "/api/auth/resend-otp").permitAll()
                 .requestMatchers("/ws/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/ngo", "/api/ngo/*", "/api/ngo/*/ratings").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/urgent-needs", "/api/impact").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/impact").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/lockers", "/api/blockchain", "/api/trades", "/api/sos").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/donations/photo/**").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()

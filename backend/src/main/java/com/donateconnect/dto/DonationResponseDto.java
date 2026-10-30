@@ -29,6 +29,8 @@ public class DonationResponseDto {
     private String pickupAddress;
     private Double pickupLat;
     private Double pickupLng;
+    private UUID urgentNeedId;
+    private Integer quantity;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
