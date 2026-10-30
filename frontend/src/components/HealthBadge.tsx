@@ -1,8 +1,21 @@
 import React from 'react';
+import { useAuth } from '../context/AuthContext';
 import { useHealthCheck } from '../hooks/useHealthCheck';
 import { Activity, RefreshCw } from 'lucide-react';
 
 export const HealthBadge: React.FC = () => {
+  const { user, isAuthenticated } = useAuth();
+  const isAdmin = isAuthenticated && user?.role === 'ADMIN';
+
+  // Restrict health checking and rendering exclusively to authenticated ADMIN users
+  if (!isAdmin) {
+    return null;
+  }
+
+  return <HealthBadgeContent />;
+};
+
+const HealthBadgeContent: React.FC = () => {
   const { health, loading, refetch } = useHealthCheck();
 
   const isUp = health?.status === 'UP';

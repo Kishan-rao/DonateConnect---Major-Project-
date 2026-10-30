@@ -267,13 +267,16 @@ export const Navbar: React.FC = () => {
               {/* Notification Bell */}
               {isAuthenticated && <NotificationBell />}
 
-              {/* Health Badge (Desktop & Tablet) */}
-              <div className="hidden sm:block">
-                <HealthBadge />
-              </div>
-
-              {/* Divider */}
-              <div className="hidden sm:block w-px h-5 bg-[#E5E7EB] shrink-0" />
+              {/* Health Badge (Desktop & Tablet) - Exclusively for ADMIN */}
+              {isAuthenticated && isAdmin && (
+                <>
+                  <div className="hidden sm:block">
+                    <HealthBadge />
+                  </div>
+                  {/* Divider */}
+                  <div className="hidden sm:block w-px h-5 bg-[#E5E7EB] shrink-0" />
+                </>
+              )}
 
               {/* Desktop User Menu */}
               {isAuthenticated && user ? (
@@ -491,6 +494,9 @@ export const Navbar: React.FC = () => {
                         <Link to="/admin/profile" className={drawerLinkClass('/admin/profile')}>
                           <User className="w-4 h-4 text-[#7567E8]" /> Admin Profile
                         </Link>
+                        <div className="pt-2 pb-1 px-3">
+                          <HealthBadge />
+                        </div>
                       </>
                     )}
                   </div>

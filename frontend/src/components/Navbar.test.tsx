@@ -21,6 +21,15 @@ vi.mock('../context/AuthContext', () => ({
   AuthProvider: ({ children }: any) => children,
 }));
 
+vi.mock('../hooks/useHealthCheck', () => ({
+  useHealthCheck: vi.fn(() => ({
+    health: { status: 'UP', service: 'DonateConnect Backend', timestamp: new Date().toISOString() },
+    loading: false,
+    error: null,
+    refetch: vi.fn(),
+  })),
+}));
+
 describe('Navbar Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -129,5 +138,90 @@ describe('Navbar Component', () => {
 
     expect(screen.queryByText('Admin Portal')).not.toBeInTheDocument();
     expect(screen.getByText('Community Relief')).toBeInTheDocument();
+  });
+
+  it('renders Backend status indicator (HealthBadge) exclusively for ADMIN role', () => {
+    (AuthContextModule.useAuth as any).mockReturnValue({
+      user: {
+        id: 'admin-1',
+        fullName: 'System Administrator',
+        email: 'admin@donateconnect.com',
+        role: 'ADMIN',
+      },
+      isAuthenticated: true,
+      logout: vi.fn(),
+    });
+
+    renderNavbar();
+
+    expect(screen.getAllByText('Backend:').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('UP').length).toBeGreaterThan(0);
+  });
+
+  it('does NOT render Backend status indicator for DONOR role', () => {
+    (AuthContextModule.useAuth as any).mockReturnValue({
+      user: {
+        id: 'donor-1',
+        fullName: 'Jane Donor',
+        email: 'jane@example.com',
+        role: 'DONOR',
+      },
+      isAuthenticated: true,
+      logout: vi.fn(),
+    });
+
+    renderNavbar();
+
+    expect(screen.queryByText('Backend:')).not.toBeInTheDocument();
+    expect(screen.queryByText('UP')).not.toBeInTheDocument();
+  });
+
+  it('does NOT render Backend status indicator for NGO role', () => {
+    (AuthContextModule.useAuth as any).mockReturnValue({
+      user: {
+        id: 'ngo-1',
+        fullName: 'Food Rescue NGO',
+        email: 'ngo@example.com',
+        role: 'NGO',
+      },
+      isAuthenticated: true,
+      logout: vi.fn(),
+    });
+
+    renderNavbar();
+
+    expect(screen.queryByText('Backend:')).not.toBeInTheDocument();
+    expect(screen.queryByText('UP')).not.toBeInTheDocument();
+  });
+
+  it('does NOT render Backend status indicator for VOLUNTEER (Delivery Partner) role', () => {
+    (AuthContextModule.useAuth as any).mockReturnValue({
+      user: {
+        id: 'vol-1',
+        fullName: 'Express Driver',
+        email: 'driver@example.com',
+        role: 'VOLUNTEER',
+      },
+      isAuthenticated: true,
+      logout: vi.fn(),
+    });
+
+    renderNavbar();
+
+    expect(screen.queryByText('Backend:')).not.toBeInTheDocument();
+    expect(screen.queryByText('UP')).not.toBeInTheDocument();
+  });
+
+  it('does NOT render Backend status indicator when unauthenticated (e.g. login/register pages)', () => {
+    (AuthContextModule.useAuth as any).mockReturnValue({
+      user: null,
+      isAuthenticated: false,
+      logout: vi.fn(),
+    });
+
+    renderNavbar();
+
+    expect(screen.queryByText('Backend:')).not.toBeInTheDocument();
+    expect(screen.queryByText('UP')).not.toBeInTheDocument();
   });
 });
