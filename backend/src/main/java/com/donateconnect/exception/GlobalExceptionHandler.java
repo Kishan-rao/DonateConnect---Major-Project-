@@ -111,6 +111,13 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error("The resource was updated by another user. Please refresh and try again."));
     }
 
+    @ExceptionHandler(org.springframework.dao.DataAccessException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDataAccessException(org.springframework.dao.DataAccessException ex) {
+        log.error("Database access error: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error("Database service unavailable or schema migration pending. Please retry in a moment."));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleAllExceptions(Exception ex) {
         log.error("An unexpected error occurred", ex);

@@ -43,6 +43,10 @@ public class Donation {
     @Column(name = "quantity")
     private Integer quantity;
 
+    public Integer getQuantity() {
+        return (quantity != null && quantity > 0) ? quantity : 1;
+    }
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private Category category;

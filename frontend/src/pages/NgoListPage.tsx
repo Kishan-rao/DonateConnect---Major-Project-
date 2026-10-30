@@ -9,9 +9,18 @@ const CATEGORIES = [
   'FOOD', 'CLOTHING', 'MEDICAL', 'EDUCATION', 'FURNITURE', 'OTHER'
 ];
 
+const useAuthSafe = () => {
+  try {
+    return useAuth();
+  } catch {
+    return null;
+  }
+};
+
 export const NgoListPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const auth = useAuthSafe();
+  const user = auth?.user;
   const normalizedRole = user?.role ? (user.role as string).replace(/^ROLE_/, '').toUpperCase() : null;
   const canViewUrgentNeeds = normalizedRole !== 'NGO' && normalizedRole !== 'VOLUNTEER';
 

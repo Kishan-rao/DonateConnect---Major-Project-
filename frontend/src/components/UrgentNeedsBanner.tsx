@@ -5,8 +5,17 @@ import { NgoUrgentNeed } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { ShieldCheck, HeartHandshake } from 'lucide-react';
 
+const useAuthSafe = () => {
+  try {
+    return useAuth();
+  } catch {
+    return null;
+  }
+};
+
 export const UrgentNeedsBanner: React.FC = () => {
-  const { user } = useAuth();
+  const auth = useAuthSafe();
+  const user = auth?.user;
   const [urgentNeeds, setUrgentNeeds] = useState<NgoUrgentNeed[]>([]);
   const [loading, setLoading] = useState(true);
 

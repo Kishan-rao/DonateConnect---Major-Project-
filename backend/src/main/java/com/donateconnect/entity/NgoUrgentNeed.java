@@ -37,7 +37,7 @@ public class NgoUrgentNeed {
     private Category category;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 20)
+    @Column(name = "status", length = 20, columnDefinition = "varchar(20) default 'ACTIVE'")
     @Builder.Default
     private UrgentNeedStatus status = UrgentNeedStatus.ACTIVE;
 
@@ -58,4 +58,15 @@ public class NgoUrgentNeed {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    public UrgentNeedStatus getStatus() {
+        if (status == null) {
+            return active ? UrgentNeedStatus.ACTIVE : UrgentNeedStatus.COMPLETED;
+        }
+        return status;
+    }
+
+    public Integer getFulfilledQuantity() {
+        return fulfilledQuantity != null ? fulfilledQuantity : 0;
+    }
 }

@@ -99,6 +99,24 @@ export const NgoProfilePage: React.FC = () => {
     );
   }
 
+  if (!profile && error) {
+    return (
+      <div className="max-w-xl mx-auto py-16 text-center space-y-4">
+        <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center mx-auto">
+          <AlertCircle className="w-6 h-6" />
+        </div>
+        <h2 className="text-lg font-bold text-[#111827]">Unable to load NGO profile</h2>
+        <p className="text-[#4B5563] text-sm">{error}</p>
+        <button
+          onClick={fetchProfile}
+          className="px-5 py-2.5 rounded-xl bg-[#7567E8] hover:bg-[#6052d4] text-white font-medium text-sm transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-3xl mx-auto py-8 space-y-6">
       <div className="bg-white border border-[#E5E7EB] rounded-3xl p-6 sm:p-10 shadow-sm space-y-8">
@@ -133,8 +151,9 @@ export const NgoProfilePage: React.FC = () => {
         )}
 
         {error && (
-          <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm">
-            {error}
+          <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+            <span>{error}</span>
           </div>
         )}
 
